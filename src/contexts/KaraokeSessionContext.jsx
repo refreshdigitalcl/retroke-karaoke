@@ -1,95 +1,118 @@
-import { createContext, useContext, useState, useCallback } from 'react'
+import { createContext, useContext, useState, useCallback, useEffect } from 'react'
+import { supabase } from '../lib/supabase'
 
-  const KaraokeSessionContext = createContext(null)
+const KaraokeSessionContext = createContext(null)
 
 const REACTION_EMOJIS = ['🔥', '👏', '❤️', '🎤', '⭐', '🙌']
-
-  let idCounter = 1
-function nextId() {
-  return idCounter++
-    }
-
-const initialQueue = [
-{ id: nextId(), name: 'Matías', avatar: '🦄', song: "Livin' la Vida Loca", youtubeUrl: '', status: 'waiting' },
-{ id: nextId(), name: 'Fernanda', avatar: '👽', song: 'Rolling in the Deep', youtubeUrl: '', status: 'waiting' }
-]
+const SESSION_ID = 'LATERRAZA'
 
 export function KaraokeSessionProvider({ children }) {
-  const [barName] = useState('Bar La Terraza')
-  const [sessionCode] = useState('LATERRAZA')
-  const [queue, setQueue] = useState(initialQueue)
-  const [currentSinger, setCurrentSinger] = useState(null)
-  const [screenMode, setScreenMode] = useState('queue')
-  const [reactions, setReactions] = useState([])
-  const [ratings, setRatings] = useState([])
+    const [barName, setBarName] = useState('Bar La Terraza')
+    const [sessionCode] = useState(SESSION_ID)
+    const [queue, setQueue] = useState([])
+    const [currentSinger, setCurrentSinger] = useState(null)
+    const [screenMode, setScreenMode] = useState('queue')
+    const [reactions, setReactions] = useState([])
+    const [ratings, setRatings] = useState([])
 
-  const addToQueue = useCallback((entry) => {
-    setQueue((prev) => [...prev, { id: nextId(), name: entry.name, avatar: entry.avatar, song: entry.song, youtubeUrl: entry.youtubeUrl || '', status: 'waiting' }])
-      }, [])
+  const loadQueue = useCallback(async () => {
+        const { data } = await supabase.from('queue_entries').select('*').eq('session_id', SESSION_ID).order('position', { ascending: true })
+        if (data) {
+                setQueue(data.map((row) => ({ id: row.id, name: row.name, avatar: row.avatar, song: row.song, youtubeUrl: row.youtube_url || '' })))
+        }
+  }, [])
 
-  const removeFromQueue = useCallback((id) => {
-    setQueue((prev) => prev.filter((entry) => entry.id !== id))
-}, [])
+  const loadSession = useCallback(async () => {
+        const { data } = await supabase.from('sessions').select('*').eq('id', SESSION_ID).single()
+        if (data) {
+                setBarName(data.bar_name)
+                setScreenMode(data.screen_mode)
+                setCurrentSinger(data.current_singer)
+        }
+  }, [])
 
-  const reorderQueue = useCallback((fromIndex, toIndex) => {
-    setQueue((prev) => {
-      const next = [...prev]
-      const [moved] = next.splice(fromIndex, 1)
-      next.splice(toIndex, 0, moved)
-      return next
-})
-}, [])
+  const loadRatings = useCallback(async () => {
+        const { data } = await supabase.from('ratings').select('*').eq('session_id', SESSION_ID).order('created_at', { ascending: true })
+        if (data) {
+                setRatings(data.map((row) => ({ singerId: row.singer_id, name: row.singer_name, song: row.song, score: row.score })))
+        }
+  }, [])
 
-  const startNextSinger = useCallback(() => {
-    setQueue((prev) => {
-      if (prev.length === 0) return prev
-      const [next, ...rest] = prev
-      setCurrentSinger(next)
-      setScreenMode('reactions')
-      setReactions([])
-      return rest
-})
-}, [])
+  useEffect(() => {
+        loadQueue()
+        loadSession()
+        loadRatings()
 
-  const finishCurrentSong = useCallback(() => {
-    setScreenMode('rating')
-}, [])
+                const channel = supabase
+          .channel('karaoke-' + SESSION_ID)
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'queue_entries', filter: `session_id=eq.${SESSION_ID}` }, loadQueue)
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'sessions', filter: `id=eq.${SESSION_ID}` }, loadSession)
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'ratings', filter: `session_id=eq.${SESSION_ID}` }, loadRatings)
+          .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'reactions', filter: `session_id=eq.${SESSION_ID}` }, (payload) => {
+                    const id = payload.new.id
+                    const emoji = payload.new.emoji
+                    setReactions((prev) => [...prev, { id, emoji }])
+                    setTimeout(() => {
+                                setReactions((prev) => prev.filter((r) => r.id !== id))
+                    }, 2000)
+          })
+          .subscribe()
 
-  const submitRating = useCallback((score) => {
-    if (!currentSinger) return
-    setRatings((prev) => [...prev, { singerId: currentSinger.id, name: currentSinger.name, song: currentSinger.song, score }])
-}, [currentSinger])
+                return () => {
+                        supabase.removeChannel(channel)
+                }
+  }, [loadQueue, loadSession, loadRatings])
 
-  const returnToQueue = useCallback(() => {
-    setCurrentSinger(null)
-    setScreenMode('queue')
-}, [])
+  const addToQueue = useCallback(async (entry) => {
+        const nextPosition = queue.length + 1
+        await supabase.from('queue_entries').insert({ session_id: SESSION_ID, name: entry.name, avatar: entry.avatar, song: entry.song, youtube_url: entry.youtubeUrl || '', position: nextPosition })
+  }, [queue.length])
 
-  const addReaction = useCallback((emoji) => {
-    const id = nextId()
-    setReactions((prev) => [...prev, { id, emoji }])
-    setTimeout(() => {
-      setReactions((prev) => prev.filter((r) => r.id !== id))
-    }, 2000)
-}, [])
+  const removeFromQueue = useCallback(async (id) => {
+        await supabase.from('queue_entries').delete().eq('id', id)
+  }, [])
+
+  const reorderQueue = useCallback(() => {}, [])
+
+  const startNextSinger = useCallback(async () => {
+        if (queue.length === 0) return
+        const next = queue[0]
+        await supabase.from('sessions').update({ current_singer: next, screen_mode: 'reactions' }).eq('id', SESSION_ID)
+        await supabase.from('queue_entries').delete().eq('id', next.id)
+  }, [queue])
+
+  const finishCurrentSong = useCallback(async () => {
+        await supabase.from('sessions').update({ screen_mode: 'rating' }).eq('id', SESSION_ID)
+  }, [])
+
+  const submitRating = useCallback(async (score) => {
+        if (!currentSinger) return
+        await supabase.from('ratings').insert({ session_id: SESSION_ID, singer_id: String(currentSinger.id), singer_name: currentSinger.name, song: currentSinger.song, score })
+  }, [currentSinger])
+
+  const returnToQueue = useCallback(async () => {
+        await supabase.from('sessions').update({ current_singer: null, screen_mode: 'queue' }).eq('id', SESSION_ID)
+  }, [])
+
+  const addReaction = useCallback(async (emoji) => {
+        await supabase.from('reactions').insert({ session_id: SESSION_ID, emoji })
+  }, [])
 
   const value = {
-    barName, sessionCode, queue, currentSinger, screenMode, reactions, ratings,
-    reactionEmojis: REACTION_EMOJIS,
-    addToQueue, removeFromQueue, reorderQueue, startNextSinger, finishCurrentSong, submitRating, returnToQueue, addReaction
-}
+        barName, sessionCode, queue, currentSinger, screenMode, reactions, ratings,
+        reactionEmojis: REACTION_EMOJIS,
+        addToQueue, removeFromQueue, reorderQueue, startNextSinger, finishCurrentSong, submitRating, returnToQueue, addReaction
+  }
 
   return (
-    <KaraokeSessionContext.Provider value={value}>
-{children}
-    </KaraokeSessionContext.Provider>
-  )
+        <KaraokeSessionContext.Provider value={value}>{children}</KaraokeSessionContext.Provider>KaraokeSessionContext.Provider>
+      )
 }
 
 export function useKaraokeSession() {
-  const context = useContext(KaraokeSessionContext)
-  if (!context) {
-    throw new Error('useKaraokeSession debe usarse dentro de KaraokeSessionProvider')
-}
-  return context
+    const context = useContext(KaraokeSessionContext)
+    if (!context) {
+          throw new Error('useKaraokeSession debe usarse dentro de KaraokeSessionProvider')
+    }
+    return context
 }
