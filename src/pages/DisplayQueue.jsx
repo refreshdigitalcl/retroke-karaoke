@@ -1,4 +1,4 @@
-import { useKaraokeSession } from '../contexts/KaraokeSessionContext'
+óóáíimport { useKaraokeSession } from '../contexts/KaraokeSessionContext'
 import RetroEqualizer from '../components/RetroEqualizer'
 import ThemeToggle from '../components/ThemeToggle'
 
