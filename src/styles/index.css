@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-page: #f4f4f2;
+    --bg-card: #ffffff;
+      --bg-card-alt: #f0f0ee;
+        --text-primary: #17171a;
+          --text-secondary: #5f5e5a;
+            --text-muted: #8f8e88;
+              --border: rgba(0, 0, 0, 0.1);
+                --accent-magenta: #e91e8c;
+                  --accent-purple: #8b5cf6;
+                    --accent-green: #7ed957;
+                      --accent-yellow: #f4d03f;
+                      }
+
+                      .dark {
+                        --bg-page: #0a0a0a;
+                          --bg-card: #171717;
+                            --bg-card-alt: #1f1f1f;
+                              --text-primary: #ffffff;
+                                --text-secondary: #a3a3a3;
+                                  --text-muted: #6b6b6b;
+                                    --border: rgba(255, 255, 255, 0.12);
+                                      --accent-magenta: #e91e8c;
+                                        --accent-purple: #8b5cf6;
+                                          --accent-green: #7ed957;
+                                            --accent-yellow: #f4d03f;
+                                            }
+
+                                            html, body {
+                                              margin: 0;
+                                                padding: 0;
+                                                  font-family: 'Poppins', system-ui, sans-serif;
+                                                    background: var(--bg-page);
+                                                      color: var(--text-primary);
+                                                        transition: background 0.2s ease, color 0.2s ease;
+                                                        }
+
+                                                        * {
+                                                          box-sizing: border-box;
+                                                          }
+                                                          
