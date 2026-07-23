@@ -1,27 +1,72 @@
+import { useEffect, useState } from 'react'
 import { useKaraokeSession } from '../contexts/KaraokeSessionContext'
 import RetroEqualizer from '../components/RetroEqualizer'
 import QRCode from '../components/QRCode'
+import FloatingDecor from '../components/FloatingDecor'
 
 function QueueRow(props) {
   var entry = props.entry
   var position = props.position
+  var isNext = position === 1
+
+  var [artwork, setArtwork] = useState(null)
+  var [artist, setArtist] = useState('')
+  var [status, setStatus] = useState('loading')
+
+  useEffect(function () {
+    var cancelled = false
+    var query = encodeURIComponent(entry.song)
+    fetch('https://itunes.apple.com/search?term=' + query + '&entity=song&limit=1')
+      .then(function (res) {
+        return res.json()
+      })
+      .then(function (data) {
+        if (cancelled) return
+        if (data.results && data.results.length > 0) {
+          setArtwork(data.results[0].artworkUrl100)
+          setArtist(data.results[0].artistName)
+          setStatus('found')
+        } else {
+          setStatus('none')
+        }
+      })
+      .catch(function () {
+        if (!cancelled) setStatus('none')
+      })
+    return function () {
+      cancelled = true
+    }
+  }, [entry.song])
+
   return (
-    <div className="flex items-center gap-3 rounded-r-xl py-2.5 px-4 border-l-4 border-purple-500 bg-neutral-900/80">
-      <span className="w-6 text-sm font-semibold text-purple-400">
-        {position}
-      </span>
-      <div className="w-9 h-9 rounded-full flex items-center justify-center text-base bg-pink-600 shrink-0">
-        {entry.avatar}
+    <div className="relative rounded-xl p-3 bg-neutral-900/80 border border-neutral-800 flex items-center gap-3">
+      {isNext && (
+        <span className="absolute -top-2 -right-2 text-[10px] font-bold px-2.5 py-1 rounded-full bg-lime-400 text-black tracking-wide shadow-[0_0_12px_3px_rgba(163,230,53,0.65)] rotate-3 z-10">
+          READY
+        </span>
+      )}
+      <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0 bg-pink-600 flex items-center justify-center text-xl">
+        {artwork ? (
+          <img src={artwork} alt={entry.song} className="w-full h-full object-cover" />
+        ) : (
+          entry.avatar
+        )}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm text-white truncate">{entry.name}</p>
+        <p className="text-sm font-semibold text-white truncate">{entry.name}</p>
+        <p className="text-xs text-purple-300 truncate">
+          {status === 'loading' && 'Buscando artista...'}
+          {status === 'found' && artist}
+          {status === 'none' && 'Artista no encontrado'}
+        </p>
         <p className="text-xs text-neutral-400 truncate">{entry.song}</p>
       </div>
+      <span className="text-xs text-neutral-500 shrink-0 self-start mt-1">#{position}</span>
     </div>
   )
 }
 
-function QueueList(props) {
+function Backstage(props) {
   var queue = props.queue
   var rows = []
   var i = 0
@@ -29,54 +74,19 @@ function QueueList(props) {
     rows.push(<QueueRow key={queue[i].id} entry={queue[i]} position={i + 1} />)
     i = i + 1
   }
-  return <div className="flex flex-col gap-2">{rows}</div>
-}
 
-function WaitingHero(props) {
-  var registerUrl = props.registerUrl
-  var sessionCode = props.sessionCode
-  var queueCount = props.queueCount
   return (
-    <div className="relative z-10 flex-1 flex flex-col items-center justify-center text-center px-6">
-      <p className="text-sm tracking-[6px] uppercase text-yellow-400 mb-3">
-        Karaoke en vivo
+    <div className="w-full h-full flex flex-col rounded-3xl border-2 border-purple-500 bg-neutral-950/80 px-6 py-6">
+      <p className="text-xs tracking-[4px] uppercase text-purple-400 mb-1">
+        Lista de espera
       </p>
-      <h1 className="text-4xl md:text-6xl font-extrabold text-white leading-tight mb-4 max-w-3xl">
-        Únete a nuestra{' '}
-        <span className="text-pink-500">fiesta de karaoke</span>
-      </h1>
-      <p className="text-base md:text-lg text-neutral-300 mb-10 max-w-xl">
-        Escanea el código QR en pantalla, anota tu nombre y tu canción,
-        y prepárate para brillar en el escenario.
-      </p>
-      <div className="rounded-3xl border-2 border-yellow-400 bg-neutral-900/90 px-10 py-8 flex flex-col items-center gap-4 shadow-2xl">
-        <QRCode url={registerUrl} size={260} />
-        <p className="text-sm font-semibold text-purple-300 tracking-wide">
-          karaoke.cl/{sessionCode}
-        </p>
-      </div>
-      {queueCount > 0 && (
-        <p className="text-sm text-neutral-400 mt-8">
-          {queueCount} {queueCount === 1 ? 'persona ya se anotó' : 'personas ya se anotaron'} para cantar
+      <h2 className="text-2xl font-extrabold text-white mb-5">Backstage</h2>
+      {rows.length === 0 && (
+        <p className="text-sm text-neutral-500">
+          Aún no hay nadie anotado. Escanea el QR y sé el primero en subir al escenario.
         </p>
       )}
-    </div>
-  )
-}
-
-function SingerSpotlight(props) {
-  var name = props.name
-  var song = props.song
-  var avatar = props.avatar
-  return (
-    <div className="inline-flex items-center gap-5 rounded-2xl px-8 py-5 border-2 border-pink-600 bg-neutral-900/90">
-      <div className="w-16 h-16 rounded-full flex items-center justify-center text-3xl bg-pink-600 shrink-0">
-        {avatar}
-      </div>
-      <div className="text-left">
-        <p className="text-2xl font-bold text-white">{name}</p>
-        <p className="text-base text-purple-300">{song}</p>
-      </div>
+      <div className="flex flex-col gap-3 overflow-y-auto pr-1">{rows}</div>
     </div>
   )
 }
@@ -86,7 +96,6 @@ export default function DisplayQueue() {
   var barName = session.barName
   var sessionCode = session.sessionCode
   var queue = session.queue
-  var currentSinger = session.currentSinger
 
   var origin = ''
   if (typeof window !== 'undefined') {
@@ -94,13 +103,12 @@ export default function DisplayQueue() {
   }
   var registerUrl = origin + '/registro?bar=' + sessionCode
 
-  var hasSinger = !!currentSinger
-
   return (
     <div className="min-h-screen relative overflow-hidden flex flex-col bg-black">
       <RetroEqualizer />
+      <FloatingDecor />
 
-      <header className="flex items-center justify-center relative z-10 pt-8 pb-2">
+      <header className="flex items-center justify-center relative z-10 pt-8 pb-4">
         <div className="px-5 py-2 -skew-x-6 bg-pink-600">
           <span className="inline-block skew-x-6 text-base font-bold text-white tracking-wide">
             {barName}
@@ -108,51 +116,31 @@ export default function DisplayQueue() {
         </div>
       </header>
 
-      {!hasSinger && (
-        <WaitingHero
-          registerUrl={registerUrl}
-          sessionCode={sessionCode}
-          queueCount={queue.length}
-        />
-      )}
-
-      {hasSinger && (
-        <section className="relative z-10 flex-1 flex flex-col md:flex-row gap-10 max-w-6xl w-full mx-auto px-8 py-8 items-start">
-          <div className="flex-1 w-full flex flex-col items-center md:items-start gap-8">
-            <div>
-              <p className="text-sm mb-3 tracking-widest uppercase text-yellow-400 text-center md:text-left">
-                Cantando ahora
-              </p>
-              <SingerSpotlight
-                name={currentSinger.name}
-                song={currentSinger.song}
-                avatar={currentSinger.avatar}
-              />
-            </div>
-            <div className="w-full max-w-md">
-              <p className="text-sm mb-3 tracking-widest uppercase text-yellow-400 text-center md:text-left">
-                Próximos en la fila
-              </p>
-              {queue.length === 0 && (
-                <p className="text-sm text-neutral-500">
-                  Nadie más en la fila todavía.
-                </p>
-              )}
-              <QueueList queue={queue} />
-            </div>
-          </div>
-
-          <div className="rounded-2xl border-2 border-yellow-400 bg-neutral-900/90 px-6 py-6 flex flex-col items-center gap-3 mx-auto md:mx-0 shrink-0">
-            <p className="text-sm font-semibold text-yellow-400">
-              Sigue la fiesta
-            </p>
-            <QRCode url={registerUrl} size={160} />
-            <p className="text-xs text-purple-300">
+      <main className="relative z-10 flex-1 grid grid-cols-1 md:grid-cols-2 gap-8 max-w-6xl w-full mx-auto px-8 pb-10">
+        <div className="flex flex-col items-center justify-center text-center">
+          <p className="text-xs tracking-[6px] uppercase text-yellow-400 mb-3">
+            Karaoke en vivo
+          </p>
+          <h1 className="text-3xl md:text-5xl font-extrabold text-white leading-tight mb-4">
+            Únete a nuestra{' '}
+            <span className="text-pink-500">fiesta de karaoke</span>
+          </h1>
+          <p className="text-sm md:text-base text-neutral-300 mb-8 max-w-md">
+            Escanea el código QR, anota tu nombre y tu canción, y prepárate
+            para brillar en el escenario.
+          </p>
+          <div className="rounded-3xl border-2 border-yellow-400 bg-neutral-900/90 px-8 py-7 flex flex-col items-center gap-3 shadow-2xl">
+            <QRCode url={registerUrl} size={220} />
+            <p className="text-sm font-semibold text-purple-300 tracking-wide">
               karaoke.cl/{sessionCode}
             </p>
           </div>
-        </section>
-      )}
+        </div>
+
+        <div className="min-h-[420px]">
+          <Backstage queue={queue} />
+        </div>
+      </main>
     </div>
   )
 }
