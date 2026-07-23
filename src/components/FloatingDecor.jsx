@@ -1,5 +1,11 @@
 var STAGE_LIGHT_COLORS = ['#E91E8C', '#8B5CF6', '#F4D03F', '#7ED957', '#E91E8C']
 var STAGE_LIGHT_POSITIONS = ['8%', '27%', '50%', '73%', '92%']
+var SMOKE_BLOBS = [
+  { left: '4%', size: 220, delay: '0s', duration: '11s' },
+  { left: '28%', size: 260, delay: '2.5s', duration: '13s' },
+  { left: '55%', size: 230, delay: '1.2s', duration: '12s' },
+  { left: '80%', size: 250, delay: '3.4s', duration: '14s' }
+]
 
 function StageLights() {
   var lights = []
@@ -32,21 +38,62 @@ function StageLights() {
   return <div className="absolute inset-x-0 top-0 z-0 pointer-events-none">{lights}</div>
 }
 
+function StageSmoke() {
+  var blobs = []
+  var i = 0
+  while (i < SMOKE_BLOBS.length) {
+    var b = SMOKE_BLOBS[i]
+    blobs.push(
+      <div
+        key={i}
+        className="smoke-blob"
+        style={{
+          left: b.left,
+          width: b.size,
+          height: b.size,
+          animationDelay: b.delay,
+          animationDuration: b.duration
+        }}
+      />
+    )
+    i = i + 1
+  }
+  return <div className="absolute inset-x-0 bottom-0 h-64 z-0 pointer-events-none overflow-hidden">{blobs}</div>
+}
+
+function SingingDancer() {
+  return (
+    <svg width="150" height="250" viewBox="0 0 90 150" style={{ opacity: 0.6 }}>
+      <circle cx="45" cy="16" r="11" fill="none" stroke="#E91E8C" strokeWidth="2.5" />
+      <path
+        d="M34 10 Q 22 18 29 32 Q 24 22 34 10 Z"
+        fill="none"
+        stroke="#E91E8C"
+        strokeWidth="2"
+      />
+      <path
+        d="M38 26 L34 34 C 26 46 22 70 20 96 Q 45 104 70 96 C 68 70 64 46 56 34 L52 26 Z"
+        fill="none"
+        stroke="#E91E8C"
+        strokeWidth="2.5"
+      />
+      <path d="M56 30 C 66 26 72 18 70 10" fill="none" stroke="#E91E8C" strokeWidth="2.5" strokeLinecap="round" />
+      <circle cx="70" cy="8" r="3.5" fill="none" stroke="#E91E8C" strokeWidth="2" />
+      <path d="M34 32 C 24 34 16 42 14 54" fill="none" stroke="#E91E8C" strokeWidth="2.5" strokeLinecap="round" />
+      <path d="M40 96 C 34 110 30 122 36 134 C 38 138 42 138 44 136" fill="none" stroke="#E91E8C" strokeWidth="2.5" strokeLinecap="round" />
+      <path d="M55 96 L 58 118" fill="none" stroke="#E91E8C" strokeWidth="2.5" strokeLinecap="round" />
+    </svg>
+  )
+}
+
 export default function FloatingDecor() {
   return (
     <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
       <StageLights />
+      <StageSmoke />
 
-      <div className="decor-float" style={{ position: 'absolute', top: '20%', left: '5%' }}>
-        <svg width="92" height="92" viewBox="0 0 64 64" style={{ transform: 'rotate(-10deg)', opacity: 0.6 }}>
-          <ellipse cx="32" cy="18" rx="13" ry="16" fill="none" stroke="#E91E8C" strokeWidth="3" />
-          <line x1="24" y1="12" x2="40" y2="12" stroke="#E91E8C" strokeWidth="1.5" opacity="0.7" />
-          <line x1="23" y1="17" x2="41" y2="17" stroke="#E91E8C" strokeWidth="1.5" opacity="0.7" />
-          <line x1="23" y1="22" x2="41" y2="22" stroke="#E91E8C" strokeWidth="1.5" opacity="0.7" />
-          <line x1="24" y1="27" x2="40" y2="27" stroke="#E91E8C" strokeWidth="1.5" opacity="0.7" />
-          <path d="M18 30 a14 14 0 0 0 28 0" fill="none" stroke="#E91E8C" strokeWidth="3" strokeLinecap="round" />
-          <line x1="32" y1="44" x2="32" y2="58" stroke="#E91E8C" strokeWidth="3" strokeLinecap="round" />
-        </svg>
+      <div className="decor-dance" style={{ position: 'absolute', top: '10%', left: '3%' }}>
+        <SingingDancer />
       </div>
 
       <div className="decor-float-slow" style={{ position: 'absolute', bottom: '10%', left: '7%' }}>
@@ -94,6 +141,9 @@ export default function FloatingDecor() {
         .decor-float-slow {
           animation: decorBob 7.5s ease-in-out infinite;
         }
+        .decor-dance {
+          animation: decorDance 6s ease-in-out infinite;
+        }
         .decor-spin-slow {
           animation: decorSpin 9s linear infinite;
         }
@@ -103,9 +153,23 @@ export default function FloatingDecor() {
         .stage-light-flicker {
           animation: stageFlicker 3.2s ease-in-out infinite;
         }
+        .smoke-blob {
+          position: absolute;
+          bottom: -60px;
+          border-radius: 50%;
+          background: radial-gradient(circle, rgba(255,255,255,0.14), rgba(255,255,255,0) 70%);
+          filter: blur(18px);
+          animation-name: smokeDrift;
+          animation-timing-function: ease-in-out;
+          animation-iteration-count: infinite;
+        }
         @keyframes decorBob {
           0%, 100% { transform: translateY(0); }
           50% { transform: translateY(-16px); }
+        }
+        @keyframes decorDance {
+          0%, 100% { transform: translateY(0) rotate(-4deg); }
+          50% { transform: translateY(-14px) rotate(4deg); }
         }
         @keyframes decorSpin {
           from { transform: rotate(0deg); }
@@ -114,6 +178,11 @@ export default function FloatingDecor() {
         @keyframes stageFlicker {
           0%, 100% { opacity: 0.9; }
           50% { opacity: 0.35; }
+        }
+        @keyframes smokeDrift {
+          0% { transform: translate(0,0) scale(1); opacity: 0.5; }
+          50% { transform: translate(26px,-46px) scale(1.15); opacity: 0.75; }
+          100% { transform: translate(-18px,-10px) scale(1); opacity: 0.5; }
         }
       `}</style>
     </div>

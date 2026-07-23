@@ -48,12 +48,7 @@ function QueueRow(props) {
   }, [entry.song])
 
   return (
-    <div className="relative rounded-xl p-3 pt-4 bg-neutral-900/80 border border-neutral-800 flex items-center gap-3">
-      {isNext && (
-        <span className="ready-pulse absolute top-1.5 right-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full bg-lime-400 text-black tracking-wide z-10">
-          READY
-        </span>
-      )}
+    <div className="relative rounded-xl p-3 bg-neutral-900/80 border border-neutral-800 flex items-center gap-3">
       <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0 bg-pink-600 flex items-center justify-center text-xl">
         {artwork ? (
           <img src={artwork} alt={entry.song} className="w-full h-full object-cover" />
@@ -70,7 +65,14 @@ function QueueRow(props) {
         </p>
         <p className="text-xs text-neutral-400 truncate">{entry.song}</p>
       </div>
-      <span className="text-xs text-neutral-500 shrink-0 self-start mt-1">#{position}</span>
+      <div className="flex flex-col items-end gap-1.5 shrink-0">
+        <span className="text-xs text-neutral-500">#{position}</span>
+        {isNext && (
+          <span className="ready-pulse text-[10px] font-bold px-2.5 py-1 rounded-full bg-lime-400 text-black tracking-wide">
+            READY
+          </span>
+        )}
+      </div>
     </div>
   )
 }
@@ -95,7 +97,7 @@ function Backstage(props) {
           Aun no hay nadie anotado. Escanea el QR y se el primero en subir al escenario.
         </p>
       )}
-      <div className="flex flex-col gap-3 overflow-y-auto pr-1">{rows}</div>
+      <div className="flex flex-col gap-3 overflow-y-auto pr-1 max-h-[520px]">{rows}</div>
       <style>{`
         .ready-pulse {
           animation: readyPulse 1.6s ease-in-out infinite;
@@ -157,7 +159,7 @@ export default function DisplayQueue() {
           </div>
         </div>
 
-        <div className="min-h-[420px]">
+        <div className="min-h-[560px]">
           <Backstage queue={queue} />
         </div>
       </main>
