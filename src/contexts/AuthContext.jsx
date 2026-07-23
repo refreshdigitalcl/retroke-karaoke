@@ -16,53 +16,64 @@ export function AuthProvider({ children }) {
   var isGlobalAdmin = isGlobalAdminState[0]
   var setIsGlobalAdmin = isGlobalAdminState[1]
 
-  async function claimPendingInvites(user) {
-    if (!user || !user.email) return
-    await supabase
-      .from('bar_members')
-      .update({ user_id: user.id })
-      .eq('invited_email', user.email)
-      .is('user_id', null)
-  }
-
-  async function loadIsAdmin(userId) {
-    if (!userId) {
-      setIsGlobalAdmin(false)
-      return
-    }
-    const { data } = await supabase
-      .from('profiles')
-      .select('is_global_admin')
-      .eq('id', userId)
-      .maybeSingle()
-    setIsGlobalAdmin(!!(data && data.is_global_admin))
-  }
+  var adminCheckedState = useState(false)
+  var adminChecked = adminCheckedState[0]
+  var setAdminChecked = adminCheckedState[1]
 
   useEffect(function () {
     supabase.auth.getSession().then(function (result) {
-      const currentSession = result.data.session
-      setSession(currentSession)
+      setSession(result.data.session)
       setLoading(false)
-      if (currentSession && currentSession.user) {
-        claimPendingInvites(currentSession.user)
-        loadIsAdmin(currentSession.user.id)
-      }
     })
 
-    const sub = supabase.auth.onAuthStateChange(function (event, newSession) {
+    var sub = supabase.auth.onAuthStateChange(function (event, newSession) {
       setSession(newSession)
-      if (newSession && newSession.user) {
-        claimPendingInvites(newSession.user)
-        loadIsAdmin(newSession.user.id)
-      } else {
-        setIsGlobalAdmin(false)
-      }
     })
 
     return function () {
       sub.data.subscription.unsubscribe()
     }
   }, [])
+
+  var userId = session && session.user ? session.user.id : null
+  var userEmail = session && session.user ? session.user.email : null
+
+  useEffect(function () {
+    var cancelled = false
+
+    if (!userId) {
+      setIsGlobalAdmin(false)
+      setAdminChecked(true)
+      return
+    }
+
+    setAdminChecked(false)
+
+    if (userEmail) {
+      supabase
+        .from('bar_members')
+        .update({ user_id: userId })
+        .eq('invited_email', userEmail)
+        .is('user_id', null)
+        .then(function () {})
+    }
+
+    supabase
+      .from('profiles')
+      .select('is_global_admin')
+      .eq('id', userId)
+      .maybeSingle()
+      .then(function (result) {
+        if (cancelled) return
+        var admin = !!(result.data && result.data.is_global_admin)
+        setIsGlobalAdmin(admin)
+        setAdminChecked(true)
+      })
+
+    return function () {
+      cancelled = true
+    }
+  }, [userId, userEmail])
 
   function signInWithEmail(email) {
     return supabase.auth.signInWithOtp({
@@ -77,7 +88,7 @@ export function AuthProvider({ children }) {
 
   var value = {
     session: session,
-    loading: loading,
+    loading: loading || (!!userId && !adminChecked),
     isGlobalAdmin: isGlobalAdmin,
     signInWithEmail: signInWithEmail,
     signOut: signOut
