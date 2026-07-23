@@ -3,15 +3,24 @@ import { useKaraokeSession } from '../contexts/KaraokeSessionContext'
 import RetroEqualizer from '../components/RetroEqualizer'
 import QRCode from '../components/QRCode'
 import FloatingDecor from '../components/FloatingDecor'
+import FullscreenButton from '../components/FullscreenButton'
 
 function QueueRow(props) {
   var entry = props.entry
   var position = props.position
   var isNext = position === 1
 
-  var [artwork, setArtwork] = useState(null)
-  var [artist, setArtist] = useState('')
-  var [status, setStatus] = useState('loading')
+  var artworkState = useState(null)
+  var artwork = artworkState[0]
+  var setArtwork = artworkState[1]
+
+  var artistState = useState('')
+  var artist = artistState[0]
+  var setArtist = artistState[1]
+
+  var statusState = useState('loading')
+  var status = statusState[0]
+  var setStatus = statusState[1]
 
   useEffect(function () {
     var cancelled = false
@@ -39,9 +48,9 @@ function QueueRow(props) {
   }, [entry.song])
 
   return (
-    <div className="relative rounded-xl p-3 bg-neutral-900/80 border border-neutral-800 flex items-center gap-3">
+    <div className="relative rounded-xl p-3 pt-4 bg-neutral-900/80 border border-neutral-800 flex items-center gap-3">
       {isNext && (
-        <span className="absolute -top-2 -right-2 text-[10px] font-bold px-2.5 py-1 rounded-full bg-lime-400 text-black tracking-wide shadow-[0_0_12px_3px_rgba(163,230,53,0.65)] rotate-3 z-10">
+        <span className="ready-pulse absolute top-1.5 right-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full bg-lime-400 text-black tracking-wide z-10">
           READY
         </span>
       )}
@@ -83,10 +92,20 @@ function Backstage(props) {
       <h2 className="text-2xl font-extrabold text-white mb-5">Backstage</h2>
       {rows.length === 0 && (
         <p className="text-sm text-neutral-500">
-          Aún no hay nadie anotado. Escanea el QR y sé el primero en subir al escenario.
+          Aun no hay nadie anotado. Escanea el QR y se el primero en subir al escenario.
         </p>
       )}
       <div className="flex flex-col gap-3 overflow-y-auto pr-1">{rows}</div>
+      <style>{`
+        .ready-pulse {
+          animation: readyPulse 1.6s ease-in-out infinite;
+          box-shadow: 0 0 12px 3px rgba(163, 230, 53, 0.65);
+        }
+        @keyframes readyPulse {
+          0%, 100% { transform: translateY(0) scale(1); box-shadow: 0 0 10px 2px rgba(163, 230, 53, 0.55); }
+          50% { transform: translateY(-2px) scale(1.05); box-shadow: 0 0 16px 5px rgba(163, 230, 53, 0.85); }
+        }
+      `}</style>
     </div>
   )
 }
@@ -107,6 +126,7 @@ export default function DisplayQueue() {
     <div className="min-h-screen relative overflow-hidden flex flex-col bg-black">
       <RetroEqualizer />
       <FloatingDecor />
+      <FullscreenButton />
 
       <header className="flex items-center justify-center relative z-10 pt-8 pb-4">
         <div className="px-5 py-2 -skew-x-6 bg-pink-600">
@@ -122,11 +142,11 @@ export default function DisplayQueue() {
             Karaoke en vivo
           </p>
           <h1 className="text-3xl md:text-5xl font-extrabold text-white leading-tight mb-4">
-            Únete a nuestra{' '}
+            Unete a nuestra{' '}
             <span className="text-pink-500">fiesta de karaoke</span>
           </h1>
           <p className="text-sm md:text-base text-neutral-300 mb-8 max-w-md">
-            Escanea el código QR, anota tu nombre y tu canción, y prepárate
+            Escanea el codigo QR, anota tu nombre y tu cancion, y preparate
             para brillar en el escenario.
           </p>
           <div className="rounded-3xl border-2 border-yellow-400 bg-neutral-900/90 px-8 py-7 flex flex-col items-center gap-3 shadow-2xl">
