@@ -1,13 +1,58 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useKaraokeSession } from '../contexts/KaraokeSessionContext'
 import RetroEqualizer from '../components/RetroEqualizer'
 import QRCode from '../components/QRCode'
+import FallingParty from '../components/FallingParty'
+
+var BURST_COLORS = ['#E91E8C', '#F4D03F', '#7ED957', '#8B5CF6']
+
+function ConfettiBurst() {
+  var particles = []
+  var i = 0
+  while (i < 16) {
+    var angle = (i * 22.5) * (Math.PI / 180)
+    var distance = 70 + Math.random() * 60
+    var dx = Math.cos(angle) * distance
+    var dy = Math.sin(angle) * distance
+    var color = BURST_COLORS[i % BURST_COLORS.length]
+    particles.push(
+      <span
+        key={i}
+        className="burst-particle"
+        style={{ background: color, '--dx': dx + 'px', '--dy': dy + 'px' }}
+      />
+    )
+    i = i + 1
+  }
+  return (
+    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+      {particles}
+      <style>{`
+        .burst-particle {
+          position: absolute;
+          width: 10px;
+          height: 10px;
+          border-radius: 2px;
+          animation: burstOut 1s ease-out forwards;
+        }
+        @keyframes burstOut {
+          0% { transform: translate(0,0) scale(1); opacity: 1; }
+          100% { transform: translate(var(--dx), var(--dy)) scale(0.3); opacity: 0; }
+        }
+      `}</style>
+    </div>
+  )
+}
 
 export default function DisplayRating() {
   var session = useKaraokeSession()
   var currentSinger = session.currentSinger
   var ratings = session.ratings
   var sessionCode = session.sessionCode
+
+  var burstingState = useState(false)
+  var bursting = burstingState[0]
+  var setBursting = burstingState[1]
 
   var songRatings = useMemo(function () {
     if (!currentSinger) return []
@@ -25,6 +70,17 @@ export default function DisplayRating() {
     return (sum / songRatings.length).toFixed(1)
   }, [songRatings])
 
+  useEffect(function () {
+    if (average === null) return
+    setBursting(true)
+    var t = setTimeout(function () {
+      setBursting(false)
+    }, 1100)
+    return function () {
+      clearTimeout(t)
+    }
+  }, [average])
+
   if (!currentSinger) return null
 
   var origin = ''
@@ -36,6 +92,7 @@ export default function DisplayRating() {
   return (
     <div className="min-h-screen relative overflow-hidden px-8 py-10 flex flex-col items-center justify-center bg-black">
       <RetroEqualizer />
+      <FallingParty />
 
       <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-10 max-w-4xl w-full items-center">
         <div className="flex flex-col items-center text-center rounded-3xl border-2 border-purple-500 bg-neutral-950/80 px-8 py-10">
@@ -65,7 +122,8 @@ export default function DisplayRating() {
           </div>
         </div>
 
-        <div className="flex flex-col items-center text-center rounded-3xl border-2 border-yellow-400 bg-neutral-950/80 px-8 py-10">
+        <div className="relative flex flex-col items-center text-center rounded-3xl border-2 border-yellow-400 bg-neutral-950/80 px-8 py-10">
+          {bursting && <ConfettiBurst />}
           <p className="text-sm tracking-widest uppercase text-purple-400 mb-4">
             Calificacion final es:
           </p>

@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useKaraokeSession } from '../contexts/KaraokeSessionContext'
 import RetroEqualizer from '../components/RetroEqualizer'
 import FloatingDecor from '../components/FloatingDecor'
@@ -68,23 +68,114 @@ function pickPhrase(seed) {
   return PHRASES[index % PHRASES.length]
 }
 
-function MiniRow(props) {
-  var entry = props.entry
-  var position = props.position
+function splitFacts(text) {
+  if (!text) return []
+  var parts = text.split(/(?<=\.)\s+/)
+  var facts = []
+  var i = 0
+  while (i < parts.length && facts.length < 5) {
+    var p = parts[i].trim()
+    if (p.length > 25) facts.push(p)
+    i = i + 1
+  }
+  return facts
+}
+
+function SongInfoPanel(props) {
+  var song = props.song
+
+  var infoState = useState(null)
+  var info = infoState[0]
+  var setInfo = infoState[1]
+
+  var factsState = useState([])
+  var facts = factsState[0]
+  var setFacts = factsState[1]
+
+  var factIndexState = useState(0)
+  var factIndex = factIndexState[0]
+  var setFactIndex = factIndexState[1]
+
+  useEffect(function () {
+    var cancelled = false
+    setInfo(null)
+    setFacts([])
+    setFactIndex(0)
+
+    fetch('https://itunes.apple.com/search?term=' + encodeURIComponent(song) + '&entity=song&limit=1')
+      .then(function (res) { return res.json() })
+      .then(function (data) {
+        if (cancelled) return
+        if (data.results && data.results.length > 0) {
+          var r = data.results[0]
+          var bigArtwork = r.artworkUrl100 ? r.artworkUrl100.replace('100x100bb', '300x300bb') : ''
+          var year = r.releaseDate ? r.releaseDate.slice(0, 4) : ''
+          setInfo({
+            artist: r.artistName,
+            album: r.collectionName || '',
+            year: year,
+            artwork: bigArtwork
+          })
+
+          fetch('https://es.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(r.artistName))
+            .then(function (res2) { return res2.ok ? res2.json() : null })
+            .then(function (wiki) {
+              if (cancelled) return
+              if (wiki && wiki.extract) {
+                setFacts(splitFacts(wiki.extract))
+              }
+            })
+            .catch(function () {})
+        }
+      })
+      .catch(function () {})
+
+    return function () {
+      cancelled = true
+    }
+  }, [song])
+
+  useEffect(function () {
+    if (facts.length < 2) return
+    var id = setInterval(function () {
+      setFactIndex(function (prev) {
+        return (prev + 1) % facts.length
+      })
+    }, 7000)
+    return function () {
+      clearInterval(id)
+    }
+  }, [facts])
+
   return (
-    <div className="flex items-center gap-2.5 rounded-lg py-2 px-3 bg-neutral-900/70 border border-neutral-800">
-      <span className="text-xs text-purple-400 w-4">{position}</span>
-      <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center text-sm shrink-0 bg-pink-600">
-        {entry.photo ? (
-          <img src={entry.photo} alt={entry.name} className="w-full h-full object-cover" />
+    <div className="rounded-3xl border-2 border-purple-500 bg-neutral-950/85 px-7 py-7 w-full max-w-md flex flex-col items-center text-center">
+      <p className="text-xs tracking-widest uppercase text-yellow-400 mb-4">
+        Sobre esta cancion
+      </p>
+
+      <div className="w-40 h-40 rounded-xl overflow-hidden bg-pink-600 mb-4 flex items-center justify-center text-4xl shrink-0">
+        {info && info.artwork ? (
+          <img src={info.artwork} alt={song} className="w-full h-full object-cover" />
         ) : (
-          entry.avatar
+          '🎵'
         )}
       </div>
-      <div className="min-w-0 flex-1">
-        <p className="text-xs text-white truncate">{entry.name}</p>
-        <p className="text-[11px] text-neutral-400 truncate">{entry.song}</p>
-      </div>
+
+      <p className="text-lg font-bold text-white">{info ? info.artist : 'Buscando...'}</p>
+      {info && info.album && (
+        <p className="text-sm text-purple-300 mt-0.5">{info.album}</p>
+      )}
+      {info && info.year && (
+        <p className="text-xs text-neutral-400 mt-1">Lanzamiento: {info.year}</p>
+      )}
+
+      {facts.length > 0 && (
+        <div className="mt-5 min-h-[70px] flex items-center">
+          <p className="text-sm text-neutral-300 leading-relaxed">
+            {facts[factIndex]}
+          </p>
+        </div>
+      )}
     </div>
   )
 }
@@ -93,7 +184,6 @@ export default function DisplayReactions() {
   var session = useKaraokeSession()
   var currentSinger = session.currentSinger
   var reactions = session.reactions
-  var queue = session.queue
   var sessionCode = session.sessionCode
 
   var phrase = useMemo(function () {
@@ -125,13 +215,6 @@ export default function DisplayReactions() {
     i = i + 1
   }
 
-  var upcoming = []
-  var j = 0
-  while (j < queue.length && j < 4) {
-    upcoming.push(<MiniRow key={queue[j].id} entry={queue[j]} position={j + 1} />)
-    j = j + 1
-  }
-
   return (
     <div className="min-h-screen relative overflow-hidden px-8 py-10 flex flex-col items-center bg-black">
       <RetroEqualizer />
@@ -140,45 +223,40 @@ export default function DisplayReactions() {
 
       <div className="absolute inset-0 pointer-events-none z-10">{floaters}</div>
 
-      <span className="relative z-10 text-xs px-3 py-1 rounded-full text-white bg-pink-600 mb-6">
+      <span className="relative z-10 text-xs px-3 py-1 rounded-full text-white bg-pink-600 mb-8">
         En vivo
       </span>
 
-      <div
-        className="relative z-10 w-40 h-40 md:w-52 md:h-52 rounded-full overflow-hidden border-4 border-purple-500 flex items-center justify-center text-6xl bg-pink-600 spin-vinyl"
-        style={{ boxShadow: '0 0 30px 6px rgba(139, 92, 246, 0.55)' }}
-      >
-        {currentSinger.photo ? (
-          <img src={currentSinger.photo} alt={currentSinger.name} className="w-full h-full object-cover" />
-        ) : (
-          currentSinger.avatar
-        )}
-      </div>
+      <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-10 max-w-5xl w-full items-start">
+        <div className="flex flex-col items-center text-center">
+          <div
+            className="w-40 h-40 md:w-52 md:h-52 rounded-full overflow-hidden border-4 border-purple-500 flex items-center justify-center text-6xl bg-pink-600 spin-vinyl"
+            style={{ boxShadow: '0 0 30px 6px rgba(139, 92, 246, 0.55)' }}
+          >
+            {currentSinger.photo ? (
+              <img src={currentSinger.photo} alt={currentSinger.name} className="w-full h-full object-cover" />
+            ) : (
+              currentSinger.avatar
+            )}
+          </div>
 
-      <div className="relative z-10 mt-5 flex flex-col items-center gap-1.5">
-        <QRCode url={reactUrl} size={110} />
-        <p className="text-[11px] text-purple-300">Escanea para reaccionar</p>
-      </div>
-
-      <p className="relative z-10 text-2xl md:text-3xl font-extrabold text-white mt-6 text-center max-w-2xl">
-        {currentSinger.name} <span className="text-purple-400">{phrase}</span>
-      </p>
-      <p className="relative z-10 text-base md:text-lg text-yellow-400 mt-1 mb-8 text-center">
-        {currentSinger.song}
-      </p>
-
-      <p className="relative z-10 text-xs tracking-widest uppercase text-purple-400 mb-3">
-        Reacciona desde tu celular
-      </p>
-
-      {upcoming.length > 0 && (
-        <div className="relative z-10 w-full max-w-sm mt-6">
-          <p className="text-xs tracking-widest uppercase text-yellow-400 mb-2 text-center">
-            Siguen en la fila
+          <p className="text-2xl md:text-3xl font-extrabold text-white mt-6 max-w-md">
+            {currentSinger.name} <span className="text-purple-400">{phrase}</span>
           </p>
-          <div className="flex flex-col gap-2">{upcoming}</div>
+          <p className="text-base md:text-lg text-yellow-400 mt-1 mb-6">
+            {currentSinger.song}
+          </p>
+
+          <div className="flex flex-col items-center gap-1.5">
+            <QRCode url={reactUrl} size={130} />
+            <p className="text-[11px] text-purple-300">Escanea para reaccionar</p>
+          </div>
         </div>
-      )}
+
+        <div className="flex justify-center">
+          <SongInfoPanel song={currentSinger.song} />
+        </div>
+      </div>
 
       <style>{`
         @keyframes floatUp {

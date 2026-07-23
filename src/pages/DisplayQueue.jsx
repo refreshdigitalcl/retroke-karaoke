@@ -4,6 +4,7 @@ import RetroEqualizer from '../components/RetroEqualizer'
 import QRCode from '../components/QRCode'
 import FloatingDecor from '../components/FloatingDecor'
 import FullscreenButton from '../components/FullscreenButton'
+import FallingParty from '../components/FallingParty'
 
 function QueueRow(props) {
   var entry = props.entry
@@ -112,11 +113,39 @@ function Backstage(props) {
   )
 }
 
+function groupRatings(ratings) {
+  var map = {}
+  var order = []
+  var i = 0
+  while (i < ratings.length) {
+    var r = ratings[i]
+    if (!map[r.singerId]) {
+      map[r.singerId] = { name: r.name, total: 0, count: 0 }
+      order.push(r.singerId)
+    }
+    map[r.singerId].total = map[r.singerId].total + r.score
+    map[r.singerId].count = map[r.singerId].count + 1
+    i = i + 1
+  }
+  var result = []
+  var j = 0
+  while (j < order.length) {
+    var id = order[j]
+    var e = map[id]
+    result.push({ id: id, name: e.name, average: (e.total / e.count).toFixed(1) })
+    j = j + 1
+  }
+  return result
+}
+
 export default function DisplayQueue() {
   var session = useKaraokeSession()
   var barName = session.barName
   var sessionCode = session.sessionCode
   var queue = session.queue
+  var ratings = session.ratings
+
+  var sungTonight = groupRatings(ratings)
 
   var origin = ''
   if (typeof window !== 'undefined') {
@@ -128,6 +157,7 @@ export default function DisplayQueue() {
     <div className="min-h-screen relative overflow-hidden flex flex-col bg-black">
       <RetroEqualizer />
       <FloatingDecor />
+      <FallingParty />
       <FullscreenButton />
 
       <header className="flex items-center justify-center relative z-10 pt-8 pb-4">
@@ -157,6 +187,24 @@ export default function DisplayQueue() {
               karaoke.cl/{sessionCode}
             </p>
           </div>
+
+          {sungTonight.length > 0 && (
+            <div className="mt-6 w-full max-w-sm rounded-2xl border border-neutral-800 bg-neutral-950/70 px-5 py-4">
+              <p className="text-xs tracking-widest uppercase text-purple-400 mb-2 text-center">
+                Ya cantaron esta noche
+              </p>
+              <div className="flex flex-col gap-1.5">
+                {sungTonight.map(function (s) {
+                  return (
+                    <div key={s.id} className="flex items-center justify-between text-sm">
+                      <span className="text-white truncate">{s.name}</span>
+                      <span className="text-yellow-400 font-semibold shrink-0 ml-2">{s.average}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="min-h-[560px]">
