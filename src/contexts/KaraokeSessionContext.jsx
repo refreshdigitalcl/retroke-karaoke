@@ -3,9 +3,17 @@ import { supabase } from '../lib/supabase'
 
 const KaraokeSessionContext = createContext(null)
 const REACTION_EMOJIS = ['🔥', '👏', '❤️', '🎤', '⭐', '🙌']
-const SESSION_ID = 'LATERRAZA'
+const DEFAULT_SESSION_ID = 'LATERRAZA'
+
+function getSessionIdFromUrl() {
+  if (typeof window === 'undefined') return DEFAULT_SESSION_ID
+  const params = new URLSearchParams(window.location.search)
+  const bar = params.get('bar')
+  return bar ? bar.toUpperCase() : DEFAULT_SESSION_ID
+}
 
 export function KaraokeSessionProvider({ children }) {
+  const SESSION_ID = getSessionIdFromUrl()
   const [barName, setBarName] = useState('Bar La Terraza')
   const [sessionCode] = useState(SESSION_ID)
   const [queue, setQueue] = useState([])
