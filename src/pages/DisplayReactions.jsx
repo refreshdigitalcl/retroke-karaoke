@@ -1,15 +1,61 @@
 import { useMemo } from 'react'
 import { useKaraokeSession } from '../contexts/KaraokeSessionContext'
 import RetroEqualizer from '../components/RetroEqualizer'
+import FloatingDecor from '../components/FloatingDecor'
+import FallingParty from '../components/FallingParty'
+import QRCode from '../components/QRCode'
 
 var PHRASES = [
-  ' esta cantando',
-  ' esta rockeando',
-  ' esta en el escenario',
-  ' se esta luciendo',
-  ' esta que arde',
-  ' esta dando catedra',
-  ' tiene el micro encendido'
+  'está cantando con todo.',
+  'está rompiendo el escenario.',
+  'está rockeando como nunca.',
+  'está en su prime.',
+  'está dando cátedra.',
+  'está dejando todo en el escenario.',
+  'está encendiendo la noche.',
+  'está haciendo vibrar el lugar.',
+  'está simplemente increíble.',
+  'está en modo estrella.',
+  'está demostrando por qué es uno de los grandes.',
+  'está entregando un show de otro nivel.',
+  'está haciendo historia esta noche.',
+  'está conquistando al público.',
+  'está haciendo cantar a todos.',
+  'está prendiendo el ambiente.',
+  'está dejando la energía arriba.',
+  'está demostrando todo su talento.',
+  'está brillando sobre el escenario.',
+  'está en su mejor momento.',
+  'está entregando pura energía.',
+  'está haciendo vibrar cada rincón.',
+  'está desatando la fiesta.',
+  'está dominando el escenario.',
+  'está haciendo lo que mejor sabe hacer.',
+  'está cantando como los grandes.',
+  'está prendiendo la noche como corresponde.',
+  'está regalando un show inolvidable.',
+  'está llevando el show a otro nivel.',
+  'está haciendo explotar el ambiente.',
+  'está demostrando que sigue más vigente que nunca.',
+  'está entregando una presentación espectacular.',
+  'está haciendo vibrar a todo el público.',
+  'está cantando con el alma.',
+  'está en modo leyenda.',
+  'está demostrando por qué el público le quiere tanto.',
+  'está regalando uno de esos momentos inolvidables.',
+  'está haciendo que esta noche sea especial.',
+  'está llevando toda su energía al escenario.',
+  'está completamente encendido.',
+  'está brillando con luz propia.',
+  'está haciendo vibrar la noche.',
+  'está demostrando todo lo que tiene.',
+  'está haciendo disfrutar a todos.',
+  'está entregando una noche para recordar.',
+  'está en llamas.',
+  'está haciendo cantar, bailar y disfrutar a todos.',
+  'está demostrando que el talento nunca pasa de moda.',
+  'está convirtiendo esta noche en un verdadero espectáculo.',
+  'está simplemente en otro nivel.'
 ]
 
 function pickPhrase(seed) {
@@ -48,6 +94,7 @@ export default function DisplayReactions() {
   var currentSinger = session.currentSinger
   var reactions = session.reactions
   var queue = session.queue
+  var sessionCode = session.sessionCode
 
   var phrase = useMemo(function () {
     if (!currentSinger) return ''
@@ -56,6 +103,12 @@ export default function DisplayReactions() {
 
   if (!currentSinger) return null
 
+  var origin = ''
+  if (typeof window !== 'undefined') {
+    origin = window.location.origin
+  }
+  var reactUrl = origin + '/reaccionar?bar=' + sessionCode
+
   var floaters = []
   var i = 0
   while (i < reactions.length) {
@@ -63,7 +116,7 @@ export default function DisplayReactions() {
     floaters.push(
       <span
         key={r.id}
-        className="floating-emoji absolute text-3xl"
+        className="floating-emoji absolute text-6xl"
         style={{ left: (20 + Math.random() * 60) + '%', bottom: '50%' }}
       >
         {r.emoji}
@@ -82,6 +135,8 @@ export default function DisplayReactions() {
   return (
     <div className="min-h-screen relative overflow-hidden px-8 py-10 flex flex-col items-center bg-black">
       <RetroEqualizer />
+      <FloatingDecor />
+      <FallingParty />
 
       <div className="absolute inset-0 pointer-events-none z-10">{floaters}</div>
 
@@ -100,9 +155,13 @@ export default function DisplayReactions() {
         )}
       </div>
 
-      <p className="relative z-10 text-2xl md:text-3xl font-extrabold text-white mt-6 text-center">
-        {currentSinger.name}
-        <span className="text-purple-400">{phrase}</span>
+      <div className="relative z-10 mt-5 flex flex-col items-center gap-1.5">
+        <QRCode url={reactUrl} size={110} />
+        <p className="text-[11px] text-purple-300">Escanea para reaccionar</p>
+      </div>
+
+      <p className="relative z-10 text-2xl md:text-3xl font-extrabold text-white mt-6 text-center max-w-2xl">
+        {currentSinger.name} <span className="text-purple-400">{phrase}</span>
       </p>
       <p className="relative z-10 text-base md:text-lg text-yellow-400 mt-1 mb-8 text-center">
         {currentSinger.song}
