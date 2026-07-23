@@ -49,8 +49,8 @@ function QueueRow(props) {
   }, [entry.song])
 
   return (
-    <div className="relative rounded-xl p-3 bg-neutral-900/80 border border-neutral-800 flex items-center gap-3">
-      <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0 bg-pink-600 flex items-center justify-center text-xl">
+    <div className="relative rounded-xl p-3.5 bg-neutral-900/80 border border-neutral-800 flex items-center gap-3.5">
+      <div className="w-14 h-14 rounded-lg overflow-hidden shrink-0 bg-pink-600 flex items-center justify-center text-2xl">
         {artwork ? (
           <img src={artwork} alt={entry.song} className="w-full h-full object-cover" />
         ) : (
@@ -58,18 +58,18 @@ function QueueRow(props) {
         )}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-white truncate">{entry.name}</p>
-        <p className="text-xs text-purple-300 truncate">
+        <p className="text-lg font-semibold text-white truncate">{entry.name}</p>
+        <p className="text-sm text-purple-300 truncate">
           {status === 'loading' && 'Buscando artista...'}
           {status === 'found' && artist}
           {status === 'none' && 'Artista no encontrado'}
         </p>
-        <p className="text-xs text-neutral-400 truncate">{entry.song}</p>
+        <p className="text-sm text-neutral-400 truncate">{entry.song}</p>
       </div>
       <div className="flex flex-col items-end gap-1.5 shrink-0">
-        <span className="text-xs text-neutral-500">#{position}</span>
+        <span className="text-sm text-neutral-500">#{position}</span>
         {isNext && (
-          <span className="ready-pulse text-[10px] font-bold px-2.5 py-1 rounded-full bg-lime-400 text-black tracking-wide">
+          <span className="ready-pulse text-xs font-bold px-2.5 py-1 rounded-full bg-lime-400 text-black tracking-wide">
             READY
           </span>
         )}
@@ -89,12 +89,12 @@ function Backstage(props) {
 
   return (
     <div className="w-full h-full flex flex-col rounded-3xl border-2 border-purple-500 bg-neutral-950/80 px-6 py-6">
-      <p className="text-xs tracking-[4px] uppercase text-purple-400 mb-1">
+      <p className="text-sm tracking-[4px] uppercase text-purple-400 mb-1">
         Lista de espera
       </p>
       <h2 className="text-2xl font-extrabold text-white mb-5">Backstage</h2>
       {rows.length === 0 && (
-        <p className="text-sm text-neutral-500">
+        <p className="text-base text-neutral-500">
           Aun no hay nadie anotado. Escanea el QR y se el primero en subir al escenario.
         </p>
       )}
@@ -195,7 +195,7 @@ export default function DisplayQueue() {
             Unete a nuestra{' '}
             <span className="text-pink-500">fiesta de karaoke</span>
           </h1>
-          <p className="text-sm md:text-base text-neutral-300 mb-8 max-w-md">
+          <p className="text-base md:text-lg text-neutral-300 mb-8 max-w-md">
             Escanea el codigo QR, anota tu nombre y tu cancion, y preparate
             para brillar en el escenario.
           </p>
@@ -207,17 +207,17 @@ export default function DisplayQueue() {
           </div>
 
           {currentSung && (
-            <div className="mt-6 w-full max-w-sm rounded-2xl border border-neutral-800 bg-neutral-950/70 px-5 py-4">
-              <p className="text-xs tracking-widest uppercase text-purple-400 mb-2 text-center">
+            <div className="mt-6 w-full max-w-[280px] rounded-2xl border border-neutral-800 bg-neutral-950/70 px-5 py-4">
+              <p className="text-sm tracking-widest uppercase text-purple-400 mb-2 text-center">
                 Ya cantaron esta noche
               </p>
-              <div className="h-8 flex items-center justify-center overflow-hidden">
+              <div className="h-9 flex items-center justify-center overflow-hidden">
                 <div
                   key={currentSung.id + '-' + sungIndex}
                   className="glitch-row flex items-center gap-3"
                 >
-                  <span className="text-white font-medium">{currentSung.name}</span>
-                  <span className="text-yellow-400 font-bold">{currentSung.average}</span>
+                  <span className="text-white font-medium text-lg">{currentSung.name}</span>
+                  <span className="text-yellow-400 font-bold text-lg">{currentSung.average}</span>
                 </div>
               </div>
             </div>

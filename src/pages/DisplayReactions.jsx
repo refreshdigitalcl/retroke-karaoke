@@ -148,9 +148,9 @@ function SongInfoPanel(props) {
   }, [facts])
 
   return (
-    <div className="rounded-3xl border-2 border-purple-500 bg-neutral-950/85 px-7 py-7 w-full max-w-md flex flex-col items-center text-center">
-      <p className="text-xs tracking-widest uppercase text-yellow-400 mb-4">
-        Sobre esta cancion
+    <div className="rounded-3xl border-2 border-purple-500 bg-neutral-950/85 px-7 py-7 w-full h-full flex flex-col items-center text-center justify-center">
+      <p className="text-sm tracking-widest uppercase text-yellow-400 mb-4">
+        🎵 Dato curioso
       </p>
 
       <div className="w-40 h-40 rounded-xl overflow-hidden bg-pink-600 mb-4 flex items-center justify-center text-4xl shrink-0">
@@ -161,17 +161,17 @@ function SongInfoPanel(props) {
         )}
       </div>
 
-      <p className="text-lg font-bold text-white">{info ? info.artist : 'Buscando...'}</p>
+      <p className="text-xl font-bold text-white">{info ? info.artist : 'Buscando...'}</p>
       {info && info.album && (
-        <p className="text-sm text-purple-300 mt-0.5">{info.album}</p>
+        <p className="text-base text-purple-300 mt-0.5">{info.album}</p>
       )}
       {info && info.year && (
-        <p className="text-xs text-neutral-400 mt-1">Lanzamiento: {info.year}</p>
+        <p className="text-sm text-neutral-400 mt-1">Lanzamiento: {info.year}</p>
       )}
 
       {facts.length > 0 && (
-        <div className="mt-5 min-h-[70px] flex items-center">
-          <p className="text-sm text-neutral-300 leading-relaxed">
+        <div className="mt-5 min-h-[90px] flex items-center">
+          <p className="text-lg text-neutral-200 leading-relaxed font-medium">
             {facts[factIndex]}
           </p>
         </div>
@@ -227,8 +227,8 @@ export default function DisplayReactions() {
         En vivo
       </span>
 
-      <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-10 max-w-5xl w-full items-start">
-        <div className="flex flex-col items-center text-center">
+      <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-10 max-w-5xl w-full items-stretch">
+        <div className="rounded-3xl border-2 border-pink-600 bg-neutral-950/85 px-7 py-7 w-full h-full flex flex-col items-center justify-center text-center">
           <div
             className="w-40 h-40 md:w-52 md:h-52 rounded-full overflow-hidden border-4 border-purple-500 flex items-center justify-center text-6xl bg-pink-600 spin-vinyl"
             style={{ boxShadow: '0 0 30px 6px rgba(139, 92, 246, 0.55)' }}
@@ -243,13 +243,13 @@ export default function DisplayReactions() {
           <p className="text-2xl md:text-3xl font-extrabold text-white mt-6 max-w-md">
             {currentSinger.name} <span className="text-purple-400">{phrase}</span>
           </p>
-          <p className="text-base md:text-lg text-yellow-400 mt-1 mb-6">
+          <p className="text-lg md:text-xl text-yellow-400 mt-1 mb-6">
             {currentSinger.song}
           </p>
 
           <div className="flex flex-col items-center gap-1.5">
             <QRCode url={reactUrl} size={130} />
-            <p className="text-[11px] text-purple-300">Escanea para reaccionar</p>
+            <p className="text-sm text-purple-300">Escanea para reaccionar</p>
           </div>
         </div>
 

@@ -3,6 +3,7 @@ import { useKaraokeSession } from '../contexts/KaraokeSessionContext'
 import RetroEqualizer from '../components/RetroEqualizer'
 import QRCode from '../components/QRCode'
 import FallingParty from '../components/FallingParty'
+import FloatingDecor from '../components/FloatingDecor'
 
 var BURST_COLORS = ['#E91E8C', '#F4D03F', '#7ED957', '#8B5CF6']
 
@@ -92,6 +93,7 @@ export default function DisplayRating() {
   return (
     <div className="min-h-screen relative overflow-hidden px-8 py-10 flex flex-col items-center justify-center bg-black">
       <RetroEqualizer />
+      <FloatingDecor />
       <FallingParty />
 
       <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-10 max-w-4xl w-full items-center">
@@ -106,25 +108,25 @@ export default function DisplayRating() {
               currentSinger.avatar
             )}
           </div>
-          <p className="text-xl font-bold text-white mb-1">{currentSinger.name}</p>
-          <p className="text-sm text-purple-300 mb-6">{currentSinger.song}</p>
+          <p className="text-2xl font-bold text-white mb-1">{currentSinger.name}</p>
+          <p className="text-base text-purple-300 mb-6">{currentSinger.song}</p>
 
-          <p className="text-lg font-extrabold text-yellow-400 mb-1">
+          <p className="text-xl font-extrabold text-yellow-400 mb-1">
             Esperando calificacion del Jurado
           </p>
-          <p className="text-sm text-neutral-400 mb-6">
+          <p className="text-base text-neutral-400 mb-6">
             Tu opinion define la nota final. Vota ahora.
           </p>
 
           <div className="rounded-2xl border-2 border-yellow-400 bg-neutral-900/90 px-5 py-5 flex flex-col items-center gap-2">
             <QRCode url={rateUrl} size={140} />
-            <p className="text-xs text-purple-300">Escanea para votar</p>
+            <p className="text-sm text-purple-300">Escanea para votar</p>
           </div>
         </div>
 
         <div className="relative flex flex-col items-center text-center rounded-3xl border-2 border-yellow-400 bg-neutral-950/80 px-8 py-10">
           {bursting && <ConfettiBurst />}
-          <p className="text-sm tracking-widest uppercase text-purple-400 mb-4">
+          <p className="text-base tracking-widest uppercase text-purple-400 mb-4">
             Calificacion final es:
           </p>
           {average ? (
@@ -132,12 +134,12 @@ export default function DisplayRating() {
               <p className="text-7xl md:text-8xl font-extrabold text-yellow-400 leading-none">
                 {average}
               </p>
-              <p className="text-sm text-neutral-400 mt-4">
+              <p className="text-base text-neutral-400 mt-4">
                 {songRatings.length} {songRatings.length === 1 ? 'voto emitido' : 'votos emitidos'}
               </p>
             </>
           ) : (
-            <p className="text-lg text-neutral-400 mt-6">
+            <p className="text-xl text-neutral-400 mt-6">
               Esperando los primeros votos del publico...
             </p>
           )}
