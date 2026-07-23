@@ -8,6 +8,7 @@ import RegisterForm from './pages/RegisterForm'
 import ReactForm from './pages/ReactForm'
 import RateForm from './pages/RateForm'
 import DjPanel from './pages/DjPanel'
+import AdminPanel from './pages/AdminPanel'
 
 export default function App() {
   return (
@@ -30,6 +31,9 @@ export default function App() {
 
             {/* Panel de control del DJ */}
             <Route path="/dj" element={<DjPanel />} />
+
+            {/* Panel administrativo global de la plataforma */}
+            <Route path="/admin" element={<AdminPanel />} />
           </Routes>
         </BrowserRouter>
         </KaraokeSessionProvider>
