@@ -61,27 +61,28 @@ function StageSmoke() {
   return <div className="absolute inset-x-0 bottom-0 h-64 z-0 pointer-events-none overflow-hidden">{blobs}</div>
 }
 
-function SingingDancer() {
+function VintageMic() {
   return (
-    <svg width="150" height="250" viewBox="0 0 90 150" style={{ opacity: 0.6 }}>
-      <circle cx="45" cy="16" r="11" fill="none" stroke="#E91E8C" strokeWidth="2.5" />
+    <svg width="140" height="296" viewBox="0 0 90 190" style={{ opacity: 0.62 }}>
+      <path d="M30 14 C30 4 60 4 60 14 L60 58 C60 68 30 68 30 58 Z" fill="none" stroke="#E91E8C" strokeWidth="2.5" />
+      <path d="M25 20 C35 16 55 16 65 20" fill="none" stroke="#E91E8C" strokeWidth="1.5" opacity="0.85" />
+      <path d="M24 27 C35 23 55 23 66 27" fill="none" stroke="#E91E8C" strokeWidth="1.5" opacity="0.85" />
+      <path d="M23 34 C35 30 55 30 67 34" fill="none" stroke="#E91E8C" strokeWidth="1.5" opacity="0.85" />
+      <path d="M23 41 C35 37 55 37 67 41" fill="none" stroke="#E91E8C" strokeWidth="1.5" opacity="0.85" />
+      <path d="M24 48 C35 44 55 44 66 48" fill="none" stroke="#E91E8C" strokeWidth="1.5" opacity="0.85" />
+      <path d="M25 55 C35 51 55 51 65 55" fill="none" stroke="#E91E8C" strokeWidth="1.5" opacity="0.85" />
+      <path d="M36 68 L34 80 L56 80 L54 68 Z" fill="none" stroke="#E91E8C" strokeWidth="2.5" />
+      <rect x="34" y="80" width="22" height="55" rx="5" fill="none" stroke="#E91E8C" strokeWidth="2.5" />
+      <circle cx="45" cy="98" r="3.5" fill="none" stroke="#E91E8C" strokeWidth="2" />
+      <line x1="38" y1="115" x2="52" y2="115" stroke="#E91E8C" strokeWidth="1.5" opacity="0.7" />
+      <line x1="38" y1="122" x2="52" y2="122" stroke="#E91E8C" strokeWidth="1.5" opacity="0.7" />
       <path
-        d="M34 10 Q 22 18 29 32 Q 24 22 34 10 Z"
-        fill="none"
-        stroke="#E91E8C"
-        strokeWidth="2"
-      />
-      <path
-        d="M38 26 L34 34 C 26 46 22 70 20 96 Q 45 104 70 96 C 68 70 64 46 56 34 L52 26 Z"
+        d="M40 135 C 18 142 16 172 38 180 C 52 185 60 172 54 160 C 50 152 42 152 40 160"
         fill="none"
         stroke="#E91E8C"
         strokeWidth="2.5"
+        strokeLinecap="round"
       />
-      <path d="M56 30 C 66 26 72 18 70 10" fill="none" stroke="#E91E8C" strokeWidth="2.5" strokeLinecap="round" />
-      <circle cx="70" cy="8" r="3.5" fill="none" stroke="#E91E8C" strokeWidth="2" />
-      <path d="M34 32 C 24 34 16 42 14 54" fill="none" stroke="#E91E8C" strokeWidth="2.5" strokeLinecap="round" />
-      <path d="M40 96 C 34 110 30 122 36 134 C 38 138 42 138 44 136" fill="none" stroke="#E91E8C" strokeWidth="2.5" strokeLinecap="round" />
-      <path d="M55 96 L 58 118" fill="none" stroke="#E91E8C" strokeWidth="2.5" strokeLinecap="round" />
     </svg>
   )
 }
@@ -92,8 +93,8 @@ export default function FloatingDecor() {
       <StageLights />
       <StageSmoke />
 
-      <div className="decor-dance" style={{ position: 'absolute', top: '10%', left: '3%' }}>
-        <SingingDancer />
+      <div className="decor-float" style={{ position: 'absolute', top: '10%', left: '4%' }}>
+        <VintageMic />
       </div>
 
       <div className="decor-float-slow" style={{ position: 'absolute', bottom: '10%', left: '7%' }}>
