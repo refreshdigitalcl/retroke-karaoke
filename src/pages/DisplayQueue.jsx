@@ -147,6 +147,24 @@ export default function DisplayQueue() {
 
   var sungTonight = groupRatings(ratings)
 
+  var sungIndexState = useState(0)
+  var sungIndex = sungIndexState[0]
+  var setSungIndex = sungIndexState[1]
+
+  useEffect(function () {
+    if (sungTonight.length < 2) return
+    var id = setInterval(function () {
+      setSungIndex(function (prev) {
+        return (prev + 1) % sungTonight.length
+      })
+    }, 4000)
+    return function () {
+      clearInterval(id)
+    }
+  }, [sungTonight.length])
+
+  var currentSung = sungTonight.length > 0 ? sungTonight[sungIndex % sungTonight.length] : null
+
   var origin = ''
   if (typeof window !== 'undefined') {
     origin = window.location.origin
@@ -188,23 +206,34 @@ export default function DisplayQueue() {
             </p>
           </div>
 
-          {sungTonight.length > 0 && (
+          {currentSung && (
             <div className="mt-6 w-full max-w-sm rounded-2xl border border-neutral-800 bg-neutral-950/70 px-5 py-4">
               <p className="text-xs tracking-widest uppercase text-purple-400 mb-2 text-center">
                 Ya cantaron esta noche
               </p>
-              <div className="flex flex-col gap-1.5">
-                {sungTonight.map(function (s) {
-                  return (
-                    <div key={s.id} className="flex items-center justify-between text-sm">
-                      <span className="text-white truncate">{s.name}</span>
-                      <span className="text-yellow-400 font-semibold shrink-0 ml-2">{s.average}</span>
-                    </div>
-                  )
-                })}
+              <div className="h-8 flex items-center justify-center overflow-hidden">
+                <div
+                  key={currentSung.id + '-' + sungIndex}
+                  className="glitch-row flex items-center gap-3"
+                >
+                  <span className="text-white font-medium">{currentSung.name}</span>
+                  <span className="text-yellow-400 font-bold">{currentSung.average}</span>
+                </div>
               </div>
             </div>
           )}
+          <style>{`
+            .glitch-row {
+              animation: glitchIn 0.5s steps(3) forwards;
+            }
+            @keyframes glitchIn {
+              0% { opacity: 0; transform: translate(-6px, 2px); text-shadow: 2px 0 #E91E8C, -2px 0 #7ED957; }
+              15% { opacity: 1; transform: translate(4px, -2px); text-shadow: -3px 0 #8B5CF6, 3px 0 #F4D03F; }
+              30% { transform: translate(-3px, 1px); text-shadow: 2px 0 #E91E8C, -2px 0 #7ED957; }
+              45% { transform: translate(2px, -1px); text-shadow: none; }
+              60%, 100% { transform: translate(0,0); text-shadow: none; opacity: 1; }
+            }
+          `}</style>
         </div>
 
         <div className="min-h-[560px]">
