@@ -34,6 +34,8 @@ export default function RegisterForm() {
   var barName = session.barName
   var queue = session.queue
   var addToQueue = session.addToQueue
+  var hasActiveSession = session.hasActiveSession
+  var barLoading = session.barLoading
 
   var nameState = useState('')
   var name = nameState[0]
@@ -93,6 +95,29 @@ export default function RegisterForm() {
   }
 
   var position = queue.length + 1
+
+  if (barLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-page)' }}>
+        <p style={{ color: 'var(--text-secondary)' }}>Cargando...</p>
+      </div>
+    )
+  }
+
+  if (!hasActiveSession) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-6" style={{ background: 'var(--bg-page)' }}>
+        <div className="max-w-sm w-full rounded-3xl border p-8 text-center" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
+          <p className="text-lg font-medium mb-2" style={{ color: 'var(--text-primary)' }}>
+            {barName || 'Este bar'}
+          </p>
+          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+            No hay una sesion de karaoke activa en este momento. Vuelve a intentarlo cuando empiece la noche.
+          </p>
+        </div>
+      </div>
+    )
+  }
 
   if (submitted) {
     return (

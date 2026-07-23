@@ -72,24 +72,166 @@ function LoginGate() {
   )
 }
 
+function StartSessionGate(props) {
+  var barName = props.barName
+  var startSession = props.startSession
+
+  var nameState = useState('Karaoke ' + new Date().toLocaleDateString('es-CL', { weekday: 'long' }))
+  var name = nameState[0]
+  var setName = nameState[1]
+
+  var loadingState = useState(false)
+  var loading = loadingState[0]
+  var setLoading = loadingState[1]
+
+  var errorState = useState('')
+  var error = errorState[0]
+  var setError = errorState[1]
+
+  function handleStart(e) {
+    e.preventDefault()
+    if (!name.trim()) return
+    setLoading(true)
+    setError('')
+    startSession(name.trim()).then(function (result) {
+      setLoading(false)
+      if (result.error) {
+        setError(result.error)
+      }
+    })
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center px-6" style={{ background: 'var(--bg-page)' }}>
+      <div className="max-w-sm w-full rounded-3xl border p-8 text-center" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
+        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{barName}</p>
+        <p className="text-lg font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
+          No existe una sesion activa
+        </p>
+        <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>
+          Dale un nombre a la sesion de esta noche para empezar
+        </p>
+
+        <form onSubmit={handleStart}>
+          <input
+            type="text"
+            value={name}
+            onChange={function (e) { setName(e.target.value) }}
+            placeholder="Ej: Karaoke Viernes"
+            required
+            className="w-full mb-3 h-11 rounded-lg px-3 border outline-none"
+            style={{ background: 'var(--bg-card-alt)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+          />
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full h-11 rounded-lg font-medium text-white disabled:opacity-50"
+            style={{ background: 'var(--accent-magenta)' }}
+          >
+            {loading ? 'Iniciando...' : 'Iniciar sesion'}
+          </button>
+          {error && (
+            <p className="text-sm mt-3" style={{ color: 'var(--accent-magenta)' }}>{error}</p>
+          )}
+        </form>
+      </div>
+    </div>
+  )
+}
+
+function HistoryPanel(props) {
+  var sessions = props.sessions
+
+  function formatDate(iso) {
+    if (!iso) return ''
+    var d = new Date(iso)
+    return d.toLocaleDateString('es-CL', { day: 'numeric', month: 'long' })
+  }
+
+  return (
+    <section
+      className="rounded-2xl border p-5 mt-6"
+      style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}
+    >
+      <p className="text-xs uppercase tracking-wide mb-3" style={{ color: 'var(--accent-yellow)' }}>
+        Historial de sesiones
+      </p>
+      {sessions.length === 0 && (
+        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+          Aun no hay sesiones cerradas.
+        </p>
+      )}
+      <div className="flex flex-col gap-3">
+        {sessions.map(function (s) {
+          return (
+            <div key={s.id} className="rounded-lg p-3" style={{ background: 'var(--bg-card-alt)' }}>
+              <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                {s.name} — {formatDate(s.startedAt)}
+              </p>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                {s.songCount} canciones · {s.ratingCount} votos
+                {s.average ? ' · Promedio ' + s.average : ''}
+              </p>
+            </div>
+          )
+        })}
+      </div>
+    </section>
+  )
+}
+
 export default function DjPanel() {
   var auth = useAuth()
 
-  var {
-    barName,
-    sessionCode,
-    queue,
-    currentSinger,
-    screenMode,
-    removeFromQueue,
-    startNextSinger,
-    finishCurrentSong,
-    submitRating,
-    returnToQueue,
-    ratings
-  } = useKaraokeSession()
+  var session = useKaraokeSession()
+  var barName = session.barName
+  var barLoading = session.barLoading
+  var sessionCode = session.sessionCode
+  var hasActiveSession = session.hasActiveSession
+  var activeSessionName = session.activeSessionName
+  var queue = session.queue
+  var currentSinger = session.currentSinger
+  var screenMode = session.screenMode
+  var removeFromQueue = session.removeFromQueue
+  var startNextSinger = session.startNextSinger
+  var finishCurrentSong = session.finishCurrentSong
+  var submitRating = session.submitRating
+  var returnToQueue = session.returnToQueue
+  var ratings = session.ratings
+  var startSession = session.startSession
+  var closeSession = session.closeSession
+  var loadPastSessions = session.loadPastSessions
 
-  if (auth.loading) {
+  var showHistoryState = useState(false)
+  var showHistory = showHistoryState[0]
+  var setShowHistory = showHistoryState[1]
+
+  var pastSessionsState = useState([])
+  var pastSessions = pastSessionsState[0]
+  var setPastSessions = pastSessionsState[1]
+
+  var closingState = useState(false)
+  var closing = closingState[0]
+  var setClosing = closingState[1]
+
+  function handleToggleHistory() {
+    if (!showHistory) {
+      loadPastSessions().then(function (data) {
+        setPastSessions(data)
+      })
+    }
+    setShowHistory(!showHistory)
+  }
+
+  function handleCloseSession() {
+    if (!window.confirm('Cerrar la sesion de esta noche? No se aceptaran mas canciones.')) return
+    setClosing(true)
+    closeSession().then(function () {
+      setClosing(false)
+    })
+  }
+
+  if (auth.loading || barLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-page)' }}>
         <p style={{ color: 'var(--text-secondary)' }}>Cargando...</p>
@@ -101,34 +243,56 @@ export default function DjPanel() {
     return <LoginGate />
   }
 
+  if (!hasActiveSession) {
+    return <StartSessionGate barName={barName} startSession={startSession} />
+  }
+
   return (
     <div className="min-h-screen px-6 py-8" style={{ background: 'var(--bg-page)' }}>
-      <header className="flex items-center justify-between mb-8">
+      <header className="flex items-center justify-between mb-2 flex-wrap gap-3">
         <div>
           <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-            Panel del DJ
+            {barName} · {activeSessionName}
           </p>
           <p className="text-xl font-medium" style={{ color: 'var(--text-primary)' }}>
-            {barName}
+            Panel del DJ
           </p>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           <span className="text-sm" style={{ color: 'var(--accent-purple)' }}>
             karaoke.cl/{sessionCode}
           </span>
+          <button
+            onClick={handleCloseSession}
+            disabled={closing}
+            className="text-sm px-3 h-9 rounded-lg border disabled:opacity-50"
+            style={{ borderColor: 'var(--accent-magenta)', color: 'var(--accent-magenta)' }}
+          >
+            {closing ? 'Cerrando...' : 'Cerrar sesion de karaoke'}
+          </button>
           <button
             onClick={function () { auth.signOut() }}
             className="text-sm px-3 h-9 rounded-lg border"
             style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}
           >
-            Cerrar sesion
+            Salir
           </button>
           <ThemeToggle />
         </div>
       </header>
 
+      <button
+        onClick={handleToggleHistory}
+        className="text-xs mb-6 underline"
+        style={{ color: 'var(--text-muted)' }}
+      >
+        {showHistory ? 'Ocultar historial' : 'Ver historial de sesiones'}
+      </button>
+
+      {showHistory && <HistoryPanel sessions={pastSessions} />}
+
       <section
-        className="rounded-2xl border p-5 mb-6"
+        className="rounded-2xl border p-5 mb-6 mt-6"
         style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}
       >
         <p className="text-xs uppercase tracking-wide mb-3" style={{ color: 'var(--accent-yellow)' }}>
@@ -257,7 +421,7 @@ export default function DjPanel() {
           style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}
         >
           <p className="text-xs uppercase tracking-wide mb-3" style={{ color: 'var(--accent-yellow)' }}>
-            Historial de la noche
+            Calificaciones de esta sesion
           </p>
           <div className="flex flex-col gap-1.5">
             {ratings.map(function (r, i) {
