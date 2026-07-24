@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { useKaraokeSession } from '../contexts/KaraokeSessionContext'
+import { useKaraokeSession, parseYoutubeId } from '../contexts/KaraokeSessionContext'
 import ThemeToggle from '../components/ThemeToggle'
 
 const AVATARS = ['🔥', '🦄', '👽', '🐸', '🎤', '🐙', '⭐', '👑', '🍄', '🌊', '🎸', '🦋']
@@ -89,6 +89,7 @@ export default function RegisterForm() {
       avatar: avatar,
       song: song.trim(),
       youtubeUrl: youtubeUrl.trim(),
+      videoUrl: youtubeUrl.trim(),
       photo: photo
     })
     setSubmitted(true)
@@ -243,16 +244,27 @@ export default function RegisterForm() {
         />
 
         <label className="text-sm block mb-1.5" style={{ color: 'var(--text-secondary)' }}>
-          Link de YouTube (opcional)
+          Link de tu video karaoke en YouTube (opcional)
         </label>
         <input
           type="url"
           value={youtubeUrl}
           onChange={function (e) { setYoutubeUrl(e.target.value) }}
-          placeholder="https://youtube.com/..."
-          className="w-full mb-5 h-11 rounded-lg px-3 border outline-none"
+          placeholder="https://youtube.com/watch?v=..."
+          className="w-full h-11 rounded-lg px-3 border outline-none"
           style={{ background: 'var(--bg-card-alt)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
         />
+        {youtubeUrl.trim() && parseYoutubeId(youtubeUrl) && (
+          <p className="text-xs mt-1.5 mb-5" style={{ color: 'var(--accent-green)' }}>
+            ✓ Video reconocido, se usara para tu presentacion
+          </p>
+        )}
+        {youtubeUrl.trim() && !parseYoutubeId(youtubeUrl) && (
+          <p className="text-xs mt-1.5 mb-5" style={{ color: 'var(--accent-magenta)' }}>
+            No reconocemos ese link, revisa que sea de YouTube
+          </p>
+        )}
+        {!youtubeUrl.trim() && <div className="mb-5" />}
 
         <button
           type="submit"

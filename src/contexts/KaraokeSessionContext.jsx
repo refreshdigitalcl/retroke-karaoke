@@ -1,6 +1,18 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 
+export function parseYoutubeId(url) {
+  if (!url) return ''
+  const patterns = [
+    /(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([a-zA-Z0-9_-]{11})/
+  ]
+  for (const p of patterns) {
+    const match = url.match(p)
+    if (match) return match[1]
+  }
+  return ''
+}
+
 const KaraokeSessionContext = createContext(null)
 const REACTION_EMOJIS = ['🔥', '👏', '❤️', '🎤', '⭐', '🙌']
 const DEFAULT_BAR_SLUG = 'laterraza'
@@ -236,6 +248,7 @@ export function KaraokeSessionProvider({ children }) {
     async (entry) => {
       if (!sessionId) return
       const nextPosition = queue.length + 1
+      const videoUrl = entry.videoUrl || ''
       await supabase.from('queue_entries').insert({
         session_id: sessionId,
         name: entry.name,
@@ -243,7 +256,10 @@ export function KaraokeSessionProvider({ children }) {
         song: entry.song,
         youtube_url: entry.youtubeUrl || '',
         photo: entry.photo || null,
-        position: nextPosition
+        position: nextPosition,
+        video_url: videoUrl,
+        video_id: parseYoutubeId(videoUrl),
+        video_source: videoUrl ? 'youtube' : null
       })
     },
     [sessionId, queue.length]
@@ -259,18 +275,6 @@ export function KaraokeSessionProvider({ children }) {
       loadQueue(sessionId)
     }
   }, [sessionId, loadQueue])
-
-  function parseYoutubeId(url) {
-    if (!url) return ''
-    const patterns = [
-      /(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([a-zA-Z0-9_-]{11})/
-    ]
-    for (const p of patterns) {
-      const match = url.match(p)
-      if (match) return match[1]
-    }
-    return ''
-  }
 
   const setQueueEntryVideo = useCallback(async (id, videoUrl) => {
     const videoId = parseYoutubeId(videoUrl)
