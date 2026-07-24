@@ -234,30 +234,46 @@ export default function DisplayReactions() {
 
       {hasVideo ? (
         <div className="relative w-full h-screen">
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-3 h-[55vh] rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(139, 92, 246, 0.4)' }}>
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-3 h-[55vh]">
+            <div className="absolute inset-0 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(139, 92, 246, 0.4)' }}>
+              <div
+                className="absolute bottom-0 left-0 w-full rounded-full progress-fill"
+                style={{
+                  height: progress + '%',
+                  background: 'linear-gradient(0deg, #E91E8C, #8B5CF6, #F4D03F)',
+                  boxShadow: '0 0 10px 2px rgba(233, 30, 140, 0.6)'
+                }}
+              />
+            </div>
             <div
-              className="absolute bottom-0 left-0 w-full rounded-full progress-fill"
-              style={{
-                height: progress + '%',
-                background: 'linear-gradient(0deg, #E91E8C, #8B5CF6, #F4D03F)',
-                boxShadow: '0 0 10px 2px rgba(233, 30, 140, 0.6)'
-              }}
-            />
+              className="absolute needle-arrow needle-pulse"
+              style={{ bottom: 'calc(' + progress + '% - 11px)', right: '100%', marginRight: '6px' }}
+            >
+              <svg width="34" height="22" viewBox="0 0 34 22">
+                <polygon
+                  points="34,11 14,0 14,7 0,7 0,15 14,15 14,22"
+                  fill="#F4D03F"
+                  stroke="#E91E8C"
+                  strokeWidth="1.5"
+                  style={{ filter: 'drop-shadow(0 0 8px rgba(244, 208, 63, 0.95))' }}
+                />
+              </svg>
+            </div>
           </div>
 
           <div
-            className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-3 h-[55vh] rounded-full overflow-hidden"
-            style={{
-              background: 'linear-gradient(0deg, #E9544A 0%, #F4A93F 50%, #7ED957 100%)',
-              border: '1px solid rgba(255,255,255,0.25)'
-            }}
+            className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-3 h-[55vh]"
           >
             <div
-              className="absolute right-1/2 needle-arrow"
+              className="absolute inset-0 rounded-full overflow-hidden"
               style={{
-                bottom: 'calc(' + needlePosition + '% - 11px)',
-                transform: 'translateX(50%)'
+                background: 'linear-gradient(0deg, #E9544A 0%, #F4A93F 50%, #7ED957 100%)',
+                border: '1px solid rgba(255,255,255,0.25)'
               }}
+            />
+            <div
+              className="absolute needle-arrow needle-pulse"
+              style={{ bottom: 'calc(' + needlePosition + '% - 11px)', left: '100%', marginLeft: '6px' }}
             >
               <svg width="34" height="22" viewBox="0 0 34 22">
                 <polygon
@@ -265,7 +281,7 @@ export default function DisplayReactions() {
                   fill="#fff"
                   stroke="#8B5CF6"
                   strokeWidth="1.5"
-                  style={{ filter: 'drop-shadow(0 0 6px rgba(255,255,255,0.9))' }}
+                  style={{ filter: 'drop-shadow(0 0 8px rgba(255,255,255,0.95))' }}
                 />
               </svg>
             </div>
@@ -367,6 +383,11 @@ export default function DisplayReactions() {
         }
         .progress-fill { transition: height 0.5s linear; }
         .needle-arrow { transition: bottom 0.4s ease-out; }
+        .needle-pulse { animation: needlePulse 1.6s ease-in-out infinite; }
+        @keyframes needlePulse {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.18); }
+        }
         .fact-clamp {
           display: -webkit-box;
           -webkit-line-clamp: 2;

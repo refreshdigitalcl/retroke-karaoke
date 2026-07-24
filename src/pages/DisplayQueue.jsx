@@ -191,13 +191,15 @@ export default function DisplayQueue() {
           <p className="text-xs tracking-[6px] uppercase text-yellow-400 mb-3">
             Karaoke en vivo
           </p>
-          <h1 className="text-3xl md:text-5xl font-extrabold text-white leading-tight mb-4">
-            Unete a nuestra{' '}
-            <span className="text-pink-500">fiesta de karaoke</span>
+          <h1 className="text-2xl md:text-4xl font-extrabold text-white leading-tight mb-2">
+            El karaoke nunca volvio a ser igual.
           </h1>
+          <p className="text-lg md:text-2xl font-bold text-pink-500 mb-4">
+            Somos el sistema operativo del karaoke moderno.
+          </p>
           <p className="text-base md:text-lg text-neutral-300 mb-8 max-w-md">
             Escanea el codigo QR, anota tu nombre y tu cancion, y preparate
-            para brillar en el escenario.
+            para vivir el verdadero espectaculo interactivo.
           </p>
           <div className="rounded-3xl border-2 border-yellow-400 bg-neutral-900/90 px-8 py-7 flex flex-col items-center gap-3 shadow-2xl">
             <QRCode url={registerUrl} size={220} />
