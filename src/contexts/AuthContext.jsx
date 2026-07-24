@@ -20,6 +20,10 @@ export function AuthProvider({ children }) {
   var adminChecked = adminCheckedState[0]
   var setAdminChecked = adminCheckedState[1]
 
+  var debugState = useState(null)
+  var debugInfo = debugState[0]
+  var setDebugInfo = debugState[1]
+
   useEffect(function () {
     supabase.auth.getSession().then(function (result) {
       setSession(result.data.session)
@@ -44,6 +48,7 @@ export function AuthProvider({ children }) {
     if (!userId) {
       setIsGlobalAdmin(false)
       setAdminChecked(true)
+      setDebugInfo(null)
       return
     }
 
@@ -68,6 +73,23 @@ export function AuthProvider({ children }) {
         var admin = !!(result.data && result.data.is_global_admin)
         setIsGlobalAdmin(admin)
         setAdminChecked(true)
+        setDebugInfo({
+          userId: userId,
+          userEmail: userEmail,
+          rawData: JSON.stringify(result.data),
+          rawError: result.error ? JSON.stringify(result.error) : 'ninguno'
+        })
+      })
+      .catch(function (err) {
+        if (cancelled) return
+        setIsGlobalAdmin(false)
+        setAdminChecked(true)
+        setDebugInfo({
+          userId: userId,
+          userEmail: userEmail,
+          rawData: 'excepcion capturada',
+          rawError: String(err)
+        })
       })
 
     return function () {
@@ -90,6 +112,7 @@ export function AuthProvider({ children }) {
     session: session,
     loading: loading || (!!userId && !adminChecked),
     isGlobalAdmin: isGlobalAdmin,
+    debugInfo: debugInfo,
     signInWithEmail: signInWithEmail,
     signOut: signOut
   }
