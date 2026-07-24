@@ -6,6 +6,7 @@ import FallingParty from '../components/FallingParty'
 import QRCode from '../components/QRCode'
 import { fetchArtistFacts } from '../lib/artistFacts'
 import { fetchVideoDurationSeconds } from '../lib/videoSearch'
+import { getSentiment } from '../lib/reactionEmojis'
 
 var QR_VISIBLE_SECONDS = 10
 var QR_FADE_SECONDS = 3
@@ -154,6 +155,40 @@ function useProgress(videoId, active) {
   return progress
 }
 
+function useNeedlePosition(reactions) {
+  var historyRef = useRef([])
+  var seenIdsRef = useRef(new Set())
+  var positionState = useState(50)
+  var position = positionState[0]
+  var setPosition = positionState[1]
+
+  useEffect(function () {
+    reactions.forEach(function (r) {
+      if (!seenIdsRef.current.has(r.id)) {
+        seenIdsRef.current.add(r.id)
+        historyRef.current.push({ sentiment: getSentiment(r.emoji), time: Date.now() })
+      }
+    })
+  }, [reactions])
+
+  useEffect(function () {
+    var interval = setInterval(function () {
+      var now = Date.now()
+      historyRef.current = historyRef.current.filter(function (h) { return now - h.time < 20000 })
+      if (historyRef.current.length === 0) {
+        setPosition(function (prev) { return prev + (50 - prev) * 0.08 })
+        return
+      }
+      var sum = historyRef.current.reduce(function (acc, h) { return acc + h.sentiment }, 0)
+      var avg = (sum / historyRef.current.length) * 100
+      setPosition(function (prev) { return prev + (avg - prev) * 0.25 })
+    }, 400)
+    return function () { clearInterval(interval) }
+  }, [])
+
+  return position
+}
+
 export default function DisplayReactions() {
   var session = useKaraokeSession()
   var currentSinger = session.currentSinger
@@ -169,6 +204,7 @@ export default function DisplayReactions() {
   var hasVideo = !!(currentSinger && currentSinger.videoId)
   var qrPhase = useQrCycle(hasVideo)
   var progress = useProgress(currentSinger ? currentSinger.videoId : null, hasVideo)
+  var needlePosition = useNeedlePosition(reactions)
 
   if (!currentSinger) return null
 
@@ -224,6 +260,23 @@ export default function DisplayReactions() {
                 height: progress + '%',
                 background: 'linear-gradient(0deg, #E91E8C, #8B5CF6, #F4D03F)',
                 boxShadow: '0 0 10px 2px rgba(233, 30, 140, 0.6)'
+              }}
+            />
+          </div>
+
+          <div
+            className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-3 h-[55vh] rounded-full overflow-hidden"
+            style={{
+              background: 'linear-gradient(0deg, #E9544A 0%, #F4A93F 50%, #7ED957 100%)',
+              border: '1px solid rgba(255,255,255,0.25)'
+            }}
+          >
+            <div
+              className="absolute left-1/2 -translate-x-1/2 w-6 h-6 rounded-full needle-dot"
+              style={{
+                bottom: 'calc(' + needlePosition + '% - 12px)',
+                background: '#fff',
+                boxShadow: '0 0 12px 4px rgba(255,255,255,0.8)'
               }}
             />
           </div>
@@ -323,6 +376,7 @@ export default function DisplayReactions() {
           to { transform: rotate(360deg); }
         }
         .progress-fill { transition: height 0.5s linear; }
+        .needle-dot { transition: bottom 0.4s ease-out; }
         .fact-clamp {
           display: -webkit-box;
           -webkit-line-clamp: 2;

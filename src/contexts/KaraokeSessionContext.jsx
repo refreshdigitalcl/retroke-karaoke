@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
+import { REACTION_EMOJIS as REACTION_EMOJI_LIST } from '../lib/reactionEmojis'
 
 export function parseYoutubeId(url) {
   if (!url) return ''
@@ -14,7 +15,6 @@ export function parseYoutubeId(url) {
 }
 
 const KaraokeSessionContext = createContext(null)
-const REACTION_EMOJIS = ['🔥', '👏', '❤️', '🎤', '⭐', '🙌']
 const DEFAULT_BAR_SLUG = 'laterraza'
 
 function getBarSlugFromUrl() {
@@ -489,7 +489,7 @@ export function KaraokeSessionProvider({ children }) {
     screenMode,
     reactions,
     ratings,
-    reactionEmojis: REACTION_EMOJIS,
+    reactionEmojis: REACTION_EMOJI_LIST.map(function (r) { return r.emoji }),
     addToQueue,
     removeFromQueue,
     setQueueEntryVideo,

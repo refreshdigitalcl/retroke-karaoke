@@ -6,16 +6,28 @@ import DisplayReactions from './DisplayReactions'
 import DisplayRating from './DisplayRating'
 import DisplayResult from './DisplayResult'
 import SessionLeaderboard from './SessionLeaderboard'
+import AudioUnlockGate from '../components/AudioUnlockGate'
 
 export default function Display() {
   const { screenMode, hasActiveSession, lastClosedSession } = useKaraokeSession()
 
-  if (!hasActiveSession && lastClosedSession) return <SessionLeaderboard />
-
-  if (screenMode === 'called') return <DisplayCalled />
-  if (screenMode === 'countdown') return <DisplayCountdown />
-  if (screenMode === 'reactions') return <DisplayReactions />
-  if (screenMode === 'rating') return <DisplayRating />
-  if (screenMode === 'result') return <DisplayResult />
-  return <DisplayQueue />
+  return (
+    <AudioUnlockGate>
+      {!hasActiveSession && lastClosedSession ? (
+        <SessionLeaderboard />
+      ) : screenMode === 'called' ? (
+        <DisplayCalled />
+      ) : screenMode === 'countdown' ? (
+        <DisplayCountdown />
+      ) : screenMode === 'reactions' ? (
+        <DisplayReactions />
+      ) : screenMode === 'rating' ? (
+        <DisplayRating />
+      ) : screenMode === 'result' ? (
+        <DisplayResult />
+      ) : (
+        <DisplayQueue />
+      )}
+    </AudioUnlockGate>
+  )
 }
