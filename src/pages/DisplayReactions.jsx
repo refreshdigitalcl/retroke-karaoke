@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useKaraokeSession } from '../contexts/KaraokeSessionContext'
 import RetroEqualizer from '../components/RetroEqualizer'
 import FloatingDecor from '../components/FloatingDecor'
 import FallingParty from '../components/FallingParty'
 import QRCode from '../components/QRCode'
+import { fetchArtistFacts } from '../lib/artistFacts'
+import { fetchVideoDurationSeconds } from '../lib/videoSearch'
 
 var QR_VISIBLE_SECONDS = 10
 var QR_FADE_SECONDS = 3
@@ -36,19 +38,6 @@ function pickPhrase(seed) {
   return PHRASES[index % PHRASES.length]
 }
 
-function splitFacts(text) {
-  if (!text) return []
-  var parts = text.split(/(?<=\.)\s+/)
-  var facts = []
-  var i = 0
-  while (i < parts.length && facts.length < 4) {
-    var p = parts[i].trim()
-    if (p.length > 15 && p.length < 160) facts.push(p)
-    i = i + 1
-  }
-  return facts
-}
-
 function useSongInfo(song) {
   var infoState = useState(null)
   var info = infoState[0]
@@ -74,13 +63,9 @@ function useSongInfo(song) {
           var r = data.results[0]
           var year = r.releaseDate ? r.releaseDate.slice(0, 4) : ''
           setInfo({ artist: r.artistName, year: year })
-          fetch('https://es.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(r.artistName))
-            .then(function (res2) { return res2.ok ? res2.json() : null })
-            .then(function (wiki) {
-              if (cancelled) return
-              if (wiki && wiki.extract) setFacts(splitFacts(wiki.extract))
-            })
-            .catch(function () {})
+          fetchArtistFacts(r.artistName).then(function (f) {
+            if (!cancelled) setFacts(f)
+          })
         }
       })
       .catch(function () {})
@@ -92,7 +77,7 @@ function useSongInfo(song) {
     if (facts.length < 2) return
     var id = setInterval(function () {
       setFactIndex(function (prev) { return (prev + 1) % facts.length })
-    }, 6000)
+    }, 6500)
     return function () { clearInterval(id) }
   }, [facts])
 
@@ -135,6 +120,40 @@ function useQrCycle(active) {
   return phase
 }
 
+function useProgress(videoId, active) {
+  var durationState = useState(null)
+  var duration = durationState[0]
+  var setDuration = durationState[1]
+
+  var progressState = useState(0)
+  var progress = progressState[0]
+  var setProgress = progressState[1]
+
+  var startedAtRef = useRef(null)
+
+  useEffect(function () {
+    if (!videoId) return
+    setDuration(null)
+    setProgress(0)
+    fetchVideoDurationSeconds(videoId).then(function (secs) {
+      setDuration(secs)
+    })
+  }, [videoId])
+
+  useEffect(function () {
+    if (!active || !duration) return
+    startedAtRef.current = Date.now()
+    var interval = setInterval(function () {
+      var elapsed = (Date.now() - startedAtRef.current) / 1000
+      var pct = Math.min(100, (elapsed / duration) * 100)
+      setProgress(pct)
+    }, 500)
+    return function () { clearInterval(interval) }
+  }, [active, duration])
+
+  return progress
+}
+
 export default function DisplayReactions() {
   var session = useKaraokeSession()
   var currentSinger = session.currentSinger
@@ -149,6 +168,7 @@ export default function DisplayReactions() {
   var songInfo = useSongInfo(currentSinger ? currentSinger.song : '')
   var hasVideo = !!(currentSinger && currentSinger.videoId)
   var qrPhase = useQrCycle(hasVideo)
+  var progress = useProgress(currentSinger ? currentSinger.videoId : null, hasVideo)
 
   if (!currentSinger) return null
 
@@ -166,7 +186,7 @@ export default function DisplayReactions() {
       <span
         key={r.id}
         className="floating-emoji absolute text-6xl"
-        style={{ left: (30 + Math.random() * 40) + '%', bottom: hasVideo ? '90px' : '50%' }}
+        style={{ left: (30 + Math.random() * 40) + '%', bottom: hasVideo ? '110px' : '50%' }}
       >
         {r.emoji}
       </span>
@@ -197,11 +217,22 @@ export default function DisplayReactions() {
             allowFullScreen
           />
 
-          <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-20 w-[92%] max-w-3xl">
-            <div className="flex items-center gap-4 rounded-2xl border border-purple-500/60 bg-neutral-950/35 backdrop-blur-sm px-5 py-3 h-[76px]">
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-3 h-[55vh] rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(139, 92, 246, 0.4)' }}>
+            <div
+              className="absolute bottom-0 left-0 w-full rounded-full progress-fill"
+              style={{
+                height: progress + '%',
+                background: 'linear-gradient(0deg, #E91E8C, #8B5CF6, #F4D03F)',
+                boxShadow: '0 0 10px 2px rgba(233, 30, 140, 0.6)'
+              }}
+            />
+          </div>
+
+          <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-20 w-[92%] max-w-[52rem]">
+            <div className="flex items-center gap-5 rounded-2xl border border-purple-500/60 bg-neutral-950/35 backdrop-blur-sm px-7 py-5 min-h-[100px]">
               <div
-                className="w-11 h-11 rounded-full overflow-hidden flex items-center justify-center text-xl bg-pink-600 shrink-0"
-                style={{ boxShadow: '0 0 14px 3px rgba(233, 30, 140, 0.55)' }}
+                className="w-14 h-14 rounded-full overflow-hidden flex items-center justify-center text-2xl bg-pink-600 shrink-0"
+                style={{ boxShadow: '0 0 16px 4px rgba(233, 30, 140, 0.55)' }}
               >
                 {currentSinger.photo ? (
                   <img src={currentSinger.photo} alt={currentSinger.name} className="w-full h-full object-cover" />
@@ -210,10 +241,10 @@ export default function DisplayReactions() {
                 )}
               </div>
               <div className="shrink-0">
-                <p className="text-sm font-bold text-white leading-tight" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>
+                <p className="text-lg font-bold text-white leading-tight" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>
                   {currentSinger.name}
                 </p>
-                <p className="text-xs text-yellow-400 leading-tight" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>
+                <p className="text-sm text-yellow-400 leading-tight" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>
                   {songInfo.info ? songInfo.info.artist : currentSinger.song}
                   {songInfo.info && songInfo.info.year ? ' · ' + songInfo.info.year : ''}
                 </p>
@@ -223,7 +254,7 @@ export default function DisplayReactions() {
                   <div className="w-px self-stretch bg-neutral-500/40 shrink-0" />
                   <p
                     key={songInfo.factIndex}
-                    className="fact-glitch fact-clamp text-base text-neutral-100 leading-snug flex-1"
+                    className="fact-glitch fact-clamp text-lg text-neutral-100 leading-snug flex-1"
                     style={{ textShadow: '0 1px 4px rgba(0,0,0,0.9)' }}
                   >
                     {songInfo.fact}
@@ -237,8 +268,11 @@ export default function DisplayReactions() {
             <div
               className={'absolute bottom-6 left-6 z-20 flex flex-col items-center ' + (qrPhase === 'visible' ? 'qr-glitch-in' : 'qr-fade-out')}
             >
-              <p className="text-xs font-bold text-yellow-400 mb-1.5" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.9)' }}>
-                ¡Reacciona a esta presentacion!
+              <p
+                className="text-sm font-bold text-yellow-400 mb-2 text-center leading-tight w-[130px]"
+                style={{ textShadow: '0 1px 4px rgba(0,0,0,0.9)' }}
+              >
+                ¡Reacciona a<br />esta presentacion!
               </p>
               <div className="rounded-2xl border-2 border-yellow-400 bg-neutral-950/90 p-3">
                 <QRCode url={reactUrl} size={130} />
@@ -288,18 +322,19 @@ export default function DisplayReactions() {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
         }
+        .progress-fill { transition: height 0.5s linear; }
         .fact-clamp {
           display: -webkit-box;
           -webkit-line-clamp: 2;
           -webkit-box-orient: vertical;
           overflow: hidden;
         }
-        .fact-glitch { animation: factGlitch 6s ease-in-out; }
+        .fact-glitch { animation: factGlitch 6.5s ease-in-out; }
         @keyframes factGlitch {
           0% { opacity: 0; transform: translate(-4px, 0); text-shadow: 2px 0 #E91E8C, -2px 0 #7ED957; }
           8% { opacity: 1; transform: translate(2px, 0); text-shadow: -2px 0 #8B5CF6, 2px 0 #F4D03F; }
           16% { transform: translate(0,0); text-shadow: none; }
-          88% { opacity: 1; }
+          90% { opacity: 1; }
           100% { opacity: 0; }
         }
         .qr-glitch-in { animation: qrGlitchIn 0.6s ease-out; }

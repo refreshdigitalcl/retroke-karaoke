@@ -36,6 +36,7 @@ export function KaraokeSessionProvider({ children }) {
   const [barLoading, setBarLoading] = useState(true)
 
   const [activeSession, setActiveSession] = useState(null)
+  const [lastClosedSession, setLastClosedSession] = useState(null)
   const [queue, setQueue] = useState([])
   const [reactions, setReactions] = useState([])
   const [ratings, setRatings] = useState([])
@@ -56,6 +57,71 @@ export function KaraokeSessionProvider({ children }) {
       .limit(1)
       .maybeSingle()
     setActiveSession(data || null)
+
+    if (!data) {
+      const closedResult = await supabase
+        .from('sessions')
+        .select('*')
+        .eq('bar_id', currentBarId)
+        .eq('status', 'closed')
+        .order('closed_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      const closed = closedResult.data
+      if (closed && closed.closed_at) {
+        const minutesAgo = (Date.now() - new Date(closed.closed_at).getTime()) / 60000
+        setLastClosedSession(minutesAgo < 45 ? closed : null)
+      } else {
+        setLastClosedSession(null)
+      }
+    } else {
+      setLastClosedSession(null)
+    }
+  }, [])
+
+  const loadSessionLeaderboard = useCallback(async (targetSessionId) => {
+    if (!targetSessionId) return []
+    const ratingsResult = await supabase
+      .from('ratings')
+      .select('*')
+      .eq('session_id', targetSessionId)
+    const rows = ratingsResult.data || []
+
+    const grouped = {}
+    const order = []
+    rows.forEach(function (r) {
+      if (!grouped[r.singer_id]) {
+        grouped[r.singer_id] = { total: 0, count: 0, name: r.singer_name, song: r.song }
+        order.push(r.singer_id)
+      }
+      grouped[r.singer_id].total += r.score
+      grouped[r.singer_id].count += 1
+    })
+
+    const singerIds = order.map(function (id) { return isNaN(Number(id)) ? id : Number(id) })
+    const entriesResult = singerIds.length
+      ? await supabase.from('queue_entries').select('id, photo, avatar').in('id', singerIds)
+      : { data: [] }
+    const entriesById = {}
+    ;(entriesResult.data || []).forEach(function (e) {
+      entriesById[String(e.id)] = e
+    })
+
+    const list = order.map(function (id) {
+      const g = grouped[id]
+      const entry = entriesById[String(id)]
+      return {
+        id: id,
+        name: g.name,
+        song: g.song,
+        average: g.total / g.count,
+        photo: entry ? entry.photo : '',
+        avatar: entry ? entry.avatar : '🎤'
+      }
+    })
+
+    list.sort(function (a, b) { return b.average - a.average })
+    return list
   }, [])
 
   useEffect(() => {
@@ -415,6 +481,8 @@ export function KaraokeSessionProvider({ children }) {
     barLoading,
     sessionCode: barSlug,
     hasActiveSession,
+    lastClosedSession,
+    loadSessionLeaderboard,
     activeSessionName: activeSession ? activeSession.name : '',
     queue,
     currentSinger,
