@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useKaraokeSession } from '../contexts/KaraokeSessionContext'
+import { useVideoPlayer } from '../contexts/VideoPlayerContext'
 import RetroEqualizer from '../components/RetroEqualizer'
 import FloatingDecor from '../components/FloatingDecor'
 import FallingParty from '../components/FallingParty'
 import QRCode from '../components/QRCode'
 import { fetchArtistFacts } from '../lib/artistFacts'
-import { fetchVideoDurationSeconds } from '../lib/videoSearch'
 import { getSentiment } from '../lib/reactionEmojis'
 
 var QR_VISIBLE_SECONDS = 10
@@ -121,40 +121,6 @@ function useQrCycle(active) {
   return phase
 }
 
-function useProgress(videoId, active) {
-  var durationState = useState(null)
-  var duration = durationState[0]
-  var setDuration = durationState[1]
-
-  var progressState = useState(0)
-  var progress = progressState[0]
-  var setProgress = progressState[1]
-
-  var startedAtRef = useRef(null)
-
-  useEffect(function () {
-    if (!videoId) return
-    setDuration(null)
-    setProgress(0)
-    fetchVideoDurationSeconds(videoId).then(function (secs) {
-      setDuration(secs)
-    })
-  }, [videoId])
-
-  useEffect(function () {
-    if (!active || !duration) return
-    startedAtRef.current = Date.now()
-    var interval = setInterval(function () {
-      var elapsed = (Date.now() - startedAtRef.current) / 1000
-      var pct = Math.min(100, (elapsed / duration) * 100)
-      setProgress(pct)
-    }, 500)
-    return function () { clearInterval(interval) }
-  }, [active, duration])
-
-  return progress
-}
-
 function useNeedlePosition(reactions) {
   var historyRef = useRef([])
   var seenIdsRef = useRef(new Set())
@@ -194,6 +160,7 @@ export default function DisplayReactions() {
   var currentSinger = session.currentSinger
   var reactions = session.reactions
   var sessionCode = session.sessionCode
+  var videoPlayer = useVideoPlayer()
 
   var phrase = useMemo(function () {
     if (!currentSinger) return ''
@@ -203,8 +170,31 @@ export default function DisplayReactions() {
   var songInfo = useSongInfo(currentSinger ? currentSinger.song : '')
   var hasVideo = !!(currentSinger && currentSinger.videoId)
   var qrPhase = useQrCycle(hasVideo)
-  var progress = useProgress(currentSinger ? currentSinger.videoId : null, hasVideo)
   var needlePosition = useNeedlePosition(reactions)
+
+  var progressState = useState(0)
+  var progress = progressState[0]
+  var setProgress = progressState[1]
+
+  useEffect(function () {
+    if (!hasVideo) return
+    videoPlayer.playVideoById(currentSinger.videoId)
+    return function () {
+      videoPlayer.stopVideo()
+    }
+  }, [hasVideo, currentSinger ? currentSinger.videoId : null])
+
+  useEffect(function () {
+    if (!hasVideo) return
+    var interval = setInterval(function () {
+      var duration = videoPlayer.getDuration()
+      var current = videoPlayer.getCurrentTime()
+      if (duration > 0) {
+        setProgress(Math.min(100, (current / duration) * 100))
+      }
+    }, 500)
+    return function () { clearInterval(interval) }
+  }, [hasVideo])
 
   if (!currentSinger) return null
 
@@ -231,28 +221,19 @@ export default function DisplayReactions() {
   }
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-black">
+    <div className="min-h-screen relative overflow-hidden" style={{ background: hasVideo ? 'transparent' : '#000' }}>
       {!hasVideo && (
         <div className="px-8 py-10">
           <RetroEqualizer />
           <FloatingDecor />
         </div>
       )}
-      <FallingParty />
+      {!hasVideo && <FallingParty />}
 
       <div className="absolute inset-0 pointer-events-none z-20">{floaters}</div>
 
       {hasVideo ? (
         <div className="relative w-full h-screen">
-          <iframe
-            key={currentSinger.videoId}
-            src={'https://www.youtube.com/embed/' + currentSinger.videoId + '?autoplay=1&rel=0&controls=0&modestbranding=1&disablekb=1&iv_load_policy=3'}
-            title="Video de karaoke"
-            className="w-full h-full"
-            allow="autoplay; encrypted-media"
-            allowFullScreen
-          />
-
           <div className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-3 h-[55vh] rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(139, 92, 246, 0.4)' }}>
             <div
               className="absolute bottom-0 left-0 w-full rounded-full progress-fill"
