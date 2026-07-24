@@ -3,7 +3,12 @@ var INVIDIOUS_INSTANCES = [
   'https://invidious.jing.rocks',
   'https://inv.nadeko.net',
   'https://iv.melmac.space',
-  'https://invidious.privacyredirect.com'
+  'https://invidious.privacyredirect.com',
+  'https://invidious.protokolla.fi',
+  'https://invidious.reallyaweso.me',
+  'https://inv.tux.pizza',
+  'https://vid.puffyan.us',
+  'https://invidious.lunar.icu'
 ]
 
 function pickThumbnail(thumbnails) {
@@ -12,15 +17,21 @@ function pickThumbnail(thumbnails) {
   return medium ? medium.url : thumbnails[0].url
 }
 
-export async function searchSimilarVideos(query) {
-  for (var i = 0; i < INVIDIOUS_INSTANCES.length; i++) {
-    var instance = INVIDIOUS_INSTANCES[i]
-    try {
-      var res = await fetch(instance + '/api/v1/search?q=' + encodeURIComponent(query) + '&type=video')
-      if (!res.ok) continue
-      var data = await res.json()
-      if (!Array.isArray(data) || data.length === 0) continue
-      var results = data.slice(0, 6).map(function (item) {
+function fetchFromInstance(instance, query, timeoutMs) {
+  var controller = new AbortController()
+  var timeoutId = setTimeout(function () { controller.abort() }, timeoutMs)
+
+  return fetch(instance + '/api/v1/search?q=' + encodeURIComponent(query) + '&type=video', {
+    signal: controller.signal
+  })
+    .then(function (res) {
+      clearTimeout(timeoutId)
+      if (!res.ok) throw new Error('bad response')
+      return res.json()
+    })
+    .then(function (data) {
+      if (!Array.isArray(data) || data.length === 0) throw new Error('empty')
+      return data.slice(0, 6).map(function (item) {
         return {
           videoId: item.videoId,
           title: item.title,
@@ -28,10 +39,22 @@ export async function searchSimilarVideos(query) {
           thumbnail: pickThumbnail(item.videoThumbnails)
         }
       })
-      return results
-    } catch (err) {
-      continue
-    }
+    })
+    .catch(function (err) {
+      clearTimeout(timeoutId)
+      throw err
+    })
+}
+
+export async function searchSimilarVideos(query) {
+  var attempts = INVIDIOUS_INSTANCES.map(function (instance) {
+    return fetchFromInstance(instance, query, 4500)
+  })
+
+  try {
+    var result = await Promise.any(attempts)
+    return result
+  } catch (err) {
+    return []
   }
-  return []
 }

@@ -38,9 +38,18 @@ export default function SimilarTrackSearch(props) {
       )}
 
       {status === 'empty' && (
-        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-          No se encontraron resultados. Intenta con un link manual distinto.
-        </p>
+        <div>
+          <p className="text-xs mb-1.5" style={{ color: 'var(--text-muted)' }}>
+            No se encontraron resultados por ahora.
+          </p>
+          <button
+            onClick={handleSearch}
+            className="text-xs px-3 py-1.5 rounded-lg border"
+            style={{ borderColor: 'var(--accent-yellow)', color: 'var(--accent-yellow)' }}
+          >
+            Reintentar busqueda
+          </button>
+        </div>
       )}
 
       {status === 'done' && (
