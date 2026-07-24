@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useKaraokeSession } from '../contexts/KaraokeSessionContext'
 import { useAuth } from '../contexts/AuthContext'
-import { checkYoutubeEmbeddable } from '../components/YouTubePlayer'
 import ThemeToggle from '../components/ThemeToggle'
 
 function LoginGate() {
@@ -236,26 +235,9 @@ export default function DjPanel() {
   var closing = closingState[0]
   var setClosing = closingState[1]
 
-  var checkingVideoState = useState(false)
-  var checkingVideo = checkingVideoState[0]
-  var setCheckingVideo = checkingVideoState[1]
-
   function handleStartPresentation() {
     if (!currentSinger) return
-    if (!currentSinger.videoId) {
-      startCountdown()
-      return
-    }
-    setCheckingVideo(true)
-    checkYoutubeEmbeddable(currentSinger.videoId).then(function (ok) {
-      setCheckingVideo(false)
-      if (ok) {
-        startCountdown()
-      } else {
-        alert('Este video no permite reproducirse en otros sitios web. Vuelve a la cola y cambia el link por otro video.')
-        returnToQueue()
-      }
-    })
+    startCountdown()
   }
 
   function handleToggleHistory() {
@@ -368,6 +350,11 @@ export default function DjPanel() {
                     ⚠️ Video no seleccionado
                   </p>
                 )}
+                {currentSinger.videoError && (
+                  <p className="text-xs mt-1 font-semibold" style={{ color: 'var(--accent-magenta)' }}>
+                    ⚠️ Este video no se puede reproducir aqui. Cancela y cambia el link.
+                  </p>
+                )}
               </div>
             </div>
 
@@ -375,11 +362,10 @@ export default function DjPanel() {
               {screenMode === 'called' && (
                 <button
                   onClick={handleStartPresentation}
-                  disabled={checkingVideo}
-                  className="px-4 h-10 rounded-lg text-sm font-medium text-white disabled:opacity-60"
+                  className="px-4 h-10 rounded-lg text-sm font-medium text-white"
                   style={{ background: 'var(--accent-magenta)' }}
                 >
-                  {checkingVideo ? 'Verificando video...' : 'Iniciar presentacion'}
+                  Iniciar presentacion
                 </button>
               )}
               {screenMode === 'countdown' && (

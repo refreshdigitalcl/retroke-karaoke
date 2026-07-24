@@ -157,6 +157,12 @@ export default function DisplayShow() {
   var errorState = useState(null)
   var videoError = errorState[0]
   var setVideoError = errorState[1]
+  var videoErrorRef = useRef(null)
+
+  function setVideoErrorBoth(val) {
+    videoErrorRef.current = val
+    setVideoError(val)
+  }
 
   var readyState = useState(false)
   var videoReady = readyState[0]
@@ -176,7 +182,7 @@ export default function DisplayShow() {
       var remaining = Math.ceil(COUNTDOWN_SECONDS - elapsed)
       if (remaining <= 0) {
         setNumber(0)
-        if (!firedRef.current) {
+        if (!firedRef.current && !videoErrorRef.current) {
           firedRef.current = true
           startPlaying()
         }
@@ -191,7 +197,8 @@ export default function DisplayShow() {
 
   useEffect(function () {
     setVideoReady(false)
-    setVideoError(null)
+    setVideoErrorBoth(null)
+    errorReportedRef.current = false
   }, [currentSinger ? currentSinger.videoId : null])
 
   if (!currentSinger) return null
@@ -215,8 +222,14 @@ export default function DisplayShow() {
     i = i + 1
   }
 
+  var errorReportedRef = useRef(false)
+
   function handleVideoError(code) {
-    setVideoError(code)
+    setVideoErrorBoth(code)
+    if (!errorReportedRef.current) {
+      errorReportedRef.current = true
+      session.reportVideoError()
+    }
   }
 
   function handleStateChange(state) {

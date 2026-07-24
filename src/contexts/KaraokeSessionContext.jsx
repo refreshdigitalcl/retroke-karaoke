@@ -355,6 +355,14 @@ export function KaraokeSessionProvider({ children }) {
     [sessionId, currentSinger]
   )
 
+  const reportVideoError = useCallback(async () => {
+    if (!sessionId || !currentSinger) return
+    await supabase
+      .from('sessions')
+      .update({ current_singer: { ...currentSinger, videoError: true } })
+      .eq('id', sessionId)
+  }, [sessionId, currentSinger])
+
   const closeVoting = useCallback(async () => {
     if (!sessionId || !currentSinger) return
     await supabase.from('sessions').update({ screen_mode: 'result' }).eq('id', sessionId)
@@ -407,6 +415,7 @@ export function KaraokeSessionProvider({ children }) {
     finishCurrentSong,
     submitRating,
     closeVoting,
+    reportVideoError,
     returnToQueue,
     addReaction,
     startSession,
