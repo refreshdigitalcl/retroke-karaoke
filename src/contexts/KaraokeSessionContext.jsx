@@ -96,7 +96,10 @@ export function KaraokeSessionProvider({ children }) {
           avatar: r.avatar,
           song: r.song,
           youtubeUrl: r.youtube_url || '',
-          photo: r.photo || ''
+          photo: r.photo || '',
+          status: r.status || 'waiting',
+          videoUrl: r.video_url || '',
+          videoId: r.video_id || ''
         }))
       )
     }
@@ -249,6 +252,26 @@ export function KaraokeSessionProvider({ children }) {
     await supabase.from('queue_entries').delete().eq('id', id)
   }, [])
 
+  function parseYoutubeId(url) {
+    if (!url) return ''
+    const patterns = [
+      /(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([a-zA-Z0-9_-]{11})/
+    ]
+    for (const p of patterns) {
+      const match = url.match(p)
+      if (match) return match[1]
+    }
+    return ''
+  }
+
+  const setQueueEntryVideo = useCallback(async (id, videoUrl) => {
+    const videoId = parseYoutubeId(videoUrl)
+    await supabase
+      .from('queue_entries')
+      .update({ video_url: videoUrl, video_id: videoId, video_source: 'youtube' })
+      .eq('id', id)
+  }, [])
+
   const reorderQueue = useCallback(() => {}, [])
 
   const startNextSinger = useCallback(async () => {
@@ -313,6 +336,7 @@ export function KaraokeSessionProvider({ children }) {
     reactionEmojis: REACTION_EMOJIS,
     addToQueue,
     removeFromQueue,
+    setQueueEntryVideo,
     reorderQueue,
     startNextSinger,
     finishCurrentSong,

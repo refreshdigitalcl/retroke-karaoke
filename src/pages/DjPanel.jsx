@@ -211,6 +211,7 @@ export default function DjPanel() {
   var currentSinger = session.currentSinger
   var screenMode = session.screenMode
   var removeFromQueue = session.removeFromQueue
+  var setQueueEntryVideo = session.setQueueEntryVideo
   var startNextSinger = session.startNextSinger
   var finishCurrentSong = session.finishCurrentSong
   var submitRating = session.submitRating
@@ -394,40 +395,13 @@ export default function DjPanel() {
           )}
           {queue.map(function (entry, index) {
             return (
-              <div
+              <QueueRowAdmin
                 key={entry.id}
-                className="flex items-center gap-3 rounded-lg py-2.5 px-3"
-                style={{ background: 'var(--bg-card-alt)' }}
-              >
-                <span className="text-sm w-5" style={{ color: 'var(--text-muted)' }}>
-                  {index + 1}
-                </span>
-                <div
-                  className="w-9 h-9 rounded-full flex items-center justify-center text-base overflow-hidden"
-                  style={{ background: 'var(--accent-purple)' }}
-                >
-                  {entry.photo ? (
-                    <img src={entry.photo} alt={entry.name} className="w-full h-full object-cover" />
-                  ) : (
-                    entry.avatar
-                  )}
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm" style={{ color: 'var(--text-primary)' }}>
-                    {entry.name}
-                  </p>
-                  <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                    {entry.song}
-                  </p>
-                </div>
-                <button
-                  onClick={function () { removeFromQueue(entry.id) }}
-                  className="text-xs px-2.5 py-1 rounded"
-                  style={{ color: 'var(--text-muted)' }}
-                >
-                  Quitar
-                </button>
-              </div>
+                entry={entry}
+                index={index}
+                removeFromQueue={removeFromQueue}
+                setQueueEntryVideo={setQueueEntryVideo}
+              />
             )
           })}
         </div>
@@ -454,6 +428,94 @@ export default function DjPanel() {
             })}
           </div>
         </section>
+      )}
+    </div>
+  )
+}
+
+function QueueRowAdmin(props) {
+  var entry = props.entry
+  var index = props.index
+  var removeFromQueue = props.removeFromQueue
+  var setQueueEntryVideo = props.setQueueEntryVideo
+
+  var openState = useState(false)
+  var open = openState[0]
+  var setOpen = openState[1]
+
+  var urlState = useState(entry.videoUrl || '')
+  var url = urlState[0]
+  var setUrl = urlState[1]
+
+  var savedState = useState(false)
+  var saved = savedState[0]
+  var setSaved = savedState[1]
+
+  function handleSave() {
+    setQueueEntryVideo(entry.id, url.trim()).then(function () {
+      setSaved(true)
+      setTimeout(function () { setSaved(false) }, 1500)
+    })
+  }
+
+  return (
+    <div className="rounded-lg py-2.5 px-3" style={{ background: 'var(--bg-card-alt)' }}>
+      <div className="flex items-center gap-3">
+        <span className="text-sm w-5" style={{ color: 'var(--text-muted)' }}>
+          {index + 1}
+        </span>
+        <div
+          className="w-9 h-9 rounded-full flex items-center justify-center text-base overflow-hidden"
+          style={{ background: 'var(--accent-purple)' }}
+        >
+          {entry.photo ? (
+            <img src={entry.photo} alt={entry.name} className="w-full h-full object-cover" />
+          ) : (
+            entry.avatar
+          )}
+        </div>
+        <div className="flex-1">
+          <p className="text-sm" style={{ color: 'var(--text-primary)' }}>
+            {entry.name}
+          </p>
+          <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+            {entry.song}
+          </p>
+        </div>
+        <button
+          onClick={function () { setOpen(!open) }}
+          className="text-xs px-2.5 py-1 rounded"
+          style={{ color: entry.videoId ? 'var(--accent-green)' : 'var(--text-muted)' }}
+        >
+          {entry.videoId ? 'Video listo' : 'Agregar video'}
+        </button>
+        <button
+          onClick={function () { removeFromQueue(entry.id) }}
+          className="text-xs px-2.5 py-1 rounded"
+          style={{ color: 'var(--text-muted)' }}
+        >
+          Quitar
+        </button>
+      </div>
+
+      {open && (
+        <div className="flex gap-2 mt-2.5 pl-8">
+          <input
+            type="text"
+            value={url}
+            onChange={function (e) { setUrl(e.target.value) }}
+            placeholder="Pega el link de YouTube"
+            className="flex-1 h-9 rounded-lg px-3 border outline-none text-sm"
+            style={{ background: 'var(--bg-page)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+          />
+          <button
+            onClick={handleSave}
+            className="h-9 px-3 rounded-lg text-sm font-medium text-white"
+            style={{ background: 'var(--accent-magenta)' }}
+          >
+            {saved ? 'Guardado' : 'Guardar'}
+          </button>
+        </div>
       )}
     </div>
   )
