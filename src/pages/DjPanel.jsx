@@ -213,7 +213,7 @@ export default function DjPanel() {
   var removeFromQueue = session.removeFromQueue
   var setQueueEntryVideo = session.setQueueEntryVideo
   var callSinger = session.callSinger
-  var startCountdown = session.startCountdown
+  var startPlaying = session.startPlaying
   var finishCurrentSong = session.finishCurrentSong
   var submitRating = session.submitRating
   var closeVoting = session.closeVoting
@@ -237,7 +237,7 @@ export default function DjPanel() {
 
   function handleStartPresentation() {
     if (!currentSinger) return
-    startCountdown()
+    startPlaying()
   }
 
   function handleToggleHistory() {
