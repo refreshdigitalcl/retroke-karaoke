@@ -35,11 +35,8 @@ export function checkYoutubeEmbeddable(videoId) {
       var testPlayer = null
 
       var timeoutId = setTimeout(function () {
-        if (settled) return
-        settled = true
-        cleanup()
-        resolve(true)
-      }, 5000)
+        finish(true)
+      }, 6000)
 
       function cleanup() {
         clearTimeout(timeoutId)
@@ -47,23 +44,32 @@ export function checkYoutubeEmbeddable(videoId) {
         if (hiddenDiv.parentNode) hiddenDiv.parentNode.removeChild(hiddenDiv)
       }
 
+      function finish(result) {
+        if (settled) return
+        settled = true
+        cleanup()
+        resolve(result)
+      }
+
       testPlayer = new YT.Player(hiddenDiv, {
         videoId: videoId,
-        playerVars: { autoplay: 0 },
+        playerVars: { autoplay: 1, controls: 0 },
         events: {
-          onReady: function () {
-            if (settled) return
-            settled = true
-            cleanup()
-            resolve(true)
+          onReady: function (e) {
+            try {
+              e.target.mute()
+              e.target.playVideo()
+            } catch (err) {}
+          },
+          onStateChange: function (e) {
+            if (e.data === 1 || e.data === 3 || e.data === 2) {
+              finish(true)
+            }
           },
           onError: function (e) {
-            if (settled) return
-            settled = true
-            cleanup()
             var code = e.data
             var blocked = code === 101 || code === 150 || code === 100 || code === 2
-            resolve(!blocked)
+            finish(!blocked)
           }
         }
       })
