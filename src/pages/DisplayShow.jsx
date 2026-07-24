@@ -151,9 +151,13 @@ export default function DisplayShow() {
   var videoError = errorState[0]
   var setVideoError = errorState[1]
 
+  var readyState = useState(false)
+  var videoReady = readyState[0]
+  var setVideoReady = readyState[1]
+
   var isPlaying = screenMode === 'reactions'
   var isCountdown = screenMode === 'countdown'
-  var qrVisible = useQrCycle(isPlaying)
+  var qrVisible = useQrCycle(isPlaying && videoReady)
 
   useEffect(function () {
     if (screenMode !== 'countdown' || !currentSinger || !currentSinger.playbackStartedAt) return
@@ -177,6 +181,11 @@ export default function DisplayShow() {
 
     return function () { clearInterval(interval) }
   }, [screenMode, currentSinger, startPlaying])
+
+  useEffect(function () {
+    setVideoReady(false)
+    setVideoError(null)
+  }, [currentSinger ? currentSinger.videoId : null])
 
   if (!currentSinger) return null
 
@@ -203,6 +212,12 @@ export default function DisplayShow() {
     setVideoError(code)
   }
 
+  function handleStateChange(state) {
+    if (state === 1) {
+      setVideoReady(true)
+    }
+  }
+
   return (
     <div className="min-h-screen relative overflow-hidden bg-black">
       <FallingParty />
@@ -213,6 +228,7 @@ export default function DisplayShow() {
           videoId={currentSinger.videoId}
           shouldPlay={isPlaying}
           onError={handleVideoError}
+          onStateChange={handleStateChange}
         />
 
         {videoError !== null && (
@@ -233,19 +249,25 @@ export default function DisplayShow() {
           </div>
         )}
 
-        {isCountdown && (
+        {(isCountdown || (isPlaying && !videoReady)) && (
           <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black">
-            <p className="text-lg md:text-2xl tracking-widest uppercase text-purple-400 mb-4">
-              {currentSinger.name}
-            </p>
-            <p className="text-sm md:text-base text-neutral-400 mb-8">Preparate...</p>
-            <div key={number} className="countdown-number text-[9rem] md:text-[14rem] font-extrabold leading-none text-pink-500">
-              {number > 0 ? number : '🎤'}
-            </div>
+            {isCountdown ? (
+              <>
+                <p className="text-lg md:text-2xl tracking-widest uppercase text-purple-400 mb-4">
+                  {currentSinger.name}
+                </p>
+                <p className="text-sm md:text-base text-neutral-400 mb-8">Preparate...</p>
+                <div key={number} className="countdown-number text-[9rem] md:text-[14rem] font-extrabold leading-none text-pink-500">
+                  {number > 0 ? number : '🎤'}
+                </div>
+              </>
+            ) : (
+              <p className="text-sm text-neutral-500">Cargando presentacion...</p>
+            )}
           </div>
         )}
 
-        {isPlaying && (
+        {isPlaying && videoReady && (
           <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-20 w-[92%] max-w-3xl">
             <div className="flex items-center gap-4 rounded-2xl border border-purple-500/60 bg-neutral-950/35 backdrop-blur-sm px-5 py-3 h-[76px]">
               <div
@@ -283,7 +305,7 @@ export default function DisplayShow() {
           </div>
         )}
 
-        {isPlaying && qrVisible && (
+        {isPlaying && videoReady && qrVisible && (
           <div className="qr-glitch absolute bottom-6 left-6 z-20 rounded-2xl border-2 border-yellow-400 bg-neutral-950/90 p-3">
             <QRCode url={reactUrl} size={130} />
             <p className="text-[11px] text-purple-300 text-center mt-1.5">Escanea y reacciona</p>

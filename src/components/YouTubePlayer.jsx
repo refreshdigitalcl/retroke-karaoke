@@ -21,6 +21,7 @@ export default function YouTubePlayer(props) {
   var videoId = props.videoId
   var shouldPlay = props.shouldPlay
   var onError = props.onError
+  var onStateChange = props.onStateChange
 
   var containerRef = useRef(null)
   var playerRef = useRef(null)
@@ -37,6 +38,9 @@ export default function YouTubePlayer(props) {
         events: {
           onError: function (e) {
             if (onError) onError(e.data)
+          },
+          onStateChange: function (e) {
+            if (onStateChange) onStateChange(e.data)
           }
         }
       })
