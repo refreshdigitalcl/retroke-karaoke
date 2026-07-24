@@ -599,22 +599,34 @@ function QueueRowAdmin(props) {
       </div>
 
       {open && (
-        <div className="flex gap-2 mt-2.5 pl-8">
-          <input
-            type="text"
-            value={url}
-            onChange={function (e) { setUrl(e.target.value) }}
-            placeholder="Pega el link de YouTube"
-            className="flex-1 h-9 rounded-lg px-3 border outline-none text-sm"
-            style={{ background: 'var(--bg-page)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+        <div className="mt-2.5 pl-8">
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={url}
+              onChange={function (e) { setUrl(e.target.value) }}
+              placeholder="Pega el link de YouTube"
+              className="flex-1 h-9 rounded-lg px-3 border outline-none text-sm"
+              style={{ background: 'var(--bg-page)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+            />
+            <button
+              onClick={handleSave}
+              className="h-9 px-3 rounded-lg text-sm font-medium text-white"
+              style={{ background: 'var(--accent-magenta)' }}
+            >
+              {saved ? 'Guardado' : 'Guardar'}
+            </button>
+          </div>
+          <SimilarTrackSearch
+            query={entry.song}
+            onSelect={function (videoUrl, videoId) {
+              setUrl(videoUrl)
+              setQueueEntryVideo(entry.id, videoUrl).then(function () {
+                setSaved(true)
+                setTimeout(function () { setSaved(false) }, 1500)
+              })
+            }}
           />
-          <button
-            onClick={handleSave}
-            className="h-9 px-3 rounded-lg text-sm font-medium text-white"
-            style={{ background: 'var(--accent-magenta)' }}
-          >
-            {saved ? 'Guardado' : 'Guardar'}
-          </button>
         </div>
       )}
     </div>

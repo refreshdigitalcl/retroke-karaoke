@@ -5,7 +5,7 @@ export async function searchSimilarVideos(query) {
     'https://www.googleapis.com/youtube/v3/search' +
     '?part=snippet' +
     '&type=video' +
-    '&maxResults=6' +
+    '&maxResults=5' +
     '&q=' + encodeURIComponent(query) +
     '&key=' + YOUTUBE_API_KEY
 

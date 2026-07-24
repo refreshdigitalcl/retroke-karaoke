@@ -53,7 +53,7 @@ export default function SimilarTrackSearch(props) {
       )}
 
       {status === 'done' && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 mt-2">
           {results.map(function (r) {
             return (
               <button
@@ -63,13 +63,18 @@ export default function SimilarTrackSearch(props) {
                   setStatus('idle')
                   setResults([])
                 }}
-                className="text-left rounded-lg overflow-hidden border"
+                className="text-left rounded-xl overflow-hidden border-2 transition-colors hover:border-opacity-100"
                 style={{ borderColor: 'var(--border)', background: 'var(--bg-card-alt)' }}
               >
-                {r.thumbnail && (
-                  <img src={r.thumbnail} alt={r.title} className="w-full h-20 object-cover" />
-                )}
-                <p className="text-[11px] px-1.5 py-1 leading-snug line-clamp-2" style={{ color: 'var(--text-primary)' }}>
+                <div
+                  className="w-full flex items-center justify-center"
+                  style={{ height: '56px', background: '#000' }}
+                >
+                  {r.thumbnail && (
+                    <img src={r.thumbnail} alt={r.title} className="w-full h-full object-contain" />
+                  )}
+                </div>
+                <p className="text-[10px] px-1.5 py-1 leading-snug line-clamp-2" style={{ color: 'var(--text-primary)' }}>
                   {r.title}
                 </p>
               </button>
