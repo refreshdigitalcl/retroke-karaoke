@@ -3,6 +3,39 @@ import { useKaraokeSession } from '../contexts/KaraokeSessionContext'
 import RetroEqualizer from '../components/RetroEqualizer'
 import FallingParty from '../components/FallingParty'
 
+var RESULT_PHRASES = [
+  '¡Gran presentación! 🎤👏',
+  '¡Te luciste en el escenario! 🔥🎤',
+  '¡El público lo disfrutó muchísimo! 👏❤️',
+  '¡Qué tremenda interpretación! ⭐🎶',
+  '¡Voz, actitud y espectáculo! 🔥🎤',
+  '¡Nos regalaste una gran presentación! 🎵👏',
+  '¡El escenario fue tuyo! 👑🎤',
+  '¡Una actuación para recordar! 🌟🎶',
+  '¡Te pasaste! Tremenda presentación 🔥👏',
+  '¡El público habló y te aplaudió! 👏🙌',
+  '¡Puro talento sobre el escenario! 🎤✨',
+  '¡Cantaste con todo el corazón! ❤️🎶',
+  '¡Qué manera de cantar! 🔥🎤',
+  '¡Una presentación llena de energía! ⚡👏',
+  '¡El micrófono fue tuyo y lo disfrutaste! 🎤😎',
+  '¡Nos sorprendiste! Gran presentación 😮⭐',
+  '¡La rompiste esta noche! 💥🎤',
+  '¡Una presentación digna de aplausos! 👏🌟',
+  '¡El público disfrutó cada segundo! 🎶❤️',
+  '¡Gracias por dejarlo todo en el escenario! 🙌🔥'
+]
+
+function pickResultPhrase(seed) {
+  var index = 0
+  var i = 0
+  while (i < seed.length) {
+    index = index + seed.charCodeAt(i)
+    i = i + 1
+  }
+  return RESULT_PHRASES[index % RESULT_PHRASES.length]
+}
+
 export default function DisplayResult() {
   var session = useKaraokeSession()
   var currentSinger = session.currentSinger
@@ -43,6 +76,9 @@ export default function DisplayResult() {
           <>
             <p className="text-8xl md:text-9xl font-extrabold text-yellow-400 leading-none">
               {average}
+            </p>
+            <p className="text-lg md:text-2xl font-bold text-white mt-5 text-center">
+              {pickResultPhrase(String(currentSinger.id))}
             </p>
             <p className="text-sm text-neutral-400 mt-4">
               {songRatings.length} {songRatings.length === 1 ? 'voto' : 'votos'}

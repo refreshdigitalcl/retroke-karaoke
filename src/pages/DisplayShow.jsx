@@ -4,6 +4,10 @@ import FallingParty from '../components/FallingParty'
 import QRCode from '../components/QRCode'
 import YouTubePlayer from '../components/YouTubePlayer'
 
+var COUNTDOWN_SECONDS = 8
+var QR_VISIBLE_SECONDS = 15
+var QR_HIDDEN_SECONDS = 30
+
 var PHRASES = [
   'está cantando con todo.', 'está rompiendo el escenario.', 'está rockeando como nunca.',
   'está en su prime.', 'está dando cátedra.', 'está dejando todo en el escenario.',
@@ -38,7 +42,7 @@ function splitFacts(text) {
   var i = 0
   while (i < parts.length && facts.length < 4) {
     var p = parts[i].trim()
-    if (p.length > 15 && p.length < 220) facts.push(p)
+    if (p.length > 15 && p.length < 160) facts.push(p)
     i = i + 1
   }
   return facts
@@ -94,6 +98,36 @@ function useSongInfo(song) {
   return { info: info, fact: facts.length > 0 ? facts[factIndex] : '', factIndex: factIndex }
 }
 
+function useQrCycle(active) {
+  var visibleState = useState(true)
+  var visible = visibleState[0]
+  var setVisible = visibleState[1]
+
+  useEffect(function () {
+    if (!active) return
+    setVisible(true)
+    var timeoutId = null
+
+    function scheduleNext(showing) {
+      var delay = showing ? QR_VISIBLE_SECONDS * 1000 : QR_HIDDEN_SECONDS * 1000
+      timeoutId = setTimeout(function () {
+        setVisible(function (prev) {
+          scheduleNext(!prev)
+          return !prev
+        })
+      }, delay)
+    }
+
+    scheduleNext(true)
+
+    return function () {
+      if (timeoutId) clearTimeout(timeoutId)
+    }
+  }, [active])
+
+  return visible
+}
+
 export default function DisplayShow() {
   var session = useKaraokeSession()
   var currentSinger = session.currentSinger
@@ -108,7 +142,7 @@ export default function DisplayShow() {
     return pickPhrase(String(currentSinger.id))
   }, [currentSinger])
 
-  var numberState = useState(5)
+  var numberState = useState(COUNTDOWN_SECONDS)
   var number = numberState[0]
   var setNumber = numberState[1]
   var firedRef = useRef(false)
@@ -117,6 +151,10 @@ export default function DisplayShow() {
   var videoError = errorState[0]
   var setVideoError = errorState[1]
 
+  var isPlaying = screenMode === 'reactions'
+  var isCountdown = screenMode === 'countdown'
+  var qrVisible = useQrCycle(isPlaying)
+
   useEffect(function () {
     if (screenMode !== 'countdown' || !currentSinger || !currentSinger.playbackStartedAt) return
     firedRef.current = false
@@ -124,7 +162,7 @@ export default function DisplayShow() {
 
     var interval = setInterval(function () {
       var elapsed = (Date.now() - startedAt) / 1000
-      var remaining = Math.ceil(5 - elapsed)
+      var remaining = Math.ceil(COUNTDOWN_SECONDS - elapsed)
       if (remaining <= 0) {
         setNumber(0)
         if (!firedRef.current) {
@@ -144,8 +182,6 @@ export default function DisplayShow() {
 
   var origin = typeof window !== 'undefined' ? window.location.origin : ''
   var reactUrl = origin + '/reaccionar?bar=' + sessionCode
-  var isCountdown = screenMode === 'countdown'
-  var isPlaying = screenMode === 'reactions'
 
   var floaters = []
   var i = 0
@@ -180,7 +216,7 @@ export default function DisplayShow() {
         />
 
         {videoError !== null && (
-          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/90 px-8 text-center">
+          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black px-8 text-center">
             <p className="text-2xl font-bold text-white mb-3">Este video no se puede reproducir aqui</p>
             <p className="text-sm text-neutral-400 mb-6">
               El autor no permite que se comparta en otros sitios. El DJ deberia elegir otro video.
@@ -198,7 +234,7 @@ export default function DisplayShow() {
         )}
 
         {isCountdown && (
-          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/80">
+          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black">
             <p className="text-lg md:text-2xl tracking-widest uppercase text-purple-400 mb-4">
               {currentSinger.name}
             </p>
@@ -211,7 +247,7 @@ export default function DisplayShow() {
 
         {isPlaying && (
           <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-20 w-[92%] max-w-3xl">
-            <div className="flex items-center gap-4 rounded-2xl border border-purple-500/60 bg-neutral-950/35 backdrop-blur-sm px-5 py-3">
+            <div className="flex items-center gap-4 rounded-2xl border border-purple-500/60 bg-neutral-950/35 backdrop-blur-sm px-5 py-3 h-[76px]">
               <div
                 className="w-11 h-11 rounded-full overflow-hidden flex items-center justify-center text-xl bg-pink-600 shrink-0"
                 style={{ boxShadow: '0 0 14px 3px rgba(233, 30, 140, 0.55)' }}
@@ -236,17 +272,21 @@ export default function DisplayShow() {
                   <div className="w-px self-stretch bg-neutral-500/40 shrink-0" />
                   <p
                     key={songInfo.factIndex}
-                    className="fact-glitch text-xs text-neutral-200 italic leading-snug"
+                    className="fact-glitch fact-clamp text-base text-neutral-100 leading-snug flex-1"
                     style={{ textShadow: '0 1px 4px rgba(0,0,0,0.9)' }}
                   >
                     {songInfo.fact}
                   </p>
                 </>
               )}
-              <div className="ml-auto shrink-0 opacity-80">
-                <QRCode url={reactUrl} size={44} />
-              </div>
             </div>
+          </div>
+        )}
+
+        {isPlaying && qrVisible && (
+          <div className="qr-glitch absolute bottom-6 left-6 z-20 rounded-2xl border-2 border-yellow-400 bg-neutral-950/90 p-3">
+            <QRCode url={reactUrl} size={130} />
+            <p className="text-[11px] text-purple-300 text-center mt-1.5">Escanea y reacciona</p>
           </div>
         )}
       </div>
@@ -266,6 +306,12 @@ export default function DisplayShow() {
           40% { transform: scale(1.15); opacity: 1; }
           100% { transform: scale(1); opacity: 1; }
         }
+        .fact-clamp {
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
         .fact-glitch { animation: factGlitch 6s ease-in-out; }
         @keyframes factGlitch {
           0% { opacity: 0; transform: translate(-4px, 0); text-shadow: 2px 0 #E91E8C, -2px 0 #7ED957; }
@@ -273,6 +319,19 @@ export default function DisplayShow() {
           16% { transform: translate(0,0); text-shadow: none; }
           88% { opacity: 1; }
           100% { opacity: 0; }
+        }
+        .qr-glitch {
+          animation: qrGlitchInOut 15s ease-in-out;
+        }
+        @keyframes qrGlitchInOut {
+          0% { opacity: 0; transform: translate(-8px, 4px); clip-path: inset(0 40% 0 0); }
+          4% { opacity: 1; transform: translate(6px, -2px); clip-path: inset(0 0 0 30%); }
+          8% { transform: translate(-3px, 1px); clip-path: inset(0 20% 0 0); }
+          12% { transform: translate(0,0); clip-path: inset(0 0 0 0); }
+          90% { opacity: 1; transform: translate(0,0); }
+          94% { opacity: 0.6; transform: translate(5px, -2px); clip-path: inset(0 0 0 25%); }
+          97% { opacity: 0.3; transform: translate(-6px, 3px); clip-path: inset(0 35% 0 0); }
+          100% { opacity: 0; transform: translate(4px, 0); clip-path: inset(0 0 0 45%); }
         }
       `}</style>
     </div>
