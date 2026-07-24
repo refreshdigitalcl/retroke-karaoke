@@ -216,6 +216,7 @@ export default function DjPanel() {
   var startCountdown = session.startCountdown
   var finishCurrentSong = session.finishCurrentSong
   var submitRating = session.submitRating
+  var closeVoting = session.closeVoting
   var returnToQueue = session.returnToQueue
   var ratings = session.ratings
   var startSession = session.startSession
@@ -372,14 +373,28 @@ export default function DjPanel() {
                 </button>
               )}
               {screenMode === 'rating' && (
-                <DjRatingShortcut submitRating={submitRating} />
+                <>
+                  <DjRatingShortcut submitRating={submitRating} />
+                  <button
+                    onClick={closeVoting}
+                    className="px-4 h-10 rounded-lg text-sm font-medium text-white"
+                    style={{ background: 'var(--accent-purple)' }}
+                  >
+                    Cerrar votacion
+                  </button>
+                </>
+              )}
+              {screenMode === 'result' && (
+                <span className="px-4 h-10 flex items-center text-sm" style={{ color: 'var(--text-secondary)' }}>
+                  Mostrando resultado en pantalla
+                </span>
               )}
               <button
                 onClick={returnToQueue}
                 className="px-4 h-10 rounded-lg text-sm border"
                 style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}
               >
-                {screenMode === 'called' ? 'Cancelar' : 'Volver a la cola'}
+                {screenMode === 'called' ? 'Cancelar' : screenMode === 'result' ? 'Siguiente cantante' : 'Volver a la cola'}
               </button>
             </div>
           </div>

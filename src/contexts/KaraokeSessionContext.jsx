@@ -344,10 +344,17 @@ export function KaraokeSessionProvider({ children }) {
     [sessionId, currentSinger]
   )
 
+  const closeVoting = useCallback(async () => {
+    if (!sessionId || !currentSinger) return
+    await supabase.from('sessions').update({ screen_mode: 'result' }).eq('id', sessionId)
+    await supabase.from('queue_entries').update({ status: 'result' }).eq('id', currentSinger.id)
+  }, [sessionId, currentSinger])
+
   const returnToQueue = useCallback(async () => {
     if (!sessionId) return
     if (currentSinger) {
-      const nextStatus = screenMode === 'rating' || screenMode === 'reactions' ? 'completed' : 'waiting'
+      const completingStates = ['rating', 'result', 'reactions']
+      const nextStatus = completingStates.indexOf(screenMode) !== -1 ? 'completed' : 'waiting'
       await supabase.from('queue_entries').update({ status: nextStatus }).eq('id', currentSinger.id)
     }
     await supabase
@@ -388,6 +395,7 @@ export function KaraokeSessionProvider({ children }) {
     startPlaying,
     finishCurrentSong,
     submitRating,
+    closeVoting,
     returnToQueue,
     addReaction,
     startSession,

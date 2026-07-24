@@ -215,48 +215,93 @@ export default function DisplayReactions() {
     i = i + 1
   }
 
+  var hasVideo = !!currentSinger.videoId
+
   return (
     <div className="min-h-screen relative overflow-hidden px-8 py-10 flex flex-col items-center bg-black">
       <RetroEqualizer />
       <FloatingDecor />
       <FallingParty />
 
-      <div className="absolute inset-0 pointer-events-none z-10">{floaters}</div>
+      <div className="absolute inset-0 pointer-events-none z-20">{floaters}</div>
 
-      <span className="relative z-10 text-xs px-3 py-1 rounded-full text-white bg-pink-600 mb-8">
+      <span className="relative z-10 text-xs px-3 py-1 rounded-full text-white bg-pink-600 mb-6">
         En vivo
       </span>
 
-      <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-10 max-w-5xl w-full items-stretch">
-        <div className="rounded-3xl border-2 border-pink-600 bg-neutral-950/85 px-7 py-7 w-full h-full flex flex-col items-center justify-center text-center">
-          <div
-            className="w-40 h-40 md:w-52 md:h-52 rounded-full overflow-hidden border-4 border-purple-500 flex items-center justify-center text-6xl bg-pink-600 spin-vinyl"
-            style={{ boxShadow: '0 0 30px 6px rgba(139, 92, 246, 0.55)' }}
-          >
-            {currentSinger.photo ? (
-              <img src={currentSinger.photo} alt={currentSinger.name} className="w-full h-full object-cover" />
-            ) : (
-              currentSinger.avatar
-            )}
+      {hasVideo ? (
+        <div className="relative z-10 w-full max-w-4xl flex flex-col items-center">
+          <div className="w-full rounded-2xl overflow-hidden border-2 border-pink-600" style={{ aspectRatio: '16 / 9' }}>
+            <iframe
+              key={currentSinger.videoId}
+              src={'https://www.youtube.com/embed/' + currentSinger.videoId + '?autoplay=1&rel=0'}
+              title="Video de karaoke"
+              className="w-full h-full"
+              allow="autoplay; encrypted-media"
+              allowFullScreen
+            />
           </div>
 
-          <p className="text-2xl md:text-3xl font-extrabold text-white mt-6 max-w-md">
-            {currentSinger.name} <span className="text-purple-400">{phrase}</span>
-          </p>
-          <p className="text-lg md:text-xl text-yellow-400 mt-1 mb-6">
-            {currentSinger.song}
-          </p>
+          <div className="flex items-center justify-between w-full mt-4 flex-wrap gap-3">
+            <div className="flex items-center gap-3">
+              <div
+                className="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center text-2xl bg-pink-600 shrink-0"
+                style={{ boxShadow: '0 0 16px 3px rgba(233, 30, 140, 0.5)' }}
+              >
+                {currentSinger.photo ? (
+                  <img src={currentSinger.photo} alt={currentSinger.name} className="w-full h-full object-cover" />
+                ) : (
+                  currentSinger.avatar
+                )}
+              </div>
+              <div>
+                <p className="text-lg font-bold text-white">
+                  {currentSinger.name} <span className="text-purple-400 font-normal">{phrase}</span>
+                </p>
+                <p className="text-sm text-yellow-400">{currentSinger.song}</p>
+              </div>
+            </div>
 
-          <div className="flex flex-col items-center gap-1.5">
-            <QRCode url={reactUrl} size={130} />
-            <p className="text-sm text-purple-300">Escanea para reaccionar</p>
+            <div className="flex items-center gap-2">
+              <QRCode url={reactUrl} size={64} />
+              <p className="text-xs text-purple-300">Escanea
+                <br />para reaccionar
+              </p>
+            </div>
           </div>
         </div>
+      ) : (
+        <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-10 max-w-5xl w-full items-stretch">
+          <div className="rounded-3xl border-2 border-pink-600 bg-neutral-950/85 px-7 py-7 w-full h-full flex flex-col items-center justify-center text-center">
+            <div
+              className="w-40 h-40 md:w-52 md:h-52 rounded-full overflow-hidden border-4 border-purple-500 flex items-center justify-center text-6xl bg-pink-600 spin-vinyl"
+              style={{ boxShadow: '0 0 30px 6px rgba(139, 92, 246, 0.55)' }}
+            >
+              {currentSinger.photo ? (
+                <img src={currentSinger.photo} alt={currentSinger.name} className="w-full h-full object-cover" />
+              ) : (
+                currentSinger.avatar
+              )}
+            </div>
 
-        <div className="flex justify-center">
-          <SongInfoPanel song={currentSinger.song} />
+            <p className="text-2xl md:text-3xl font-extrabold text-white mt-6 max-w-md">
+              {currentSinger.name} <span className="text-purple-400">{phrase}</span>
+            </p>
+            <p className="text-lg md:text-xl text-yellow-400 mt-1 mb-6">
+              {currentSinger.song}
+            </p>
+
+            <div className="flex flex-col items-center gap-1.5">
+              <QRCode url={reactUrl} size={130} />
+              <p className="text-sm text-purple-300">Escanea para reaccionar</p>
+            </div>
+          </div>
+
+          <div className="flex justify-center">
+            <SongInfoPanel song={currentSinger.song} />
+          </div>
         </div>
-      </div>
+      )}
 
       <style>{`
         @keyframes floatUp {

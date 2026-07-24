@@ -4,6 +4,7 @@ import DisplayCalled from './DisplayCalled'
 import DisplayCountdown from './DisplayCountdown'
 import DisplayReactions from './DisplayReactions'
 import DisplayRating from './DisplayRating'
+import DisplayResult from './DisplayResult'
 
 export default function Display() {
   const { screenMode } = useKaraokeSession()
@@ -12,5 +13,6 @@ export default function Display() {
   if (screenMode === 'countdown') return <DisplayCountdown />
   if (screenMode === 'reactions') return <DisplayReactions />
   if (screenMode === 'rating') return <DisplayRating />
+  if (screenMode === 'result') return <DisplayResult />
   return <DisplayQueue />
 }
