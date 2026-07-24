@@ -212,7 +212,8 @@ export default function DjPanel() {
   var screenMode = session.screenMode
   var removeFromQueue = session.removeFromQueue
   var setQueueEntryVideo = session.setQueueEntryVideo
-  var startNextSinger = session.startNextSinger
+  var callSinger = session.callSinger
+  var startCountdown = session.startCountdown
   var finishCurrentSong = session.finishCurrentSong
   var submitRating = session.submitRating
   var returnToQueue = session.returnToQueue
@@ -338,10 +339,29 @@ export default function DjPanel() {
                 <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
                   {currentSinger.song} · pantalla: {screenLabel(screenMode)}
                 </p>
+                {screenMode === 'called' && !currentSinger.videoId && (
+                  <p className="text-xs mt-1" style={{ color: 'var(--accent-magenta)' }}>
+                    ⚠️ Video no seleccionado
+                  </p>
+                )}
               </div>
             </div>
 
             <div className="flex gap-2">
+              {screenMode === 'called' && (
+                <button
+                  onClick={startCountdown}
+                  className="px-4 h-10 rounded-lg text-sm font-medium text-white"
+                  style={{ background: 'var(--accent-magenta)' }}
+                >
+                  Iniciar presentacion
+                </button>
+              )}
+              {screenMode === 'countdown' && (
+                <span className="px-4 h-10 flex items-center text-sm" style={{ color: 'var(--text-secondary)' }}>
+                  Cuenta regresiva en curso...
+                </span>
+              )}
               {screenMode === 'reactions' && (
                 <button
                   onClick={finishCurrentSong}
@@ -359,7 +379,7 @@ export default function DjPanel() {
                 className="px-4 h-10 rounded-lg text-sm border"
                 style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}
               >
-                Volver a la cola
+                {screenMode === 'called' ? 'Cancelar' : 'Volver a la cola'}
               </button>
             </div>
           </div>
@@ -376,15 +396,6 @@ export default function DjPanel() {
           <p className="text-xs uppercase tracking-wide" style={{ color: 'var(--accent-yellow)' }}>
             Cola ({queue.length})
           </p>
-          {!currentSinger && queue.length > 0 && (
-            <button
-              onClick={startNextSinger}
-              className="px-4 h-9 rounded-lg text-sm font-medium text-white"
-              style={{ background: 'var(--accent-magenta)' }}
-            >
-              Llamar al siguiente
-            </button>
-          )}
         </div>
 
         <div className="flex flex-col gap-2">
@@ -399,6 +410,8 @@ export default function DjPanel() {
                 key={entry.id}
                 entry={entry}
                 index={index}
+                canCall={!currentSinger}
+                callSinger={callSinger}
                 removeFromQueue={removeFromQueue}
                 setQueueEntryVideo={setQueueEntryVideo}
               />
@@ -436,6 +449,8 @@ export default function DjPanel() {
 function QueueRowAdmin(props) {
   var entry = props.entry
   var index = props.index
+  var canCall = props.canCall
+  var callSinger = props.callSinger
   var removeFromQueue = props.removeFromQueue
   var setQueueEntryVideo = props.setQueueEntryVideo
 
@@ -489,6 +504,15 @@ function QueueRowAdmin(props) {
         >
           {entry.videoId ? 'Video listo' : 'Agregar video'}
         </button>
+        {canCall && (
+          <button
+            onClick={function () { callSinger(entry.id) }}
+            className="text-xs px-3 py-1.5 rounded-lg font-medium text-white"
+            style={{ background: 'var(--accent-magenta)' }}
+          >
+            Llamar
+          </button>
+        )}
         <button
           onClick={function () { removeFromQueue(entry.id) }}
           className="text-xs px-2.5 py-1 rounded"

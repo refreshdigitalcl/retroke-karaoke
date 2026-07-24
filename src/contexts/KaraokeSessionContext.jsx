@@ -87,6 +87,7 @@ export function KaraokeSessionProvider({ children }) {
       .from('queue_entries')
       .select('*')
       .eq('session_id', sid)
+      .eq('status', 'waiting')
       .order('position')
     if (data) {
       setQueue(
@@ -274,20 +275,60 @@ export function KaraokeSessionProvider({ children }) {
 
   const reorderQueue = useCallback(() => {}, [])
 
-  const startNextSinger = useCallback(async () => {
-    if (!sessionId || queue.length === 0) return
-    const next = queue[0]
+  const callSinger = useCallback(
+    async (entryId) => {
+      if (!sessionId) return
+      const entry = queue.find((e) => e.id === entryId)
+      if (!entry) return
+      await supabase
+        .from('sessions')
+        .update({
+          current_singer: {
+            id: entry.id,
+            name: entry.name,
+            avatar: entry.avatar,
+            song: entry.song,
+            photo: entry.photo,
+            videoUrl: entry.videoUrl,
+            videoId: entry.videoId
+          },
+          screen_mode: 'called'
+        })
+        .eq('id', sessionId)
+      await supabase.from('queue_entries').update({ status: 'called' }).eq('id', entryId)
+    },
+    [sessionId, queue]
+  )
+
+  const startCountdown = useCallback(async () => {
+    if (!sessionId || !currentSinger) return
+    const now = new Date().toISOString()
     await supabase
       .from('sessions')
-      .update({ current_singer: next, screen_mode: 'reactions' })
+      .update({
+        screen_mode: 'countdown',
+        current_singer: { ...currentSinger, playbackStartedAt: now }
+      })
       .eq('id', sessionId)
-    await supabase.from('queue_entries').delete().eq('id', next.id)
-  }, [sessionId, queue])
+    await supabase
+      .from('queue_entries')
+      .update({ status: 'countdown', playback_started_at: now })
+      .eq('id', currentSinger.id)
+  }, [sessionId, currentSinger])
+
+  const startPlaying = useCallback(async () => {
+    if (!sessionId || !currentSinger) return
+    await supabase.from('sessions').update({ screen_mode: 'reactions' }).eq('id', sessionId)
+    await supabase.from('queue_entries').update({ status: 'playing' }).eq('id', currentSinger.id)
+  }, [sessionId, currentSinger])
 
   const finishCurrentSong = useCallback(async () => {
     if (!sessionId) return
     await supabase.from('sessions').update({ screen_mode: 'rating' }).eq('id', sessionId)
-  }, [sessionId])
+    if (currentSinger) {
+      await supabase.from('queue_entries').update({ status: 'rating' }).eq('id', currentSinger.id)
+    }
+  }, [sessionId, currentSinger])
 
   const submitRating = useCallback(
     async (score) => {
@@ -305,11 +346,15 @@ export function KaraokeSessionProvider({ children }) {
 
   const returnToQueue = useCallback(async () => {
     if (!sessionId) return
+    if (currentSinger) {
+      const nextStatus = screenMode === 'rating' || screenMode === 'reactions' ? 'completed' : 'waiting'
+      await supabase.from('queue_entries').update({ status: nextStatus }).eq('id', currentSinger.id)
+    }
     await supabase
       .from('sessions')
       .update({ current_singer: null, screen_mode: 'queue' })
       .eq('id', sessionId)
-  }, [sessionId])
+  }, [sessionId, currentSinger, screenMode])
 
   const addReaction = useCallback(
     async (emoji) => {
@@ -338,7 +383,9 @@ export function KaraokeSessionProvider({ children }) {
     removeFromQueue,
     setQueueEntryVideo,
     reorderQueue,
-    startNextSinger,
+    callSinger,
+    startCountdown,
+    startPlaying,
     finishCurrentSong,
     submitRating,
     returnToQueue,
