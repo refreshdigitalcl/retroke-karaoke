@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useKaraokeSession } from '../contexts/KaraokeSessionContext'
 import RetroEqualizer from '../components/RetroEqualizer'
 import QRCode from '../components/QRCode'
 import FallingParty from '../components/FallingParty'
 import FloatingDecor from '../components/FloatingDecor'
 
+var VOTE_SECONDS = 20
 var BURST_COLORS = ['#E91E8C', '#F4D03F', '#7ED957', '#8B5CF6']
 
 function ConfettiBurst() {
@@ -25,24 +26,27 @@ function ConfettiBurst() {
     )
     i = i + 1
   }
-  return (
-    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
-      {particles}
-      <style>{`
-        .burst-particle {
-          position: absolute;
-          width: 10px;
-          height: 10px;
-          border-radius: 2px;
-          animation: burstOut 1s ease-out forwards;
-        }
-        @keyframes burstOut {
-          0% { transform: translate(0,0) scale(1); opacity: 1; }
-          100% { transform: translate(var(--dx), var(--dy)) scale(0.3); opacity: 0; }
-        }
-      `}</style>
-    </div>
-  )
+  return <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">{particles}</div>
+}
+
+function useCountdown(seed) {
+  var secondsState = useState(VOTE_SECONDS)
+  var seconds = secondsState[0]
+  var setSeconds = secondsState[1]
+  var startedAtRef = useRef(Date.now())
+
+  useEffect(function () {
+    startedAtRef.current = Date.now()
+    setSeconds(VOTE_SECONDS)
+    var interval = setInterval(function () {
+      var elapsed = (Date.now() - startedAtRef.current) / 1000
+      var remaining = Math.max(0, Math.ceil(VOTE_SECONDS - elapsed))
+      setSeconds(remaining)
+    }, 250)
+    return function () { clearInterval(interval) }
+  }, [seed])
+
+  return seconds
 }
 
 export default function DisplayRating() {
@@ -71,6 +75,8 @@ export default function DisplayRating() {
     return (sum / songRatings.length).toFixed(1)
   }, [songRatings])
 
+  var secondsLeft = useCountdown(currentSinger ? currentSinger.id : 'none')
+
   useEffect(function () {
     if (average === null) return
     setBursting(true)
@@ -89,18 +95,36 @@ export default function DisplayRating() {
     origin = window.location.origin
   }
   var rateUrl = origin + '/calificar?bar=' + sessionCode
+  var timerColor = secondsLeft <= 5 ? '#E91E8C' : secondsLeft <= 10 ? '#F4D03F' : '#7ED957'
 
   return (
-    <div className="min-h-screen relative overflow-hidden px-8 py-10 flex flex-col items-center justify-center bg-black">
+    <div className="min-h-screen relative overflow-hidden flex flex-col items-center bg-black">
       <RetroEqualizer />
       <FloatingDecor />
       <FallingParty />
 
-      <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-10 max-w-4xl w-full items-center">
-        <div className="flex flex-col items-center text-center rounded-3xl border-2 border-purple-500 bg-neutral-950/80 px-8 py-10">
+      <div className="relative z-30 mt-6 flex flex-col items-center">
+        <div
+          className="w-24 h-24 rounded-full flex items-center justify-center border-4 timer-pulse"
+          style={{ borderColor: timerColor, boxShadow: '0 0 24px 4px ' + timerColor + '80' }}
+        >
+          <span className="text-4xl font-extrabold" style={{ color: timerColor }}>
+            {secondsLeft}
+          </span>
+        </div>
+        <p className="text-xs uppercase tracking-widest text-neutral-400 mt-2">
+          Segundos para votar
+        </p>
+      </div>
+
+      <div className="relative z-10 w-full flex-1 flex flex-col md:flex-row mt-4">
+        <div
+          className="relative flex-1 h-full flex flex-col items-center justify-center px-6 border-x"
+          style={{ borderColor: 'rgba(244, 208, 63, 0.25)' }}
+        >
           <div
-            className="w-28 h-28 rounded-full overflow-hidden flex items-center justify-center text-5xl border-4 border-pink-600 mb-5"
-            style={{ boxShadow: '0 0 24px 5px rgba(233, 30, 140, 0.5)' }}
+            className="w-32 h-32 md:w-36 md:h-36 rounded-full overflow-hidden flex items-center justify-center text-5xl border-4 border-pink-600 mb-5"
+            style={{ boxShadow: '0 0 30px 6px rgba(233, 30, 140, 0.5)' }}
           >
             {currentSinger.photo ? (
               <img src={currentSinger.photo} alt={currentSinger.name} className="w-full h-full object-cover" />
@@ -108,43 +132,62 @@ export default function DisplayRating() {
               currentSinger.avatar
             )}
           </div>
-          <p className="text-2xl font-bold text-white mb-1">{currentSinger.name}</p>
-          <p className="text-base text-purple-300 mb-6">{currentSinger.song}</p>
+          <p className="text-2xl md:text-3xl font-extrabold text-white mb-1">{currentSinger.name}</p>
+          <p className="text-base md:text-lg text-purple-300 mb-8">{currentSinger.song}</p>
 
-          <p className="text-xl font-extrabold text-yellow-400 mb-1">
-            Esperando calificacion del Jurado
-          </p>
-          <p className="text-base text-neutral-400 mb-6">
-            Tu opinion define la nota final. Vota ahora.
-          </p>
-
-          <div className="rounded-2xl border-2 border-yellow-400 bg-neutral-900/90 px-5 py-5 flex flex-col items-center gap-2">
-            <QRCode url={rateUrl} size={140} />
-            <p className="text-sm text-purple-300">Escanea para votar</p>
+          <div className="rounded-3xl border-2 border-yellow-400 bg-neutral-950/85 px-7 py-7 flex flex-col items-center gap-3 qr-glow">
+            <QRCode url={rateUrl} size={190} />
+            <p className="text-base font-bold text-yellow-400">Escanea para votar</p>
           </div>
         </div>
 
-        <div className="relative flex flex-col items-center text-center rounded-3xl border-2 border-yellow-400 bg-neutral-950/80 px-8 py-10">
+        <div
+          className="relative flex-1 h-full flex flex-col items-center justify-center px-6"
+        >
           {bursting && <ConfettiBurst />}
-          <p className="text-base tracking-widest uppercase text-purple-400 mb-4">
+          <p className="text-lg md:text-xl tracking-widest uppercase text-purple-400 mb-5 font-bold">
             Calificacion final es:
           </p>
           {average ? (
             <>
-              <p className="text-7xl md:text-8xl font-extrabold text-yellow-400 leading-none">
+              <p className="text-8xl md:text-9xl font-extrabold text-yellow-400 leading-none">
                 {average}
               </p>
-              <p className="text-base text-neutral-400 mt-4">
+              <p className="text-lg text-neutral-400 mt-6">
                 {songRatings.length} {songRatings.length === 1 ? 'voto emitido' : 'votos emitidos'}
               </p>
             </>
           ) : (
-            <p className="text-xl text-neutral-400 mt-6">
+            <p className="text-2xl text-neutral-400 mt-6 text-center max-w-xs">
               Esperando los primeros votos del publico...
             </p>
           )}
         </div>
       </div>
+
+      <style>{`
+        .burst-particle {
+          position: absolute;
+          width: 10px;
+          height: 10px;
+          border-radius: 2px;
+          animation: burstOut 1s ease-out forwards;
+        }
+        @keyframes burstOut {
+          0% { transform: translate(0,0) scale(1); opacity: 1; }
+          100% { transform: translate(var(--dx), var(--dy)) scale(0.3); opacity: 0; }
+        }
+        .timer-pulse {
+          animation: timerPulse 1s ease-in-out infinite;
+        }
+        @keyframes timerPulse {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.06); }
+        }
+        .qr-glow {
+          box-shadow: 0 0 34px 6px rgba(244, 208, 63, 0.25);
+        }
+      `}</style>
     </div>
   )
 }
