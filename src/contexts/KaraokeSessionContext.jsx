@@ -355,6 +355,23 @@ export function KaraokeSessionProvider({ children }) {
     [sessionId, currentSinger]
   )
 
+  const setCurrentSingerVideo = useCallback(
+    async (videoUrl, videoId) => {
+      if (!sessionId || !currentSinger) return
+      await supabase
+        .from('sessions')
+        .update({
+          current_singer: { ...currentSinger, videoUrl, videoId, videoError: false }
+        })
+        .eq('id', sessionId)
+      await supabase
+        .from('queue_entries')
+        .update({ video_url: videoUrl, video_id: videoId, video_source: 'youtube' })
+        .eq('id', currentSinger.id)
+    },
+    [sessionId, currentSinger]
+  )
+
   const reportVideoError = useCallback(async () => {
     if (!sessionId || !currentSinger) return
     await supabase
@@ -410,6 +427,7 @@ export function KaraokeSessionProvider({ children }) {
     setQueueEntryVideo,
     reorderQueue,
     callSinger,
+    setCurrentSingerVideo,
     startCountdown,
     startPlaying,
     finishCurrentSong,

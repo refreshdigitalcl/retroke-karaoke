@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useKaraokeSession } from '../contexts/KaraokeSessionContext'
 import { useAuth } from '../contexts/AuthContext'
 import { checkYoutubeEmbeddable } from '../components/YouTubePlayer'
+import SimilarTrackSearch from '../components/SimilarTrackSearch'
 import ThemeToggle from '../components/ThemeToggle'
 
 function LoginGate() {
@@ -214,6 +215,7 @@ export default function DjPanel() {
   var removeFromQueue = session.removeFromQueue
   var setQueueEntryVideo = session.setQueueEntryVideo
   var callSinger = session.callSinger
+  var setCurrentSingerVideo = session.setCurrentSingerVideo
   var startPlaying = session.startPlaying
   var finishCurrentSong = session.finishCurrentSong
   var submitRating = session.submitRating
@@ -245,6 +247,15 @@ export default function DjPanel() {
     setCheckStatus('checking')
     checkYoutubeEmbeddable(currentSinger.videoId).then(function (ok) {
       setCheckStatus(ok ? 'ok' : 'blocked')
+    })
+  }
+
+  function handleSelectSimilar(videoUrl, videoId) {
+    setCurrentSingerVideo(videoUrl, videoId).then(function () {
+      setCheckStatus('checking')
+      checkYoutubeEmbeddable(videoId).then(function (ok) {
+        setCheckStatus(ok ? 'ok' : 'blocked')
+      })
     })
   }
 
@@ -373,9 +384,12 @@ export default function DjPanel() {
                   </p>
                 )}
                 {screenMode === 'called' && checkStatus === 'blocked' && (
-                  <p className="text-xs mt-1 font-semibold" style={{ color: 'var(--accent-magenta)' }}>
-                    ❌ Este video no se puede reproducir aqui. Cambia el link.
-                  </p>
+                  <div className="mt-1">
+                    <p className="text-xs font-semibold" style={{ color: 'var(--accent-magenta)' }}>
+                      ❌ Este video no se puede reproducir aqui. Cambia el link.
+                    </p>
+                    <SimilarTrackSearch query={currentSinger.song} onSelect={handleSelectSimilar} />
+                  </div>
                 )}
                 {currentSinger.videoError && (
                   <p className="text-xs mt-1 font-semibold" style={{ color: 'var(--accent-magenta)' }}>
