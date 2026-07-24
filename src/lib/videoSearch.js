@@ -1,59 +1,30 @@
-var INVIDIOUS_INSTANCES = [
-  'https://yewtu.be',
-  'https://invidious.jing.rocks',
-  'https://inv.nadeko.net',
-  'https://iv.melmac.space',
-  'https://invidious.privacyredirect.com',
-  'https://invidious.protokolla.fi',
-  'https://invidious.reallyaweso.me',
-  'https://inv.tux.pizza',
-  'https://vid.puffyan.us',
-  'https://invidious.lunar.icu'
-]
-
-function pickThumbnail(thumbnails) {
-  if (!thumbnails || thumbnails.length === 0) return ''
-  var medium = thumbnails.find(function (t) { return t.quality === 'medium' })
-  return medium ? medium.url : thumbnails[0].url
-}
-
-function fetchFromInstance(instance, query, timeoutMs) {
-  var controller = new AbortController()
-  var timeoutId = setTimeout(function () { controller.abort() }, timeoutMs)
-
-  return fetch(instance + '/api/v1/search?q=' + encodeURIComponent(query) + '&type=video', {
-    signal: controller.signal
-  })
-    .then(function (res) {
-      clearTimeout(timeoutId)
-      if (!res.ok) throw new Error('bad response')
-      return res.json()
-    })
-    .then(function (data) {
-      if (!Array.isArray(data) || data.length === 0) throw new Error('empty')
-      return data.slice(0, 6).map(function (item) {
-        return {
-          videoId: item.videoId,
-          title: item.title,
-          author: item.author,
-          thumbnail: pickThumbnail(item.videoThumbnails)
-        }
-      })
-    })
-    .catch(function (err) {
-      clearTimeout(timeoutId)
-      throw err
-    })
-}
+var YOUTUBE_API_KEY = 'AIzaSyBeB0rmGsJgmRw4ZXDq2ZFtTqY1WFAQxdQ'
 
 export async function searchSimilarVideos(query) {
-  var attempts = INVIDIOUS_INSTANCES.map(function (instance) {
-    return fetchFromInstance(instance, query, 4500)
-  })
+  var url =
+    'https://www.googleapis.com/youtube/v3/search' +
+    '?part=snippet' +
+    '&type=video' +
+    '&maxResults=6' +
+    '&q=' + encodeURIComponent(query) +
+    '&key=' + YOUTUBE_API_KEY
 
   try {
-    var result = await Promise.any(attempts)
-    return result
+    var res = await fetch(url)
+    if (!res.ok) return []
+    var data = await res.json()
+    if (!data.items || data.items.length === 0) return []
+
+    return data.items.map(function (item) {
+      return {
+        videoId: item.id.videoId,
+        title: item.snippet.title,
+        author: item.snippet.channelTitle,
+        thumbnail: item.snippet.thumbnails && item.snippet.thumbnails.medium
+          ? item.snippet.thumbnails.medium.url
+          : ''
+      }
+    })
   } catch (err) {
     return []
   }
