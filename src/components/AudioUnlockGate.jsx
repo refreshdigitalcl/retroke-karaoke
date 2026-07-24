@@ -5,7 +5,16 @@ function GateInner(props) {
 
   return (
     <>
-      <div ref={player.containerRef} className="fixed inset-0 z-0 bg-black" />
+      <div ref={player.containerRef} id="persistent-yt-player" className="fixed inset-0 z-0 bg-black" />
+      <style>{`
+        #persistent-yt-player iframe {
+          width: 100vw !important;
+          height: 100vh !important;
+          position: fixed;
+          top: 0;
+          left: 0;
+        }
+      `}</style>
 
       {!player.unlocked ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black px-8">

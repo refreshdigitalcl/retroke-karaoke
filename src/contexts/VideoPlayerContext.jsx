@@ -36,6 +36,8 @@ export function VideoPlayerProvider(props) {
     loadYouTubeApi().then(function (YT) {
       if (!YT || !containerRef.current) return
       playerRef.current = new YT.Player(containerRef.current, {
+        width: '100%',
+        height: '100%',
         videoId: 'M7lc1UVf-VE',
         playerVars: { autoplay: 1, controls: 0, playsinline: 1 },
         events: {

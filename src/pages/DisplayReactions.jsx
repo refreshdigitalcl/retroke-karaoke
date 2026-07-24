@@ -253,13 +253,22 @@ export default function DisplayReactions() {
             }}
           >
             <div
-              className="absolute left-1/2 -translate-x-1/2 w-6 h-6 rounded-full needle-dot"
+              className="absolute right-1/2 needle-arrow"
               style={{
-                bottom: 'calc(' + needlePosition + '% - 12px)',
-                background: '#fff',
-                boxShadow: '0 0 12px 4px rgba(255,255,255,0.8)'
+                bottom: 'calc(' + needlePosition + '% - 11px)',
+                transform: 'translateX(50%)'
               }}
-            />
+            >
+              <svg width="34" height="22" viewBox="0 0 34 22">
+                <polygon
+                  points="0,11 20,0 20,7 34,7 34,15 20,15 20,22"
+                  fill="#fff"
+                  stroke="#8B5CF6"
+                  strokeWidth="1.5"
+                  style={{ filter: 'drop-shadow(0 0 6px rgba(255,255,255,0.9))' }}
+                />
+              </svg>
+            </div>
           </div>
 
           <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-20 w-[92%] max-w-[52rem]">
@@ -357,7 +366,7 @@ export default function DisplayReactions() {
           to { transform: rotate(360deg); }
         }
         .progress-fill { transition: height 0.5s linear; }
-        .needle-dot { transition: bottom 0.4s ease-out; }
+        .needle-arrow { transition: bottom 0.4s ease-out; }
         .fact-clamp {
           display: -webkit-box;
           -webkit-line-clamp: 2;
