@@ -20,6 +20,7 @@ export function KaraokeSessionProvider({ children }) {
   const [barSlug] = useState(getBarSlugFromUrl())
   const [barId, setBarId] = useState(null)
   const [barName, setBarName] = useState('')
+  const [barIsActive, setBarIsActive] = useState(true)
   const [barLoading, setBarLoading] = useState(true)
 
   const [activeSession, setActiveSession] = useState(null)
@@ -54,6 +55,7 @@ export function KaraokeSessionProvider({ children }) {
       if (bar) {
         setBarId(bar.id)
         setBarName(bar.name)
+        setBarIsActive(bar.is_active !== false)
         await refreshActiveSession(bar.id)
       }
       setBarLoading(false)
@@ -298,6 +300,7 @@ export function KaraokeSessionProvider({ children }) {
     barSlug,
     barId,
     barName,
+    barIsActive,
     barLoading,
     sessionCode: barSlug,
     hasActiveSession,

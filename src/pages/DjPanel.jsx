@@ -74,6 +74,7 @@ function LoginGate() {
 
 function StartSessionGate(props) {
   var barName = props.barName
+  var barIsActive = props.barIsActive
   var startSession = props.startSession
 
   var nameState = useState('Karaoke ' + new Date().toLocaleDateString('es-CL', { weekday: 'long' }))
@@ -87,6 +88,22 @@ function StartSessionGate(props) {
   var errorState = useState('')
   var error = errorState[0]
   var setError = errorState[1]
+
+  if (!barIsActive) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-6" style={{ background: 'var(--bg-page)' }}>
+        <div className="max-w-sm w-full rounded-3xl border p-8 text-center" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
+          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{barName}</p>
+          <p className="text-lg font-medium mb-2" style={{ color: 'var(--accent-magenta)' }}>
+            Servicio desactivado
+          </p>
+          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+            Este bar esta desactivado en la plataforma. Contacta al administrador de Retroke para reactivarlo.
+          </p>
+        </div>
+      </div>
+    )
+  }
 
   function handleStart(e) {
     e.preventDefault()
@@ -185,6 +202,7 @@ export default function DjPanel() {
 
   var session = useKaraokeSession()
   var barName = session.barName
+  var barIsActive = session.barIsActive
   var barLoading = session.barLoading
   var sessionCode = session.sessionCode
   var hasActiveSession = session.hasActiveSession
@@ -244,7 +262,7 @@ export default function DjPanel() {
   }
 
   if (!hasActiveSession) {
-    return <StartSessionGate barName={barName} startSession={startSession} />
+    return <StartSessionGate barName={barName} barIsActive={barIsActive} startSession={startSession} />
   }
 
   return (
