@@ -250,8 +250,15 @@ export function KaraokeSessionProvider({ children }) {
   )
 
   const removeFromQueue = useCallback(async (id) => {
-    await supabase.from('queue_entries').delete().eq('id', id)
-  }, [])
+    const result = await supabase.from('queue_entries').delete().eq('id', id)
+    if (result.error) {
+      alert('No se pudo quitar de la cola: ' + result.error.message)
+      return
+    }
+    if (sessionId) {
+      loadQueue(sessionId)
+    }
+  }, [sessionId, loadQueue])
 
   function parseYoutubeId(url) {
     if (!url) return ''
