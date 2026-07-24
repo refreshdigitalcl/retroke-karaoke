@@ -11,6 +11,11 @@ export default function DisplayCountdown() {
   var setNumber = numberState[1]
 
   var firedRef = useRef(false)
+  var startPlayingRef = useRef(startPlaying)
+
+  useEffect(function () {
+    startPlayingRef.current = startPlaying
+  }, [startPlaying])
 
   useEffect(function () {
     if (!currentSinger) return
@@ -26,7 +31,7 @@ export default function DisplayCountdown() {
         setNumber(0)
         if (!firedRef.current) {
           firedRef.current = true
-          startPlaying()
+          startPlayingRef.current()
         }
         clearInterval(interval)
       } else {
@@ -37,7 +42,7 @@ export default function DisplayCountdown() {
     return function () {
       clearInterval(interval)
     }
-  }, [currentSinger ? currentSinger.id : null, startPlaying])
+  }, [currentSinger ? currentSinger.id : null])
 
   if (!currentSinger) return null
 
