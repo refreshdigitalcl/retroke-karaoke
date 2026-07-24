@@ -235,6 +235,11 @@ export default function SessionLeaderboard() {
     loadSessionLeaderboard(lastClosedSession.id).then(setList)
   }, [lastClosedSession, loadSessionLeaderboard])
 
+  var nightStats = useNightStats(
+    lastClosedSession ? lastClosedSession.id : null,
+    list || []
+  )
+
   if (!lastClosedSession) return null
   if (list === null) {
     return (
@@ -248,7 +253,6 @@ export default function SessionLeaderboard() {
   var first = top3[0]
   var second = top3[1]
   var third = top3[2]
-  var nightStats = useNightStats(lastClosedSession.id, list)
 
   return (
     <div className="min-h-screen relative overflow-hidden flex flex-col items-center bg-black">
