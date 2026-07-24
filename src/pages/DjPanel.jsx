@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useKaraokeSession } from '../contexts/KaraokeSessionContext'
 import { useAuth } from '../contexts/AuthContext'
+import { checkYoutubeEmbeddable } from '../components/YouTubePlayer'
 import ThemeToggle from '../components/ThemeToggle'
 
 function LoginGate() {
@@ -235,6 +236,22 @@ export default function DjPanel() {
   var closing = closingState[0]
   var setClosing = closingState[1]
 
+  var checkStatusState = useState('idle')
+  var checkStatus = checkStatusState[0]
+  var setCheckStatus = checkStatusState[1]
+
+  function handleCheckVideo() {
+    if (!currentSinger || !currentSinger.videoId) return
+    setCheckStatus('checking')
+    checkYoutubeEmbeddable(currentSinger.videoId).then(function (ok) {
+      setCheckStatus(ok ? 'ok' : 'blocked')
+    })
+  }
+
+  useEffect(function () {
+    setCheckStatus('idle')
+  }, [currentSinger ? currentSinger.id : null])
+
   function handleStartPresentation() {
     if (!currentSinger) return
     startPlaying()
@@ -350,6 +367,16 @@ export default function DjPanel() {
                     ⚠️ Video no seleccionado
                   </p>
                 )}
+                {screenMode === 'called' && checkStatus === 'ok' && (
+                  <p className="text-xs mt-1 font-semibold" style={{ color: 'var(--accent-green)' }}>
+                    ✅ Video verificado, listo para reproducir
+                  </p>
+                )}
+                {screenMode === 'called' && checkStatus === 'blocked' && (
+                  <p className="text-xs mt-1 font-semibold" style={{ color: 'var(--accent-magenta)' }}>
+                    ❌ Este video no se puede reproducir aqui. Cambia el link.
+                  </p>
+                )}
                 {currentSinger.videoError && (
                   <p className="text-xs mt-1 font-semibold" style={{ color: 'var(--accent-magenta)' }}>
                     ⚠️ Este video no se puede reproducir aqui. Cancela y cambia el link.
@@ -359,6 +386,16 @@ export default function DjPanel() {
             </div>
 
             <div className="flex gap-2">
+              {screenMode === 'called' && currentSinger.videoId && (
+                <button
+                  onClick={handleCheckVideo}
+                  disabled={checkStatus === 'checking'}
+                  className="px-4 h-10 rounded-lg text-sm font-medium border disabled:opacity-60"
+                  style={{ borderColor: 'var(--accent-purple)', color: 'var(--accent-purple)' }}
+                >
+                  {checkStatus === 'checking' ? 'Verificando...' : 'Verificar video'}
+                </button>
+              )}
               {screenMode === 'called' && (
                 <button
                   onClick={handleStartPresentation}
