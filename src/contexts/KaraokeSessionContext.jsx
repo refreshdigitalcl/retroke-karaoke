@@ -468,11 +468,14 @@ export function KaraokeSessionProvider({ children }) {
   const addReaction = useCallback(
     async (emoji) => {
       if (!sessionId) return
-      await supabase.from('reactions').insert({
+      const result = await supabase.from('reactions').insert({
         session_id: sessionId,
         emoji: emoji,
         queue_entry_id: currentSinger ? currentSinger.id : null
       })
+      if (result.error) {
+        await supabase.from('reactions').insert({ session_id: sessionId, emoji: emoji })
+      }
     },
     [sessionId, currentSinger]
   )

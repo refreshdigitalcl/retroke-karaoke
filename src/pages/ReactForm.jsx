@@ -1,8 +1,13 @@
+import { useState } from 'react'
 import { useKaraokeSession } from '../contexts/KaraokeSessionContext'
 import ThemeToggle from '../components/ThemeToggle'
 
 export default function ReactForm() {
   const { currentSinger, screenMode, addReaction, reactionEmojis } = useKaraokeSession()
+
+  var floatersState = useState([])
+  var floaters = floatersState[0]
+  var setFloaters = floatersState[1]
 
   if (screenMode !== 'reactions' || !currentSinger) {
     return (
@@ -17,22 +22,58 @@ export default function ReactForm() {
     )
   }
 
+  function handleReact(emoji) {
+    addReaction(emoji)
+    var id = Date.now() + '-' + Math.random()
+    setFloaters(function (prev) {
+      return [...prev, { id: id, emoji: emoji, left: 20 + Math.random() * 60 }]
+    })
+    setTimeout(function () {
+      setFloaters(function (prev) { return prev.filter(function (f) { return f.id !== id }) })
+    }, 1800)
+  }
+
   return (
     <div
-      className="min-h-screen flex items-center justify-center px-6"
-      style={{ background: 'var(--bg-page)' }}
+      className="min-h-screen relative overflow-hidden flex items-center justify-center px-6 bg-black"
     >
+      <div className="absolute inset-0 pointer-events-none z-30">
+        {floaters.map(function (f) {
+          return (
+            <span
+              key={f.id}
+              className="floating-own-emoji absolute text-4xl"
+              style={{ left: f.left + '%', bottom: '30%' }}
+            >
+              {f.emoji}
+            </span>
+          )
+        })}
+      </div>
+
       <div
-        className="max-w-sm w-full rounded-3xl border p-7 text-center"
-        style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}
+        className="relative z-10 max-w-sm w-full rounded-3xl border-2 border-purple-500 p-7 text-center"
+        style={{ background: 'rgba(23, 23, 23, 0.9)' }}
       >
         <div className="flex justify-end mb-2">
           <ThemeToggle />
         </div>
-        <p className="text-lg font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
+
+        <div
+          className="w-24 h-24 rounded-full overflow-hidden flex items-center justify-center text-4xl bg-pink-600 mx-auto mb-4 border-4 border-purple-400 spin-vinyl"
+          style={{ boxShadow: '0 0 26px 6px rgba(139, 92, 246, 0.6)' }}
+        >
+          {currentSinger.photo ? (
+            <img src={currentSinger.photo} alt={currentSinger.name} className="w-full h-full object-cover" />
+          ) : (
+            currentSinger.avatar
+          )}
+        </div>
+
+        <p className="text-lg font-bold text-white mb-1">
           {currentSinger.name} está cantando
         </p>
-        <p className="text-sm mb-6" style={{ color: 'var(--accent-purple)' }}>
+        <p className="text-sm mb-6 text-purple-300">
           {currentSinger.song}
         </p>
 
@@ -40,19 +81,36 @@ export default function ReactForm() {
           {reactionEmojis.map((emoji) => (
             <button
               key={emoji}
-              onClick={() => addReaction(emoji)}
-              className="aspect-square rounded-full flex items-center justify-center text-xl border-2 active:scale-95 transition-transform"
-              style={{ background: 'var(--bg-card-alt)', borderColor: 'var(--accent-magenta)' }}
+              onClick={() => handleReact(emoji)}
+              className="aspect-square rounded-full flex items-center justify-center text-xl border-2 active:scale-90 transition-transform"
+              style={{ background: 'rgba(139, 92, 246, 0.1)', borderColor: '#E91E8C' }}
             >
               {emoji}
             </button>
           ))}
         </div>
 
-        <p className="text-xs mt-6" style={{ color: 'var(--text-muted)' }}>
+        <p className="text-xs mt-6 text-neutral-500">
           Tus reacciones aparecen en la pantalla del bar
         </p>
       </div>
+
+      <style>{`
+        .spin-vinyl {
+          animation: spinVinyl 6s linear infinite;
+        }
+        @keyframes spinVinyl {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        .floating-own-emoji {
+          animation: floatUpOwn 1.8s ease-out forwards;
+        }
+        @keyframes floatUpOwn {
+          from { transform: translateY(0) scale(1); opacity: 1; }
+          to { transform: translateY(-55vh) scale(1.4); opacity: 0; }
+        }
+      `}</style>
     </div>
   )
 }
