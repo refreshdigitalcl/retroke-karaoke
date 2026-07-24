@@ -210,7 +210,7 @@ export default function DisplayReactions() {
         <div className="relative w-full h-screen">
           <iframe
             key={currentSinger.videoId}
-            src={'https://www.youtube.com/embed/' + currentSinger.videoId + '?autoplay=1&rel=0'}
+            src={'https://www.youtube.com/embed/' + currentSinger.videoId + '?autoplay=1&rel=0&controls=0&modestbranding=1&disablekb=1&iv_load_policy=3'}
             title="Video de karaoke"
             className="w-full h-full"
             allow="autoplay; encrypted-media"

@@ -303,7 +303,7 @@ export default function DjPanel() {
 
   return (
     <div className="min-h-screen px-6 py-8" style={{ background: 'var(--bg-page)' }}>
-      <header className="flex items-center justify-between mb-2 flex-wrap gap-3">
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between mb-2 gap-3">
         <div>
           <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
             {barName} · {activeSessionName}
@@ -312,21 +312,21 @@ export default function DjPanel() {
             Panel del DJ
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center flex-wrap gap-2">
           <span className="text-sm" style={{ color: 'var(--accent-purple)' }}>
             karaoke.cl/{sessionCode}
           </span>
           <button
             onClick={handleCloseSession}
             disabled={closing}
-            className="text-sm px-3 h-9 rounded-lg border disabled:opacity-50"
+            className="text-sm px-3 h-9 rounded-lg border disabled:opacity-50 whitespace-nowrap"
             style={{ borderColor: 'var(--accent-magenta)', color: 'var(--accent-magenta)' }}
           >
-            {closing ? 'Cerrando...' : 'Cerrar sesion de karaoke'}
+            {closing ? 'Cerrando...' : 'Cerrar sesion'}
           </button>
           <button
             onClick={function () { auth.signOut() }}
-            className="text-sm px-3 h-9 rounded-lg border"
+            className="text-sm px-3 h-9 rounded-lg border whitespace-nowrap"
             style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}
           >
             Salir
@@ -551,12 +551,12 @@ function QueueRowAdmin(props) {
 
   return (
     <div className="rounded-lg py-2.5 px-3" style={{ background: 'var(--bg-card-alt)' }}>
-      <div className="flex items-center gap-3">
-        <span className="text-sm w-5" style={{ color: 'var(--text-muted)' }}>
+      <div className="flex items-center flex-wrap gap-2 sm:gap-3">
+        <span className="text-sm w-5 shrink-0" style={{ color: 'var(--text-muted)' }}>
           {index + 1}
         </span>
         <div
-          className="w-9 h-9 rounded-full flex items-center justify-center text-base overflow-hidden"
+          className="w-9 h-9 rounded-full flex items-center justify-center text-base overflow-hidden shrink-0"
           style={{ background: 'var(--accent-purple)' }}
         >
           {entry.photo ? (
@@ -565,17 +565,17 @@ function QueueRowAdmin(props) {
             entry.avatar
           )}
         </div>
-        <div className="flex-1">
-          <p className="text-sm" style={{ color: 'var(--text-primary)' }}>
+        <div className="flex-1 min-w-[90px]">
+          <p className="text-sm truncate" style={{ color: 'var(--text-primary)' }}>
             {entry.name}
           </p>
-          <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+          <p className="text-xs truncate" style={{ color: 'var(--text-secondary)' }}>
             {entry.song}
           </p>
         </div>
         <button
           onClick={function () { setOpen(!open) }}
-          className="text-xs px-2.5 py-1 rounded"
+          className="text-xs px-2.5 py-1 rounded shrink-0"
           style={{ color: entry.videoId ? 'var(--accent-green)' : 'var(--text-muted)' }}
         >
           {entry.videoId ? 'Video listo' : 'Agregar video'}
@@ -583,7 +583,7 @@ function QueueRowAdmin(props) {
         {canCall && (
           <button
             onClick={function () { callSinger(entry.id) }}
-            className="text-xs px-3 py-1.5 rounded-lg font-medium text-white"
+            className="text-xs px-3 py-1.5 rounded-lg font-medium text-white shrink-0"
             style={{ background: 'var(--accent-magenta)' }}
           >
             Llamar
@@ -591,7 +591,7 @@ function QueueRowAdmin(props) {
         )}
         <button
           onClick={function () { removeFromQueue(entry.id) }}
-          className="text-xs px-2.5 py-1 rounded"
+          className="text-xs px-2.5 py-1 rounded shrink-0"
           style={{ color: 'var(--text-muted)' }}
         >
           Quitar
@@ -599,19 +599,19 @@ function QueueRowAdmin(props) {
       </div>
 
       {open && (
-        <div className="mt-2.5 pl-8">
-          <div className="flex gap-2">
+        <div className="mt-2.5 pl-3 sm:pl-8">
+          <div className="flex flex-col sm:flex-row gap-2">
             <input
               type="text"
               value={url}
               onChange={function (e) { setUrl(e.target.value) }}
               placeholder="Pega el link de YouTube"
-              className="flex-1 h-9 rounded-lg px-3 border outline-none text-sm"
+              className="w-full sm:flex-1 h-9 rounded-lg px-3 border outline-none text-sm min-w-0"
               style={{ background: 'var(--bg-page)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
             />
             <button
               onClick={handleSave}
-              className="h-9 px-3 rounded-lg text-sm font-medium text-white"
+              className="h-9 px-3 rounded-lg text-sm font-medium text-white w-full sm:w-auto shrink-0"
               style={{ background: 'var(--accent-magenta)' }}
             >
               {saved ? 'Guardado' : 'Guardar'}

@@ -71,41 +71,55 @@ function Avatar(props) {
   )
 }
 
-function PodiumSlot(props) {
+function PodiumColumn(props) {
   var entry = props.entry
   var place = props.place
-  var height = props.height
-  var gradient = props.gradient
+  var accent = props.accent
   var delay = props.delay
   var isFirst = place === 1
 
   return (
-    <div className="podium-pop flex flex-col items-center relative" style={{ animationDelay: delay }}>
+    <div
+      className="podium-pop relative flex-1 h-full flex flex-col items-center justify-center px-4 border-x"
+      style={{ borderColor: 'rgba(139, 92, 246, 0.25)', animationDelay: delay }}
+    >
       {isFirst && <ConfettiBurst />}
-      <div className="mb-3 flex flex-col items-center relative z-10">
-        <span className="text-4xl md:text-5xl mb-1">
-          {place === 1 ? '👑' : place === 2 ? '🥈' : '🥉'}
-        </span>
-        <Avatar entry={entry} size={130} />
-        <p className="text-xl md:text-2xl font-extrabold text-white mt-3 text-center max-w-[220px] truncate">
-          {entry.name}
-        </p>
-        <p className="text-lg md:text-xl text-yellow-400 font-bold">{entry.average.toFixed(1)}</p>
-      </div>
+
+      <span className="relative z-10 text-6xl md:text-7xl mb-3">
+        {place === 1 ? '👑' : place === 2 ? '🥈' : '🥉'}
+      </span>
+
       <div
-        className="w-40 md:w-48 rounded-t-2xl flex items-start justify-center pt-3 relative overflow-hidden border-t-4 border-x-4"
+        className="relative z-10 rounded-full overflow-hidden flex items-center justify-center shrink-0 mb-5 border-4"
         style={{
-          height: height,
-          background: gradient,
-          borderColor: 'rgba(255,255,255,0.35)',
-          boxShadow: '0 0 30px 6px rgba(233, 30, 140, 0.35)'
+          width: 180,
+          height: 180,
+          fontSize: 80,
+          background: '#E91E8C',
+          borderColor: accent,
+          boxShadow: '0 0 40px 10px ' + accent + '70'
         }}
       >
-        <div className="podium-shimmer absolute inset-0" />
-        <span className="relative z-10 text-5xl md:text-6xl font-extrabold text-white/90" style={{ textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>
-          {place}
-        </span>
+        {entry.photo ? (
+          <img src={entry.photo} alt={entry.name} className="w-full h-full object-cover" />
+        ) : (
+          entry.avatar
+        )}
       </div>
+
+      <p
+        className="relative z-10 text-6xl md:text-7xl font-extrabold leading-none mb-4"
+        style={{ color: accent, textShadow: '0 0 20px ' + accent + '80' }}
+      >
+        {place}
+      </p>
+
+      <p className="relative z-10 text-2xl md:text-3xl font-extrabold text-white text-center max-w-[280px] truncate">
+        {entry.name}
+      </p>
+      <p className="relative z-10 text-xl md:text-2xl font-bold text-yellow-400 mt-2">
+        {entry.average.toFixed(1)}
+      </p>
     </div>
   )
 }
@@ -168,54 +182,40 @@ export default function SessionLeaderboard() {
   var third = top3[2]
 
   return (
-    <div className="min-h-screen relative overflow-hidden flex flex-col items-center px-8 py-10 bg-black">
+    <div className="min-h-screen relative overflow-hidden flex flex-col items-center bg-black">
       <RetroEqualizer />
       <FloatingDecor />
       <FallingParty />
 
-      <p className="relative z-10 text-sm tracking-[8px] uppercase text-purple-400 mb-2">
-        {lastClosedSession.name}
-      </p>
-      <h1 className="relative z-10 text-4xl md:text-6xl font-extrabold text-white mb-14 text-center">
-        🏆 Mejores del karaoke
-      </h1>
+      <div className="relative z-10 w-full flex flex-col items-center pt-8 pb-4">
+        <p className="text-sm tracking-[8px] uppercase text-purple-400 mb-2">
+          {lastClosedSession.name}
+        </p>
+        <h1 className="text-3xl md:text-5xl font-extrabold text-white text-center">
+          🏆 Mejores del karaoke
+        </h1>
+      </div>
 
       {list.length === 0 ? (
-        <p className="relative z-10 text-xl text-neutral-400">No hubo calificaciones esta noche.</p>
+        <p className="relative z-10 text-xl text-neutral-400 flex-1 flex items-center">
+          No hubo calificaciones esta noche.
+        </p>
       ) : (
         <>
-          <div className="relative z-10 flex items-end justify-center gap-8 md:gap-12">
+          <div className="relative z-10 w-full flex-1 flex flex-col md:flex-row">
             {second && (
-              <PodiumSlot
-                entry={second}
-                place={2}
-                height={190}
-                gradient="linear-gradient(180deg, #C7CDD6, #8A93A0)"
-                delay="0.15s"
-              />
+              <PodiumColumn entry={second} place={2} accent="#C0C0C0" delay="0.15s" />
             )}
             {first && (
-              <PodiumSlot
-                entry={first}
-                place={1}
-                height={260}
-                gradient="linear-gradient(180deg, #F4D03F, #E9A716)"
-                delay="0s"
-              />
+              <PodiumColumn entry={first} place={1} accent="#F4D03F" delay="0s" />
             )}
             {third && (
-              <PodiumSlot
-                entry={third}
-                place={3}
-                height={140}
-                gradient="linear-gradient(180deg, #D18A52, #9C5B2B)"
-                delay="0.3s"
-              />
+              <PodiumColumn entry={third} place={3} accent="#CD7F32" delay="0.3s" />
             )}
           </div>
 
           {finalists.length > 0 && (
-            <div className="relative z-10 mt-14 w-full max-w-xl rounded-2xl border-2 border-purple-500/50 bg-neutral-950/70 px-6 py-5">
+            <div className="relative z-10 w-full max-w-xl rounded-2xl border-2 border-purple-500/50 bg-neutral-950/80 px-6 py-5 mb-8">
               <p className="text-sm uppercase tracking-widest text-yellow-400 mb-4 text-center font-bold">
                 Finalistas
               </p>
