@@ -6,21 +6,21 @@ export default function DisplayCountdown() {
   var currentSinger = session.currentSinger
   var startPlaying = session.startPlaying
 
-  var numberState = useState(5)
+  var numberState = useState(8)
   var number = numberState[0]
   var setNumber = numberState[1]
 
   var firedRef = useRef(false)
 
   useEffect(function () {
-    if (!currentSinger || !currentSinger.playbackStartedAt) return
+    if (!currentSinger) return
     firedRef.current = false
 
-    var startedAt = new Date(currentSinger.playbackStartedAt).getTime()
+    var startedAt = Date.now()
 
     var interval = setInterval(function () {
       var elapsed = (Date.now() - startedAt) / 1000
-      var remaining = Math.ceil(5 - elapsed)
+      var remaining = Math.ceil(8 - elapsed)
 
       if (remaining <= 0) {
         setNumber(0)
@@ -37,7 +37,7 @@ export default function DisplayCountdown() {
     return function () {
       clearInterval(interval)
     }
-  }, [currentSinger, startPlaying])
+  }, [currentSinger ? currentSinger.id : null, startPlaying])
 
   if (!currentSinger) return null
 

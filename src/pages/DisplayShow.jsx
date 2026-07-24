@@ -173,9 +173,9 @@ export default function DisplayShow() {
   var qrPhase = useQrCycle(isPlaying && videoReady)
 
   useEffect(function () {
-    if (screenMode !== 'countdown' || !currentSinger || !currentSinger.playbackStartedAt) return
+    if (screenMode !== 'countdown' || !currentSinger) return
     firedRef.current = false
-    var startedAt = new Date(currentSinger.playbackStartedAt).getTime()
+    var startedAt = Date.now()
 
     var interval = setInterval(function () {
       var elapsed = (Date.now() - startedAt) / 1000
@@ -193,7 +193,7 @@ export default function DisplayShow() {
     }, 150)
 
     return function () { clearInterval(interval) }
-  }, [screenMode, currentSinger, startPlaying])
+  }, [screenMode, currentSinger ? currentSinger.id : null, startPlaying])
 
   useEffect(function () {
     setVideoReady(false)
