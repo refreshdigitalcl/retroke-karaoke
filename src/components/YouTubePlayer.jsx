@@ -17,6 +17,60 @@ function loadYouTubeApi() {
   return apiPromise
 }
 
+export function checkYoutubeEmbeddable(videoId) {
+  return new Promise(function (resolve) {
+    loadYouTubeApi().then(function (YT) {
+      if (!YT) {
+        resolve(true)
+        return
+      }
+      var hiddenDiv = document.createElement('div')
+      hiddenDiv.style.position = 'fixed'
+      hiddenDiv.style.left = '-9999px'
+      hiddenDiv.style.width = '200px'
+      hiddenDiv.style.height = '150px'
+      document.body.appendChild(hiddenDiv)
+
+      var settled = false
+      var testPlayer = null
+
+      var timeoutId = setTimeout(function () {
+        if (settled) return
+        settled = true
+        cleanup()
+        resolve(true)
+      }, 5000)
+
+      function cleanup() {
+        clearTimeout(timeoutId)
+        if (testPlayer && testPlayer.destroy) testPlayer.destroy()
+        if (hiddenDiv.parentNode) hiddenDiv.parentNode.removeChild(hiddenDiv)
+      }
+
+      testPlayer = new YT.Player(hiddenDiv, {
+        videoId: videoId,
+        playerVars: { autoplay: 0 },
+        events: {
+          onReady: function () {
+            if (settled) return
+            settled = true
+            cleanup()
+            resolve(true)
+          },
+          onError: function (e) {
+            if (settled) return
+            settled = true
+            cleanup()
+            var code = e.data
+            var blocked = code === 101 || code === 150 || code === 100 || code === 2
+            resolve(!blocked)
+          }
+        }
+      })
+    })
+  })
+}
+
 export default function YouTubePlayer(props) {
   var videoId = props.videoId
   var shouldPlay = props.shouldPlay

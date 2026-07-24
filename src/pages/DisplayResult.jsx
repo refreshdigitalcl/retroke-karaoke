@@ -111,6 +111,32 @@ function pickFromList(list, seed) {
   return list[index % list.length]
 }
 
+function useRotatingTitle(seed) {
+  var startIndex = useMemo(function () {
+    var index = 0
+    var i = 0
+    while (i < seed.length) {
+      index = index + seed.charCodeAt(i)
+      i = i + 1
+    }
+    return index % RESULT_TITLES.length
+  }, [seed])
+
+  var indexState = useState(startIndex)
+  var index = indexState[0]
+  var setIndex = indexState[1]
+
+  useEffect(function () {
+    setIndex(startIndex)
+    var id = setInterval(function () {
+      setIndex(function (prev) { return (prev + 1) % RESULT_TITLES.length })
+    }, 5000)
+    return function () { clearInterval(id) }
+  }, [startIndex])
+
+  return { title: RESULT_TITLES[index], index: index }
+}
+
 export default function DisplayResult() {
   var session = useKaraokeSession()
   var currentSinger = session.currentSinger
@@ -149,9 +175,10 @@ export default function DisplayResult() {
     return function () { clearInterval(id) }
   }, [])
 
+  var titleInfo = useRotatingTitle(currentSinger ? String(currentSinger.id) : 'none')
+
   if (!currentSinger) return null
 
-  var title = pickFromList(RESULT_TITLES, String(currentSinger.id))
   var phrase = pickFromList(RESULT_PHRASES, String(currentSinger.id) + 'x')
 
   return (
@@ -160,8 +187,8 @@ export default function DisplayResult() {
       <ResultStageLights />
       <FallingParty />
 
-      <p className="relative z-10 text-2xl md:text-4xl font-extrabold text-white mb-2 text-center">
-        {title}
+      <p key={titleInfo.index} className="result-title-glitch relative z-10 text-2xl md:text-4xl font-extrabold text-white mb-2 text-center">
+        {titleInfo.title}
       </p>
       <p className="relative z-10 text-xl md:text-2xl text-purple-300 mb-10 text-center">
         {currentSinger.name}
@@ -187,6 +214,15 @@ export default function DisplayResult() {
       </div>
 
       <style>{`
+        .result-title-glitch {
+          animation: resultTitleGlitch 0.6s ease-out;
+        }
+        @keyframes resultTitleGlitch {
+          0% { opacity: 0; transform: translate(-6px, 0); text-shadow: 2px 0 #E91E8C, -2px 0 #7ED957; }
+          20% { opacity: 1; transform: translate(4px, 0); text-shadow: -3px 0 #8B5CF6, 3px 0 #F4D03F; }
+          40% { transform: translate(-2px, 0); text-shadow: 2px 0 #E91E8C, -2px 0 #7ED957; }
+          60%, 100% { transform: translate(0,0); text-shadow: none; opacity: 1; }
+        }
         .stage-light-flicker {
           animation: stageFlicker 3.2s ease-in-out infinite;
         }

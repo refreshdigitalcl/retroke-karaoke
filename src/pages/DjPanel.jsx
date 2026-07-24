@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useKaraokeSession } from '../contexts/KaraokeSessionContext'
 import { useAuth } from '../contexts/AuthContext'
+import { checkYoutubeEmbeddable } from '../components/YouTubePlayer'
 import ThemeToggle from '../components/ThemeToggle'
 
 function LoginGate() {
@@ -235,6 +236,28 @@ export default function DjPanel() {
   var closing = closingState[0]
   var setClosing = closingState[1]
 
+  var checkingVideoState = useState(false)
+  var checkingVideo = checkingVideoState[0]
+  var setCheckingVideo = checkingVideoState[1]
+
+  function handleStartPresentation() {
+    if (!currentSinger) return
+    if (!currentSinger.videoId) {
+      startCountdown()
+      return
+    }
+    setCheckingVideo(true)
+    checkYoutubeEmbeddable(currentSinger.videoId).then(function (ok) {
+      setCheckingVideo(false)
+      if (ok) {
+        startCountdown()
+      } else {
+        alert('Este video no permite reproducirse en otros sitios web. Vuelve a la cola y cambia el link por otro video.')
+        returnToQueue()
+      }
+    })
+  }
+
   function handleToggleHistory() {
     if (!showHistory) {
       loadPastSessions().then(function (data) {
@@ -351,11 +374,12 @@ export default function DjPanel() {
             <div className="flex gap-2">
               {screenMode === 'called' && (
                 <button
-                  onClick={startCountdown}
-                  className="px-4 h-10 rounded-lg text-sm font-medium text-white"
+                  onClick={handleStartPresentation}
+                  disabled={checkingVideo}
+                  className="px-4 h-10 rounded-lg text-sm font-medium text-white disabled:opacity-60"
                   style={{ background: 'var(--accent-magenta)' }}
                 >
-                  Iniciar presentacion
+                  {checkingVideo ? 'Verificando video...' : 'Iniciar presentacion'}
                 </button>
               )}
               {screenMode === 'countdown' && (

@@ -5,7 +5,8 @@ import QRCode from '../components/QRCode'
 import YouTubePlayer from '../components/YouTubePlayer'
 
 var COUNTDOWN_SECONDS = 8
-var QR_VISIBLE_SECONDS = 15
+var QR_VISIBLE_SECONDS = 10
+var QR_FADE_SECONDS = 3
 var QR_HIDDEN_SECONDS = 30
 
 var PHRASES = [
@@ -99,33 +100,39 @@ function useSongInfo(song) {
 }
 
 function useQrCycle(active) {
-  var visibleState = useState(true)
-  var visible = visibleState[0]
-  var setVisible = visibleState[1]
+  var phaseState = useState('hidden')
+  var phase = phaseState[0]
+  var setPhase = phaseState[1]
 
   useEffect(function () {
-    if (!active) return
-    setVisible(true)
+    if (!active) {
+      setPhase('hidden')
+      return
+    }
+    setPhase('visible')
     var timeoutId = null
 
-    function scheduleNext(showing) {
-      var delay = showing ? QR_VISIBLE_SECONDS * 1000 : QR_HIDDEN_SECONDS * 1000
+    function scheduleNext(nextPhase) {
+      var delay =
+        nextPhase === 'visible' ? QR_HIDDEN_SECONDS * 1000 :
+        nextPhase === 'fading' ? QR_VISIBLE_SECONDS * 1000 :
+        QR_FADE_SECONDS * 1000
+
       timeoutId = setTimeout(function () {
-        setVisible(function (prev) {
-          scheduleNext(!prev)
-          return !prev
-        })
+        setPhase(nextPhase)
+        var after = nextPhase === 'visible' ? 'fading' : nextPhase === 'fading' ? 'hidden' : 'visible'
+        scheduleNext(after)
       }, delay)
     }
 
-    scheduleNext(true)
+    scheduleNext('fading')
 
     return function () {
       if (timeoutId) clearTimeout(timeoutId)
     }
   }, [active])
 
-  return visible
+  return phase
 }
 
 export default function DisplayShow() {
@@ -157,7 +164,7 @@ export default function DisplayShow() {
 
   var isPlaying = screenMode === 'reactions'
   var isCountdown = screenMode === 'countdown'
-  var qrVisible = useQrCycle(isPlaying && videoReady)
+  var qrPhase = useQrCycle(isPlaying && videoReady)
 
   useEffect(function () {
     if (screenMode !== 'countdown' || !currentSinger || !currentSinger.playbackStartedAt) return
@@ -305,10 +312,16 @@ export default function DisplayShow() {
           </div>
         )}
 
-        {isPlaying && videoReady && qrVisible && (
-          <div className="qr-glitch absolute bottom-6 left-6 z-20 rounded-2xl border-2 border-yellow-400 bg-neutral-950/90 p-3">
-            <QRCode url={reactUrl} size={130} />
-            <p className="text-[11px] text-purple-300 text-center mt-1.5">Escanea y reacciona</p>
+        {isPlaying && videoReady && qrPhase !== 'hidden' && (
+          <div
+            className={'absolute bottom-6 left-6 z-20 flex flex-col items-center ' + (qrPhase === 'visible' ? 'qr-glitch-in' : 'qr-fade-out')}
+          >
+            <p className="text-xs font-bold text-yellow-400 mb-1.5" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.9)' }}>
+              ¡Reacciona a esta presentacion!
+            </p>
+            <div className="rounded-2xl border-2 border-yellow-400 bg-neutral-950/90 p-3">
+              <QRCode url={reactUrl} size={130} />
+            </div>
           </div>
         )}
       </div>
@@ -342,18 +355,21 @@ export default function DisplayShow() {
           88% { opacity: 1; }
           100% { opacity: 0; }
         }
-        .qr-glitch {
-          animation: qrGlitchInOut 15s ease-in-out;
+        .qr-glitch-in {
+          animation: qrGlitchIn 0.6s ease-out;
         }
-        @keyframes qrGlitchInOut {
+        @keyframes qrGlitchIn {
           0% { opacity: 0; transform: translate(-8px, 4px); clip-path: inset(0 40% 0 0); }
-          4% { opacity: 1; transform: translate(6px, -2px); clip-path: inset(0 0 0 30%); }
-          8% { transform: translate(-3px, 1px); clip-path: inset(0 20% 0 0); }
-          12% { transform: translate(0,0); clip-path: inset(0 0 0 0); }
-          90% { opacity: 1; transform: translate(0,0); }
-          94% { opacity: 0.6; transform: translate(5px, -2px); clip-path: inset(0 0 0 25%); }
-          97% { opacity: 0.3; transform: translate(-6px, 3px); clip-path: inset(0 35% 0 0); }
-          100% { opacity: 0; transform: translate(4px, 0); clip-path: inset(0 0 0 45%); }
+          30% { opacity: 1; transform: translate(6px, -2px); clip-path: inset(0 0 0 30%); }
+          55% { transform: translate(-3px, 1px); clip-path: inset(0 20% 0 0); }
+          100% { opacity: 1; transform: translate(0,0); clip-path: inset(0 0 0 0); }
+        }
+        .qr-fade-out {
+          animation: qrFadeOut 3s ease-in-out forwards;
+        }
+        @keyframes qrFadeOut {
+          from { opacity: 1; }
+          to { opacity: 0; }
         }
       `}</style>
     </div>
