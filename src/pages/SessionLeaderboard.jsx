@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useKaraokeSession } from '../contexts/KaraokeSessionContext'
+import { supabase } from '../lib/supabase'
 import RetroEqualizer from '../components/RetroEqualizer'
 import FloatingDecor from '../components/FloatingDecor'
 import FallingParty from '../components/FallingParty'
@@ -124,30 +125,98 @@ function PodiumColumn(props) {
   )
 }
 
-function FinalistRow(props) {
-  var entry = props.entry
-  var place = props.place
-  var artist = useArtist(entry.song)
+function useNightStats(sessionId, list) {
+  var statsState = useState(null)
+  var stats = statsState[0]
+  var setStats = statsState[1]
 
+  useEffect(function () {
+    var cancelled = false
+    if (!sessionId || !list || list.length === 0) {
+      setStats(null)
+      return
+    }
+
+    async function compute() {
+      var genreCounts = {}
+      await Promise.all(
+        list.map(function (entry) {
+          return fetch('https://itunes.apple.com/search?term=' + encodeURIComponent(entry.song) + '&entity=song&limit=1')
+            .then(function (res) { return res.json() })
+            .then(function (data) {
+              if (data.results && data.results.length > 0) {
+                var genre = data.results[0].primaryGenreName
+                if (genre) genreCounts[genre] = (genreCounts[genre] || 0) + 1
+              }
+            })
+            .catch(function () {})
+        })
+      )
+      if (cancelled) return
+
+      var topGenre = null
+      var topGenreCount = 0
+      Object.keys(genreCounts).forEach(function (g) {
+        if (genreCounts[g] > topGenreCount) {
+          topGenre = g
+          topGenreCount = genreCounts[g]
+        }
+      })
+
+      var reactionsResult = await supabase
+        .from('reactions')
+        .select('queue_entry_id')
+        .eq('session_id', sessionId)
+      if (cancelled) return
+      var reactionRows = reactionsResult.data || []
+      var reactionCounts = {}
+      reactionRows.forEach(function (r) {
+        if (r.queue_entry_id === null || r.queue_entry_id === undefined) return
+        var key = String(r.queue_entry_id)
+        reactionCounts[key] = (reactionCounts[key] || 0) + 1
+      })
+
+      var mostReactedId = null
+      var mostReactedCount = 0
+      Object.keys(reactionCounts).forEach(function (id) {
+        if (reactionCounts[id] > mostReactedCount) {
+          mostReactedId = id
+          mostReactedCount = reactionCounts[id]
+        }
+      })
+      var mostReactedEntry = list.find(function (e) { return String(e.id) === mostReactedId })
+
+      var totalScore = list.reduce(function (sum, e) { return sum + e.average }, 0)
+      var avgScore = totalScore / list.length
+
+      setStats({
+        topGenre: topGenre,
+        participantCount: list.length,
+        avgScore: avgScore,
+        mostReacted: mostReactedEntry ? mostReactedEntry.name : null,
+        mostReactedCount: mostReactedCount,
+        totalReactions: reactionRows.length
+      })
+    }
+
+    compute()
+    return function () { cancelled = true }
+  }, [sessionId, list])
+
+  return stats
+}
+
+function StatCard(props) {
   return (
-    <div className="flex items-center gap-4 rounded-xl px-4 py-3" style={{ background: 'var(--bg-card-alt, #1a1a1a)' }}>
-      <span className="text-lg font-bold text-neutral-500 w-6">{place}</span>
-      <div
-        className="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center text-xl shrink-0"
-        style={{ background: '#8B5CF6' }}
-      >
-        {entry.photo ? (
-          <img src={entry.photo} alt={entry.name} className="w-full h-full object-cover" />
-        ) : (
-          entry.avatar
-        )}
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-base font-bold text-white truncate">{entry.name}</p>
-        <p className="text-sm text-purple-300 truncate">{artist || 'Buscando artista...'}</p>
-        <p className="text-sm text-neutral-400 truncate">{entry.song}</p>
-      </div>
-      <p className="text-xl font-extrabold text-yellow-400 shrink-0">{entry.average.toFixed(1)}</p>
+    <div className="rounded-2xl border-2 border-purple-500/50 bg-neutral-950/85 px-6 py-6 flex flex-col items-center text-center">
+      <span className="text-4xl mb-2">{props.icon}</span>
+      <p className="text-sm uppercase tracking-widest text-yellow-400 font-bold mb-2">
+        {props.label}
+      </p>
+      <p className="text-2xl md:text-3xl font-extrabold text-white leading-tight">
+        {props.value}
+      </p>
+      {props.sub && <p className="text-sm text-neutral-400 mt-1">{props.sub}</p>}
     </div>
   )
 }
@@ -176,10 +245,10 @@ export default function SessionLeaderboard() {
   }
 
   var top3 = list.slice(0, 3)
-  var finalists = list.slice(3, 6)
   var first = top3[0]
   var second = top3[1]
   var third = top3[2]
+  var nightStats = useNightStats(lastClosedSession.id, list)
 
   return (
     <div className="min-h-screen relative overflow-hidden flex flex-col items-center bg-black">
@@ -214,16 +283,26 @@ export default function SessionLeaderboard() {
             )}
           </div>
 
-          {finalists.length > 0 && (
-            <div className="relative z-10 w-full max-w-xl rounded-2xl border-2 border-purple-500/50 bg-neutral-950/80 px-6 py-5 mb-8">
-              <p className="text-sm uppercase tracking-widest text-yellow-400 mb-4 text-center font-bold">
-                Finalistas
-              </p>
-              <div className="flex flex-col gap-2.5">
-                {finalists.map(function (entry, i) {
-                  return <FinalistRow key={entry.id} entry={entry} place={i + 4} />
-                })}
-              </div>
+          {nightStats && (
+            <div className="relative z-10 w-full max-w-4xl grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 mb-10">
+              <StatCard
+                icon="🎶"
+                label="Genero de la noche"
+                value={nightStats.topGenre || 'Variado'}
+                sub={nightStats.participantCount + ' presentaciones'}
+              />
+              <StatCard
+                icon="🔥"
+                label="Mas reaccionado"
+                value={nightStats.mostReacted || 'Sin datos aun'}
+                sub={nightStats.mostReactedCount > 0 ? nightStats.mostReactedCount + ' reacciones' : ''}
+              />
+              <StatCard
+                icon="⭐"
+                label="Promedio general"
+                value={nightStats.avgScore.toFixed(1)}
+                sub={nightStats.totalReactions + ' reacciones en total'}
+              />
             </div>
           )}
         </>
