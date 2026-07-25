@@ -58,38 +58,42 @@ export function KaraokeSessionProvider({ children }) {
 
   const refreshActiveSession = useCallback(async (anchorBarId, anchorWorkspaceId) => {
     if (!anchorBarId && !anchorWorkspaceId) return
-    let activeQuery = supabase
-      .from('sessions')
-      .select('*')
-      .eq('status', 'active')
-      .order('started_at', { ascending: false })
-      .limit(1)
-    activeQuery = anchorBarId
-      ? activeQuery.eq('bar_id', anchorBarId)
-      : activeQuery.eq('workspace_id', anchorWorkspaceId).is('bar_id', null)
-    const { data } = await activeQuery.maybeSingle()
-    setActiveSession(data || null)
-
-    if (!data) {
-      let closedQuery = supabase
+    try {
+      let activeQuery = supabase
         .from('sessions')
         .select('*')
-        .eq('status', 'closed')
-        .order('closed_at', { ascending: false })
+        .eq('status', 'active')
+        .order('started_at', { ascending: false })
         .limit(1)
-      closedQuery = anchorBarId
-        ? closedQuery.eq('bar_id', anchorBarId)
-        : closedQuery.eq('workspace_id', anchorWorkspaceId).is('bar_id', null)
-      const closedResult = await closedQuery.maybeSingle()
-      const closed = closedResult.data
-      if (closed && closed.closed_at) {
-        const minutesAgo = (Date.now() - new Date(closed.closed_at).getTime()) / 60000
-        setLastClosedSession(minutesAgo < 45 ? closed : null)
+      activeQuery = anchorBarId
+        ? activeQuery.eq('bar_id', anchorBarId)
+        : activeQuery.eq('workspace_id', anchorWorkspaceId).is('bar_id', null)
+      const { data } = await activeQuery.maybeSingle()
+      setActiveSession(data || null)
+
+      if (!data) {
+        let closedQuery = supabase
+          .from('sessions')
+          .select('*')
+          .eq('status', 'closed')
+          .order('closed_at', { ascending: false })
+          .limit(1)
+        closedQuery = anchorBarId
+          ? closedQuery.eq('bar_id', anchorBarId)
+          : closedQuery.eq('workspace_id', anchorWorkspaceId).is('bar_id', null)
+        const closedResult = await closedQuery.maybeSingle()
+        const closed = closedResult.data
+        if (closed && closed.closed_at) {
+          const minutesAgo = (Date.now() - new Date(closed.closed_at).getTime()) / 60000
+          setLastClosedSession(minutesAgo < 45 ? closed : null)
+        } else {
+          setLastClosedSession(null)
+        }
       } else {
         setLastClosedSession(null)
       }
-    } else {
-      setLastClosedSession(null)
+    } catch (err) {
+      console.error('Error cargando sesion activa:', err)
     }
   }, [])
 
@@ -142,45 +146,18 @@ export function KaraokeSessionProvider({ children }) {
     let cancelled = false
 
     async function init() {
-      if (directWorkspaceId) {
-        const { data: ws } = await supabase
-          .from('workspaces')
-          .select('*')
-          .eq('id', directWorkspaceId)
-          .maybeSingle()
-        if (cancelled) return
-        if (ws) {
-          setWorkspaceId(ws.id)
-          setBarName(ws.name)
-          setBarIsActive(ws.status === 'ACTIVE')
-          const plan = (ws.plan || 'FREE').toUpperCase()
-          setWorkspacePlan(plan)
-          const { data: features } = await supabase
-            .from('plan_features')
-            .select('feature')
-            .eq('plan', plan)
-            .eq('workspace_type', ws.type)
-          setFeatureSet(new Set((features || []).map((f) => f.feature)))
-          await refreshActiveSession(null, ws.id)
-        }
-        setBarLoading(false)
-        return
-      }
-
-      const { data: bar } = await supabase.from('bars').select('*').eq('slug', barSlug).maybeSingle()
-      if (cancelled) return
-      if (bar) {
-        setBarId(bar.id)
-        setBarName(bar.name)
-        setBarIsActive(bar.is_active !== false)
-
-        if (bar.workspace_id) {
+      try {
+        if (directWorkspaceId) {
           const { data: ws } = await supabase
             .from('workspaces')
-            .select('plan, type')
-            .eq('id', bar.workspace_id)
+            .select('*')
+            .eq('id', directWorkspaceId)
             .maybeSingle()
+          if (cancelled) return
           if (ws) {
+            setWorkspaceId(ws.id)
+            setBarName(ws.name)
+            setBarIsActive(ws.status === 'ACTIVE')
             const plan = (ws.plan || 'FREE').toUpperCase()
             setWorkspacePlan(plan)
             const { data: features } = await supabase
@@ -189,12 +166,43 @@ export function KaraokeSessionProvider({ children }) {
               .eq('plan', plan)
               .eq('workspace_type', ws.type)
             setFeatureSet(new Set((features || []).map((f) => f.feature)))
+            await refreshActiveSession(null, ws.id)
           }
+          return
         }
 
-        await refreshActiveSession(bar.id, null)
+        const { data: bar } = await supabase.from('bars').select('*').eq('slug', barSlug).maybeSingle()
+        if (cancelled) return
+        if (bar) {
+          setBarId(bar.id)
+          setBarName(bar.name)
+          setBarIsActive(bar.is_active !== false)
+
+          if (bar.workspace_id) {
+            const { data: ws } = await supabase
+              .from('workspaces')
+              .select('plan, type')
+              .eq('id', bar.workspace_id)
+              .maybeSingle()
+            if (ws) {
+              const plan = (ws.plan || 'FREE').toUpperCase()
+              setWorkspacePlan(plan)
+              const { data: features } = await supabase
+                .from('plan_features')
+                .select('feature')
+                .eq('plan', plan)
+                .eq('workspace_type', ws.type)
+              setFeatureSet(new Set((features || []).map((f) => f.feature)))
+            }
+          }
+
+          await refreshActiveSession(bar.id, null)
+        }
+      } catch (err) {
+        console.error('Error cargando espacio:', err)
+      } finally {
+        if (!cancelled) setBarLoading(false)
       }
-      setBarLoading(false)
     }
     init()
 

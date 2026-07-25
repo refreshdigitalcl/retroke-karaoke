@@ -61,6 +61,10 @@ export function useMyBars(auth) {
       })
 
       setBars(list)
+    }).catch(function (err) {
+      if (cancelled) return
+      console.error('Error cargando espacios del usuario:', err)
+      setBars([])
     })
 
     return function () { cancelled = true }
