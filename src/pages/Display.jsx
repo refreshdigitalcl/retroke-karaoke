@@ -20,9 +20,8 @@ function checkNoParams() {
 var WAITING_MODES = ['queue', 'called', 'countdown']
 
 export default function Display() {
-  const { screenMode, hasActiveSession, lastClosedSession, hasFeature } = useKaraokeSession()
+  const { screenMode, hasActiveSession, lastClosedSession } = useKaraokeSession()
   const [showHub] = useState(checkNoParams)
-  var musicEnabled = hasFeature('waiting_music')
 
   var audioRef = useRef(null)
   var wasWaitingRef = useRef(false)
@@ -31,7 +30,7 @@ export default function Display() {
   var muted = mutedState[0]
   var setMuted = mutedState[1]
 
-  var isWaiting = musicEnabled && hasActiveSession && WAITING_MODES.indexOf(screenMode) !== -1
+  var isWaiting = hasActiveSession && WAITING_MODES.indexOf(screenMode) !== -1
 
   function startNewWaitingTrack() {
     if (audioRef.current) {
@@ -111,7 +110,7 @@ export default function Display() {
       ) : screenMode === 'result' ? (
         <DisplayResult />
       ) : (
-        <DisplayQueue muted={muted} toggleMute={toggleMute} musicEnabled={musicEnabled} />
+        <DisplayQueue muted={muted} toggleMute={toggleMute} musicEnabled={true} />
       )}
     </AudioUnlockGate>
   )

@@ -239,7 +239,7 @@ export default function SessionLeaderboard() {
   }, [lastClosedSession, loadSessionLeaderboard])
 
   useEffect(function () {
-    if (list && list.length > 0 && !applausePlayedRef.current && hasFeature('fun_sounds')) {
+    if (list && list.length > 0 && !applausePlayedRef.current) {
       applausePlayedRef.current = true
       var audio = new Audio('/sounds/applause.mp3')
       audio.play().catch(function () {})
