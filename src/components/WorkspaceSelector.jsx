@@ -19,11 +19,14 @@ export function useMyBars(auth) {
       .then(function (result) {
         if (cancelled) return
         var rows = result.data || []
-        var list = rows
-          .filter(function (r) { return r.bars })
-          .map(function (r) {
-            return { id: r.bars.id, slug: r.bars.slug, name: r.bars.name, isActive: r.bars.is_active, role: r.role }
-          })
+        var seen = {}
+        var list = []
+        rows.forEach(function (r) {
+          if (!r.bars) return
+          if (seen[r.bars.id]) return
+          seen[r.bars.id] = true
+          list.push({ id: r.bars.id, slug: r.bars.slug, name: r.bars.name, isActive: r.bars.is_active, role: r.role })
+        })
         setBars(list)
       })
     return function () { cancelled = true }
