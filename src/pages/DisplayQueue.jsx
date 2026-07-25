@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useKaraokeSession } from '../contexts/KaraokeSessionContext'
 import RetroEqualizer from '../components/RetroEqualizer'
 import QRCode from '../components/QRCode'
 import FloatingDecor from '../components/FloatingDecor'
 import FullscreenButton from '../components/FullscreenButton'
 import FallingParty from '../components/FallingParty'
+import { pickRandomTrack } from '../lib/waitingMusic'
 
 function QueueRow(props) {
   var entry = props.entry
@@ -146,6 +147,30 @@ export default function DisplayQueue() {
   var queue = session.queue
   var ratings = session.ratings
 
+  var audioRef = useRef(null)
+  var mutedState = useState(false)
+  var muted = mutedState[0]
+  var setMuted = mutedState[1]
+
+  useEffect(function () {
+    var track = pickRandomTrack()
+    var audio = new Audio(track)
+    audio.loop = true
+    audio.volume = 0.35
+    audio.play().catch(function () {})
+    audioRef.current = audio
+    return function () {
+      audio.pause()
+      audioRef.current = null
+    }
+  }, [])
+
+  function toggleMute() {
+    if (!audioRef.current) return
+    audioRef.current.muted = !audioRef.current.muted
+    setMuted(audioRef.current.muted)
+  }
+
   var sungTonight = groupRatings(ratings)
 
   var sungIndexState = useState(0)
@@ -178,6 +203,13 @@ export default function DisplayQueue() {
       <FloatingDecor />
       <FallingParty />
       <FullscreenButton />
+      <button
+        onClick={toggleMute}
+        className="fixed top-4 right-16 z-30 w-9 h-9 rounded-full flex items-center justify-center text-sm bg-black/40 border border-white/20 text-white"
+        title={muted ? 'Activar musica de fondo' : 'Silenciar musica de fondo'}
+      >
+        {muted ? '🔇' : '🔊'}
+      </button>
 
       <header className="flex items-center justify-center relative z-10 pt-8 pb-4">
         <div className="px-5 py-2 -skew-x-6 bg-pink-600">

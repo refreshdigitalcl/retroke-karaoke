@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useKaraokeSession } from '../contexts/KaraokeSessionContext'
 import DisplayQueue from './DisplayQueue'
 import DisplayCalled from './DisplayCalled'
@@ -9,10 +10,17 @@ import SessionLeaderboard from './SessionLeaderboard'
 import SessionHub from './SessionHub'
 import AudioUnlockGate from '../components/AudioUnlockGate'
 
-export default function Display() {
-  const { screenMode, hasActiveSession, lastClosedSession, noParamsGiven, barLoading } = useKaraokeSession()
+function checkNoParams() {
+  if (typeof window === 'undefined') return false
+  var params = new URLSearchParams(window.location.search)
+  return !params.has('ws') && !params.has('bar')
+}
 
-  if (noParamsGiven && !barLoading) {
+export default function Display() {
+  const { screenMode, hasActiveSession, lastClosedSession } = useKaraokeSession()
+  const [showHub] = useState(checkNoParams)
+
+  if (showHub) {
     return <SessionHub />
   }
 

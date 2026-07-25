@@ -191,6 +191,11 @@ export function KaraokeSessionProvider({ children }) {
 
     async function init() {
       try {
+        if (noParamsGiven) {
+          // Sin parametros: se muestra el selector de salas, no hay bar que cargar
+          return
+        }
+
         if (directWorkspaceId) {
           const { data: ws } = await supabase
             .from('workspaces')
@@ -376,19 +381,21 @@ export function KaraokeSessionProvider({ children }) {
   }, [sessionId, loadQueue, loadRatings])
 
   const startSession = useCallback(
-    async (name) => {
+    async (name, pin) => {
       if (!barId && !workspaceId) return { error: 'Espacio no encontrado' }
       const userResult = await supabase.auth.getUser()
       const userId = userResult.data.user ? userResult.data.user.id : null
       const code = barId ? barSlug : workspaceId.slice(0, 8)
       const newId = makeSessionId(code)
+      const finalPin = pin && /^\d{4}$/.test(pin) ? pin : String(Math.floor(1000 + Math.random() * 9000))
       const insertData = {
         id: newId,
         name: name,
         status: 'active',
         started_at: new Date().toISOString(),
         created_by: userId,
-        screen_mode: 'queue'
+        screen_mode: 'queue',
+        pin: finalPin
       }
       if (barId) {
         insertData.bar_id = barId
@@ -400,7 +407,7 @@ export function KaraokeSessionProvider({ children }) {
       if (!error) {
         await refreshActiveSession(barId, barId ? null : workspaceId)
       }
-      return { error: error ? error.message : null }
+      return { error: error ? error.message : null, pin: finalPin }
     },
     [barId, barName, barSlug, workspaceId, refreshActiveSession]
   )
@@ -639,6 +646,7 @@ export function KaraokeSessionProvider({ children }) {
     lastClosedSession,
     loadSessionLeaderboard,
     activeSessionName: activeSession ? activeSession.name : '',
+    activeSessionPin: activeSession ? activeSession.pin : '',
     queue,
     currentSinger,
     screenMode,

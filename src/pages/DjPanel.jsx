@@ -84,6 +84,10 @@ function StartSessionGate(props) {
   var name = nameState[0]
   var setName = nameState[1]
 
+  var pinState = useState('')
+  var pin = pinState[0]
+  var setPin = pinState[1]
+
   var loadingState = useState(false)
   var loading = loadingState[0]
   var setLoading = loadingState[1]
@@ -111,9 +115,13 @@ function StartSessionGate(props) {
   function handleStart(e) {
     e.preventDefault()
     if (!name.trim()) return
+    if (pin && !/^\d{4}$/.test(pin)) {
+      setError('El PIN debe tener exactamente 4 numeros')
+      return
+    }
     setLoading(true)
     setError('')
-    startSession(name.trim()).then(function (result) {
+    startSession(name.trim(), pin || null).then(function (result) {
       setLoading(false)
       if (result.error) {
         setError(result.error)
@@ -140,6 +148,16 @@ function StartSessionGate(props) {
             placeholder="Ej: Karaoke Viernes"
             required
             className="w-full mb-3 h-11 rounded-lg px-3 border outline-none"
+            style={{ background: 'var(--bg-card-alt)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+          />
+          <input
+            type="text"
+            inputMode="numeric"
+            maxLength={4}
+            value={pin}
+            onChange={function (e) { setPin(e.target.value.replace(/\D/g, '').slice(0, 4)) }}
+            placeholder="PIN de 4 digitos (opcional, se genera solo)"
+            className="w-full mb-3 h-11 rounded-lg px-3 border outline-none text-center tracking-[6px]"
             style={{ background: 'var(--bg-card-alt)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
           />
           <button
@@ -209,6 +227,7 @@ export default function DjPanel() {
   var barIsActive = session.barIsActive
   var barLoading = session.barLoading
   var sessionCode = session.sessionCode
+  var activeSessionPin = session.activeSessionPin
   var spaceParam = session.spaceParam
   var hasActiveSession = session.hasActiveSession
   var activeSessionName = session.activeSessionName
@@ -368,6 +387,15 @@ export default function DjPanel() {
           </p>
         </div>
         <div className="flex items-center flex-wrap gap-2">
+          {activeSessionPin && (
+            <span
+              className="text-sm px-3 h-9 rounded-lg font-bold flex items-center gap-1.5"
+              style={{ background: 'rgba(244, 208, 63, 0.12)', color: '#F4D03F', border: '1px solid rgba(244, 208, 63, 0.4)' }}
+              title="Comparte este PIN con la gente para que pueda entrar desde la seleccion de salas"
+            >
+              🔑 PIN: <span className="tracking-[3px]">{activeSessionPin}</span>
+            </span>
+          )}
           <button
             onClick={function () {
               var url = window.location.origin + '/?' + spaceParam
