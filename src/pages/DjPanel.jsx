@@ -3,6 +3,7 @@ import { useKaraokeSession } from '../contexts/KaraokeSessionContext'
 import { useAuth } from '../contexts/AuthContext'
 import { checkYoutubeEmbeddable } from '../components/YouTubePlayer'
 import SimilarTrackSearch from '../components/SimilarTrackSearch'
+import WorkspaceSelector, { useMyBars } from '../components/WorkspaceSelector'
 import ThemeToggle from '../components/ThemeToggle'
 
 function LoginGate() {
@@ -201,6 +202,7 @@ function HistoryPanel(props) {
 
 export default function DjPanel() {
   var auth = useAuth()
+  var myBars = useMyBars(auth)
 
   var session = useKaraokeSession()
   var barName = session.barName
@@ -295,6 +297,50 @@ export default function DjPanel() {
 
   if (!auth.session) {
     return <LoginGate />
+  }
+
+  var urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
+  var barSlugParam = urlParams ? urlParams.get('bar') : null
+
+  if (myBars === null) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-page)' }}>
+        <p style={{ color: 'var(--text-secondary)' }}>Cargando...</p>
+      </div>
+    )
+  }
+
+  if (myBars.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-6 text-center" style={{ background: 'var(--bg-page)' }}>
+        <p style={{ color: 'var(--text-secondary)' }}>
+          Tu cuenta no esta asignada a ningun bar todavia. Pide al administrador que te agregue.
+        </p>
+      </div>
+    )
+  }
+
+  var currentBarInList = barSlugParam
+    ? myBars.find(function (b) { return b.slug === barSlugParam })
+    : null
+
+  if (barSlugParam && !currentBarInList) {
+    return <WorkspaceSelector bars={myBars} notice="No tienes acceso a ese bar. Elige uno de los tuyos." />
+  }
+
+  if (!barSlugParam && myBars.length > 1) {
+    return <WorkspaceSelector bars={myBars} />
+  }
+
+  if (!barSlugParam && myBars.length === 1) {
+    if (typeof window !== 'undefined') {
+      window.location.href = '/dj?bar=' + myBars[0].slug
+    }
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-page)' }}>
+        <p style={{ color: 'var(--text-secondary)' }}>Cargando...</p>
+      </div>
+    )
   }
 
   if (!hasActiveSession) {
