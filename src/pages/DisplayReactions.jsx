@@ -37,7 +37,7 @@ function pickPhrase(seed) {
   return PHRASES[index % PHRASES.length]
 }
 
-function useSongInfo(song, active) {
+function useSongInfo(song, active, factsEnabled) {
   var infoState = useState(null)
   var info = infoState[0]
   var setInfo = infoState[1]
@@ -65,9 +65,11 @@ function useSongInfo(song, active) {
           var r = data.results[0]
           var year = r.releaseDate ? r.releaseDate.slice(0, 4) : ''
           setInfo({ artist: r.artistName, year: year })
-          fetchArtistFacts(r.artistName).then(function (f) {
-            if (!cancelled) setFacts(f)
-          })
+          if (factsEnabled) {
+            fetchArtistFacts(r.artistName).then(function (f) {
+              if (!cancelled) setFacts(f)
+            })
+          }
         }
       })
       .catch(function () {})
@@ -187,6 +189,7 @@ export default function DisplayReactions() {
   var currentSinger = session.currentSinger
   var reactions = session.reactions
   var spaceParam = session.spaceParam
+  var hasFeature = session.hasFeature
   var videoPlayer = useVideoPlayer()
 
   var phrase = useMemo(function () {
@@ -195,7 +198,7 @@ export default function DisplayReactions() {
   }, [currentSinger])
 
   var hasVideo = !!(currentSinger && currentSinger.videoId)
-  var songInfo = useSongInfo(currentSinger ? currentSinger.song : '', hasVideo)
+  var songInfo = useSongInfo(currentSinger ? currentSinger.song : '', hasVideo, hasFeature('artist_facts'))
   var qrCycle = useAlternatingQrCycle(hasVideo)
   var needlePosition = useNeedlePosition(reactions)
 

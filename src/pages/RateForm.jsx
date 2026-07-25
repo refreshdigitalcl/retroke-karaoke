@@ -9,6 +9,8 @@ export default function RateForm() {
   var currentSinger = session.currentSinger
   var submitRating = session.submitRating
   var screenMode = session.screenMode
+  var hasFeature = session.hasFeature
+  var phrasesEnabled = hasFeature('rating_phrases')
 
   var selectedState = useState(null)
   var selected = selectedState[0]
@@ -90,12 +92,18 @@ export default function RateForm() {
               })}
             </div>
             <button
-              onClick={function () { setStep('phrase') }}
+              onClick={function () {
+                if (phrasesEnabled) {
+                  setStep('phrase')
+                } else {
+                  handleSkipPhrase()
+                }
+              }}
               disabled={!selected}
               className="w-full h-12 rounded-xl font-bold text-white text-base disabled:opacity-30 transition-opacity"
               style={{ background: 'linear-gradient(90deg, #E91E8C, #8B5CF6)' }}
             >
-              Siguiente
+              {phrasesEnabled ? 'Siguiente' : 'Enviar nota'}
             </button>
           </>
         )}

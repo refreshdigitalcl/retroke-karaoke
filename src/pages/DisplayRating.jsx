@@ -118,6 +118,7 @@ export default function DisplayRating() {
   var currentSinger = session.currentSinger
   var ratings = session.ratings
   var spaceParam = session.spaceParam
+  var hasFeature = session.hasFeature
 
   var burstingState = useState(false)
   var bursting = burstingState[0]
@@ -178,7 +179,7 @@ export default function DisplayRating() {
   var zone = usePerformanceZone(currentSinger ? currentSinger.id : null)
 
   useEffect(function () {
-    if (!currentSinger) return
+    if (!currentSinger || !hasFeature('fun_sounds')) return
     var audio = new Audio('/sounds/vote-start.mp3')
     audio.play().catch(function () {})
   }, [currentSinger ? currentSinger.id : null])

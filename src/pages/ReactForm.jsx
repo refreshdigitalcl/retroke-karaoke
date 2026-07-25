@@ -4,7 +4,8 @@ import { MEME_REACTIONS } from '../lib/memeReactions'
 import ThemeToggle from '../components/ThemeToggle'
 
 export default function ReactForm() {
-  const { currentSinger, screenMode, addReaction, reactionEmojis } = useKaraokeSession()
+  const { currentSinger, screenMode, addReaction, reactionEmojis, hasFeature } = useKaraokeSession()
+  var memesEnabled = hasFeature('memes')
 
   var floatersState = useState([])
   var floaters = floatersState[0]
@@ -135,49 +136,55 @@ export default function ReactForm() {
               ))}
             </div>
 
-            <div className="w-full shrink-0 grid grid-cols-3 gap-2.5 px-0.5">
-              {MEME_REACTIONS.map((meme) => (
-                <button
-                  key={meme.id}
-                  onClick={() => handleReactMeme(meme.id, meme.url)}
-                  className="aspect-square rounded-xl overflow-hidden border-2 active:scale-90 transition-transform"
-                  style={{ borderColor: '#F4D03F' }}
-                >
-                  <img src={meme.url} alt="" className="w-full h-full object-cover" />
-                </button>
-              ))}
-            </div>
+            {memesEnabled && (
+              <div className="w-full shrink-0 grid grid-cols-3 gap-2.5 px-0.5">
+                {MEME_REACTIONS.map((meme) => (
+                  <button
+                    key={meme.id}
+                    onClick={() => handleReactMeme(meme.id, meme.url)}
+                    className="aspect-square rounded-xl overflow-hidden border-2 active:scale-90 transition-transform"
+                    style={{ borderColor: '#F4D03F' }}
+                  >
+                    <img src={meme.url} alt="" className="w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
-        <div className="flex items-center justify-center gap-2 mt-4">
-          <button
-            onClick={function () { setPage(0) }}
-            className="text-xs px-3 py-1 rounded-full border"
-            style={{
-              borderColor: page === 0 ? '#E91E8C' : 'var(--border)',
-              color: page === 0 ? '#E91E8C' : 'var(--text-muted)',
-              background: page === 0 ? 'rgba(233,30,140,0.1)' : 'transparent'
-            }}
-          >
-            😀 Emojis
-          </button>
-          <button
-            onClick={function () { setPage(1) }}
-            className="text-xs px-3 py-1 rounded-full border"
-            style={{
-              borderColor: page === 1 ? '#F4D03F' : 'var(--border)',
-              color: page === 1 ? '#F4D03F' : 'var(--text-muted)',
-              background: page === 1 ? 'rgba(244,208,63,0.1)' : 'transparent'
-            }}
-          >
-            🖼️ Memes
-          </button>
-        </div>
+        {memesEnabled && (
+          <div className="flex items-center justify-center gap-2 mt-4">
+            <button
+              onClick={function () { setPage(0) }}
+              className="text-xs px-3 py-1 rounded-full border"
+              style={{
+                borderColor: page === 0 ? '#E91E8C' : 'var(--border)',
+                color: page === 0 ? '#E91E8C' : 'var(--text-muted)',
+                background: page === 0 ? 'rgba(233,30,140,0.1)' : 'transparent'
+              }}
+            >
+              😀 Emojis
+            </button>
+            <button
+              onClick={function () { setPage(1) }}
+              className="text-xs px-3 py-1 rounded-full border"
+              style={{
+                borderColor: page === 1 ? '#F4D03F' : 'var(--border)',
+                color: page === 1 ? '#F4D03F' : 'var(--text-muted)',
+                background: page === 1 ? 'rgba(244,208,63,0.1)' : 'transparent'
+              }}
+            >
+              🖼️ Memes
+            </button>
+          </div>
+        )}
 
-        <p className="text-[10px] mt-3" style={{ color: 'var(--text-muted)' }}>
-          Desliza para ver mas opciones
-        </p>
+        {memesEnabled && (
+          <p className="text-[10px] mt-3" style={{ color: 'var(--text-muted)' }}>
+            Desliza para ver mas opciones
+          </p>
+        )}
 
         <p className="text-xs mt-2 text-neutral-500">
           Tus reacciones aparecen en la pantalla del bar

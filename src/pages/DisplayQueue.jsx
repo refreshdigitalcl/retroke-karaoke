@@ -141,6 +141,7 @@ function groupRatings(ratings) {
 export default function DisplayQueue(props) {
   var muted = props.muted
   var toggleMute = props.toggleMute
+  var musicEnabled = props.musicEnabled
   var session = useKaraokeSession()
   var barName = session.barName
   var spaceParam = session.spaceParam
@@ -180,13 +181,15 @@ export default function DisplayQueue(props) {
       <FloatingDecor />
       <FallingParty />
       <FullscreenButton />
-      <button
-        onClick={toggleMute}
-        className="fixed top-4 right-16 z-30 w-9 h-9 rounded-full flex items-center justify-center text-sm bg-black/40 border border-white/20 text-white"
-        title={muted ? 'Activar musica de fondo' : 'Silenciar musica de fondo'}
-      >
-        {muted ? '🔇' : '🔊'}
-      </button>
+      {musicEnabled && (
+        <button
+          onClick={toggleMute}
+          className="fixed top-4 right-16 z-30 w-9 h-9 rounded-full flex items-center justify-center text-sm bg-black/40 border border-white/20 text-white"
+          title={muted ? 'Activar musica de fondo' : 'Silenciar musica de fondo'}
+        >
+          {muted ? '🔇' : '🔊'}
+        </button>
+      )}
 
       <header className="flex items-center justify-center relative z-10 pt-8 pb-4">
         <div className="px-5 py-2 -skew-x-6 bg-pink-600">
