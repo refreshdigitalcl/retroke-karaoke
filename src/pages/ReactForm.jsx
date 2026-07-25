@@ -4,8 +4,10 @@ import { MEME_REACTIONS } from '../lib/memeReactions'
 import ThemeToggle from '../components/ThemeToggle'
 
 export default function ReactForm() {
-  const { currentSinger, screenMode, addReaction, reactionEmojis, hasFeature } = useKaraokeSession()
+  const { currentSinger, screenMode, addReaction, reactionEmojis, hasFeature, workspaceType, workspacePlan } = useKaraokeSession()
   var memesEnabled = hasFeature('memes')
+  var isHomeFree = workspaceType === 'HOME' && workspacePlan === 'FREE'
+  var showMemesTab = memesEnabled || isHomeFree
 
   var floatersState = useState([])
   var floaters = floatersState[0]
@@ -46,6 +48,7 @@ export default function ReactForm() {
   }
 
   function handleReactMeme(memeId, url) {
+    if (!memesEnabled) return
     addReaction('meme:' + memeId)
     spawnFloater(url, true)
   }
@@ -136,24 +139,35 @@ export default function ReactForm() {
               ))}
             </div>
 
-            {memesEnabled && (
-              <div className="w-full shrink-0 grid grid-cols-3 gap-2.5 px-0.5">
-                {MEME_REACTIONS.map((meme) => (
-                  <button
-                    key={meme.id}
-                    onClick={() => handleReactMeme(meme.id, meme.url)}
-                    className="aspect-square rounded-xl overflow-hidden border-2 active:scale-90 transition-transform"
-                    style={{ borderColor: '#F4D03F' }}
-                  >
-                    <img src={meme.url} alt="" className="w-full h-full object-cover" />
-                  </button>
-                ))}
+            {showMemesTab && (
+              <div className="w-full shrink-0 relative">
+                <div className="grid grid-cols-3 gap-2.5 px-0.5" style={{ filter: memesEnabled ? 'none' : 'blur(3px) brightness(0.5)', pointerEvents: memesEnabled ? 'auto' : 'none' }}>
+                  {MEME_REACTIONS.map((meme) => (
+                    <button
+                      key={meme.id}
+                      onClick={() => handleReactMeme(meme.id, meme.url)}
+                      className="aspect-square rounded-xl overflow-hidden border-2 active:scale-90 transition-transform"
+                      style={{ borderColor: '#F4D03F' }}
+                    >
+                      <img src={meme.url} alt="" className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+                {!memesEnabled && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-3 gap-1.5">
+                    <span className="text-2xl">🔒</span>
+                    <p className="text-xs font-bold text-white">Funcion PRO</p>
+                    <p className="text-[10px] leading-tight" style={{ color: 'var(--text-muted)' }}>
+                      Adquiere el plan PRO o Premium para reaccionar con memes
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </div>
         </div>
 
-        {memesEnabled && (
+        {showMemesTab && (
           <div className="flex items-center justify-center gap-2 mt-4">
             <button
               onClick={function () { setPage(0) }}
@@ -175,12 +189,12 @@ export default function ReactForm() {
                 background: page === 1 ? 'rgba(244,208,63,0.1)' : 'transparent'
               }}
             >
-              🖼️ Memes
+              {memesEnabled ? '🖼️ Memes' : '🔒 Memes'}
             </button>
           </div>
         )}
 
-        {memesEnabled && (
+        {showMemesTab && (
           <p className="text-[10px] mt-3" style={{ color: 'var(--text-muted)' }}>
             Desliza para ver mas opciones
           </p>

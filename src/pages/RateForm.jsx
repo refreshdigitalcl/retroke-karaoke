@@ -10,7 +10,10 @@ export default function RateForm() {
   var submitRating = session.submitRating
   var screenMode = session.screenMode
   var hasFeature = session.hasFeature
+  var workspaceType = session.workspaceType
+  var workspacePlan = session.workspacePlan
   var phrasesEnabled = hasFeature('rating_phrases')
+  var isHomeFree = workspaceType === 'HOME' && workspacePlan === 'FREE'
 
   var selectedState = useState(null)
   var selected = selectedState[0]
@@ -93,7 +96,7 @@ export default function RateForm() {
             </div>
             <button
               onClick={function () {
-                if (phrasesEnabled) {
+                if (phrasesEnabled || isHomeFree) {
                   setStep('phrase')
                 } else {
                   handleSkipPhrase()
@@ -103,12 +106,12 @@ export default function RateForm() {
               className="w-full h-12 rounded-xl font-bold text-white text-base disabled:opacity-30 transition-opacity"
               style={{ background: 'linear-gradient(90deg, #E91E8C, #8B5CF6)' }}
             >
-              {phrasesEnabled ? 'Siguiente' : 'Enviar nota'}
+              {phrasesEnabled || isHomeFree ? 'Siguiente' : 'Enviar nota'}
             </button>
           </>
         )}
 
-        {step === 'phrase' && (
+        {step === 'phrase' && phrasesEnabled && (
           <div className="phrase-step-in">
             <p className="text-sm text-purple-300 mb-4">
               Elige una frase para acompañar tu nota (opcional)
@@ -137,6 +140,47 @@ export default function RateForm() {
               style={{ color: 'var(--text-muted, #888)' }}
             >
               Enviar solo la nota, sin frase
+            </button>
+          </div>
+        )}
+
+        {step === 'phrase' && !phrasesEnabled && (
+          <div className="phrase-step-in">
+            <p className="text-sm text-purple-300 mb-4">
+              Elige una frase para acompañar tu nota
+            </p>
+            <div className="relative mb-4">
+              <div className="flex flex-col gap-2" style={{ filter: 'blur(3px) brightness(0.5)', pointerEvents: 'none' }}>
+                {phrases.slice(0, 4).map(function (p, i) {
+                  return (
+                    <div
+                      key={i}
+                      className="text-left text-sm px-3 py-2.5 rounded-xl border-2"
+                      style={{
+                        borderColor: p.kind === 'roast' ? 'rgba(233, 30, 140, 0.4)' : 'rgba(244, 208, 63, 0.4)',
+                        background: p.kind === 'roast' ? 'rgba(233, 30, 140, 0.06)' : 'rgba(244, 208, 63, 0.06)',
+                        color: '#f0f0f0'
+                      }}
+                    >
+                      {p.text}
+                    </div>
+                  )
+                })}
+              </div>
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-center gap-2 px-4">
+                <span className="text-3xl">🔒</span>
+                <p className="text-sm font-bold text-white">Funcion PRO</p>
+                <p className="text-xs leading-tight" style={{ color: 'var(--text-muted, #aaa)' }}>
+                  Adquiere el plan PRO o Premium para poder acompañar tu nota con una frase
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={handleSkipPhrase}
+              className="w-full h-11 rounded-xl font-bold text-white text-sm"
+              style={{ background: 'linear-gradient(90deg, #E91E8C, #8B5CF6)' }}
+            >
+              Enviar nota
             </button>
           </div>
         )}

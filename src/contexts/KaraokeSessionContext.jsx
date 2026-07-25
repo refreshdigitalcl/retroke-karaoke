@@ -47,6 +47,7 @@ export function KaraokeSessionProvider({ children }) {
   const [loadTimedOut, setLoadTimedOut] = useState(false)
   const [workspaceId, setWorkspaceId] = useState(null)
   const [workspacePlan, setWorkspacePlan] = useState(null)
+  const [workspaceType, setWorkspaceType] = useState(null)
   const [retryCount, setRetryCount] = useState(0)
   const [featureSet, setFeatureSet] = useState(new Set())
 
@@ -207,6 +208,7 @@ export function KaraokeSessionProvider({ children }) {
             setWorkspaceId(ws.id)
             setBarName(ws.name)
             setBarIsActive(ws.status === 'ACTIVE')
+            setWorkspaceType(ws.type)
             const plan = (ws.plan || 'FREE').toUpperCase()
             setWorkspacePlan(plan)
 
@@ -242,6 +244,7 @@ export function KaraokeSessionProvider({ children }) {
               .maybeSingle()
               .then(({ data: ws }) => {
                 if (cancelled || !ws) return
+                setWorkspaceType(ws.type)
                 const plan = (ws.plan || 'FREE').toUpperCase()
                 setWorkspacePlan(plan)
                 return supabase
@@ -639,6 +642,7 @@ export function KaraokeSessionProvider({ children }) {
     noParamsGiven,
     retryLoad: () => setRetryCount((n) => n + 1),
     workspacePlan,
+    workspaceType,
     hasFeature: (feature) => featureSet.has(feature),
     sessionCode: barSlug,
     spaceParam: workspaceId && !barId ? 'ws=' + workspaceId : 'bar=' + barSlug,
