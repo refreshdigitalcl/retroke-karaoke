@@ -416,6 +416,102 @@ function BarDetail(props) {
   )
 }
 
+function NewWorkspaceForm(props) {
+  var onCreated = props.onCreated
+  var nameState = useState('')
+  var name = nameState[0]
+  var setName = nameState[1]
+  var typeState = useState('DJ')
+  var type = typeState[0]
+  var setType = typeState[1]
+  var planState = useState('FREE')
+  var plan = planState[0]
+  var setPlan = planState[1]
+  var ownerEmailState = useState('')
+  var ownerEmail = ownerEmailState[0]
+  var setOwnerEmail = ownerEmailState[1]
+  var errorState = useState('')
+  var error = errorState[0]
+  var setError = errorState[1]
+
+  function handleSubmit(e) {
+    e.preventDefault()
+    setError('')
+    if (!name.trim()) return
+
+    var settings = ownerEmail.trim() ? { pending_owner_email: ownerEmail.trim() } : {}
+
+    supabase
+      .from('workspaces')
+      .insert({ type: type, name: name.trim(), plan: plan, status: 'ACTIVE', settings: settings })
+      .then(function (result) {
+        if (result.error) {
+          setError(result.error.message)
+        } else {
+          setName('')
+          setOwnerEmail('')
+          onCreated()
+        }
+      })
+  }
+
+  return (
+    <Card>
+      <p className="text-xs uppercase mb-3" style={{ color: 'var(--accent-yellow)' }}>
+        Nuevo Workspace (DJ Pro / Home)
+      </p>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+        <div className="flex gap-2">
+          <select
+            value={type}
+            onChange={function (e) { setType(e.target.value) }}
+            className="h-10 rounded-lg px-3 border outline-none"
+            style={{ background: 'var(--bg-card-alt)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+          >
+            <option value="DJ">DJ Pro</option>
+            <option value="HOME">Home</option>
+          </select>
+          <select
+            value={plan}
+            onChange={function (e) { setPlan(e.target.value) }}
+            className="h-10 rounded-lg px-3 border outline-none"
+            style={{ background: 'var(--bg-card-alt)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+          >
+            <option value="FREE">FREE</option>
+            <option value="PRO">PRO</option>
+            <option value="PREMIUM">PREMIUM</option>
+          </select>
+        </div>
+        <input
+          type="text"
+          value={name}
+          onChange={function (e) { setName(e.target.value) }}
+          placeholder="Nombre (ej: Carlos DJ Pro)"
+          required
+          className="h-10 rounded-lg px-3 border outline-none"
+          style={{ background: 'var(--bg-card-alt)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+        />
+        <input
+          type="email"
+          value={ownerEmail}
+          onChange={function (e) { setOwnerEmail(e.target.value) }}
+          placeholder="Correo del dueño (opcional, vincular despues)"
+          className="h-10 rounded-lg px-3 border outline-none"
+          style={{ background: 'var(--bg-card-alt)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+        />
+        <button
+          type="submit"
+          className="h-10 rounded-lg font-medium text-white"
+          style={{ background: 'var(--accent-purple)' }}
+        >
+          Crear Workspace
+        </button>
+        {error && <p className="text-sm" style={{ color: 'var(--accent-magenta)' }}>{error}</p>}
+      </form>
+    </Card>
+  )
+}
+
 var PLAN_OPTIONS = ['FREE', 'PRO', 'PREMIUM']
 
 function WorkspaceRow(props) {
@@ -452,6 +548,14 @@ function WorkspaceRow(props) {
             <span style={{ color: ws.status === 'ACTIVE' ? 'var(--accent-green)' : 'var(--accent-magenta)' }}>
               {ws.status}
             </span>
+            {!ws.owner_id && ws.settings && ws.settings.pending_owner_email && (
+              <span style={{ color: 'var(--accent-yellow)' }}>
+                {' · dueño pendiente: ' + ws.settings.pending_owner_email}
+              </span>
+            )}
+            {!ws.owner_id && (!ws.settings || !ws.settings.pending_owner_email) && (
+              <span style={{ color: 'var(--text-muted)' }}> · sin dueño asignado</span>
+            )}
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -621,6 +725,7 @@ export default function AdminPanel() {
         <div className="flex flex-col gap-6">
           <Dashboard stats={stats} />
           <WorkspacesList workspaces={workspaces} onChanged={loadEverything} />
+          <NewWorkspaceForm onCreated={loadEverything} />
           <NewBarForm onCreated={loadEverything} />
           <BarsList bars={bars} onToggleActive={toggleActive} onSelect={setSelectedBar} />
         </div>
