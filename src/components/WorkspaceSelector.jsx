@@ -67,7 +67,16 @@ export function useMyBars(auth) {
       setBars([])
     })
 
-    return function () { cancelled = true }
+    var safetyTimeout = setTimeout(function () {
+      if (!cancelled) {
+        setBars(function (prev) { return prev === null ? [] : prev })
+      }
+    }, 8000)
+
+    return function () {
+      cancelled = true
+      clearTimeout(safetyTimeout)
+    }
   }, [auth.session])
 
   return bars

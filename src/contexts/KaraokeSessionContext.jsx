@@ -67,7 +67,7 @@ export function KaraokeSessionProvider({ children }) {
         .limit(1)
       activeQuery = anchorBarId
         ? activeQuery.eq('bar_id', anchorBarId)
-        : activeQuery.eq('workspace_id', anchorWorkspaceId).is('bar_id', null)
+        : activeQuery.eq('workspace_id', anchorWorkspaceId)
       const { data } = await activeQuery.maybeSingle()
       setActiveSession(data || null)
 
@@ -80,7 +80,7 @@ export function KaraokeSessionProvider({ children }) {
           .limit(1)
         closedQuery = anchorBarId
           ? closedQuery.eq('bar_id', anchorBarId)
-          : closedQuery.eq('workspace_id', anchorWorkspaceId).is('bar_id', null)
+          : closedQuery.eq('workspace_id', anchorWorkspaceId)
         const closedResult = await closedQuery.maybeSingle()
         const closed = closedResult.data
         if (closed && closed.closed_at) {
@@ -160,12 +160,18 @@ export function KaraokeSessionProvider({ children }) {
             setBarIsActive(ws.status === 'ACTIVE')
             const plan = (ws.plan || 'FREE').toUpperCase()
             setWorkspacePlan(plan)
-            const { data: features } = await supabase
+
+            // Features en segundo plano, no bloquea la pantalla
+            supabase
               .from('plan_features')
               .select('feature')
               .eq('plan', plan)
               .eq('workspace_type', ws.type)
-            setFeatureSet(new Set((features || []).map((f) => f.feature)))
+              .then(({ data: features }) => {
+                if (!cancelled) setFeatureSet(new Set((features || []).map((f) => f.feature)))
+              })
+              .catch(() => {})
+
             await refreshActiveSession(null, ws.id)
           }
           return
@@ -179,21 +185,26 @@ export function KaraokeSessionProvider({ children }) {
           setBarIsActive(bar.is_active !== false)
 
           if (bar.workspace_id) {
-            const { data: ws } = await supabase
+            // Workspace + features en segundo plano, no bloquea la pantalla
+            supabase
               .from('workspaces')
               .select('plan, type')
               .eq('id', bar.workspace_id)
               .maybeSingle()
-            if (ws) {
-              const plan = (ws.plan || 'FREE').toUpperCase()
-              setWorkspacePlan(plan)
-              const { data: features } = await supabase
-                .from('plan_features')
-                .select('feature')
-                .eq('plan', plan)
-                .eq('workspace_type', ws.type)
-              setFeatureSet(new Set((features || []).map((f) => f.feature)))
-            }
+              .then(({ data: ws }) => {
+                if (cancelled || !ws) return
+                const plan = (ws.plan || 'FREE').toUpperCase()
+                setWorkspacePlan(plan)
+                return supabase
+                  .from('plan_features')
+                  .select('feature')
+                  .eq('plan', plan)
+                  .eq('workspace_type', ws.type)
+                  .then(({ data: features }) => {
+                    if (!cancelled) setFeatureSet(new Set((features || []).map((f) => f.feature)))
+                  })
+              })
+              .catch(() => {})
           }
 
           await refreshActiveSession(bar.id, null)
@@ -206,8 +217,13 @@ export function KaraokeSessionProvider({ children }) {
     }
     init()
 
+    const safetyTimeout = setTimeout(function () {
+      if (!cancelled) setBarLoading(false)
+    }, 8000)
+
     return () => {
       cancelled = true
+      clearTimeout(safetyTimeout)
     }
   }, [barSlug, directWorkspaceId, refreshActiveSession])
 
