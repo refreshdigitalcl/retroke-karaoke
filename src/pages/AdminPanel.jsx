@@ -416,6 +416,96 @@ function BarDetail(props) {
   )
 }
 
+var PLAN_OPTIONS = ['FREE', 'PRO', 'PREMIUM']
+
+function WorkspaceRow(props) {
+  var ws = props.ws
+  var onChanged = props.onChanged
+
+  function changePlan(newPlan) {
+    supabase
+      .from('workspaces')
+      .update({ plan: newPlan })
+      .eq('id', ws.id)
+      .then(function () { onChanged() })
+  }
+
+  function toggleStatus() {
+    var nextStatus = ws.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE'
+    supabase
+      .from('workspaces')
+      .update({ status: nextStatus })
+      .eq('id', ws.id)
+      .then(function () { onChanged() })
+  }
+
+  return (
+    <div className="rounded-lg py-3 px-3" style={{ background: 'var(--bg-card-alt)' }}>
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div>
+          <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+            {ws.name}
+          </p>
+          <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+            {ws.type}
+            {' · '}
+            <span style={{ color: ws.status === 'ACTIVE' ? 'var(--accent-green)' : 'var(--accent-magenta)' }}>
+              {ws.status}
+            </span>
+          </p>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          {PLAN_OPTIONS.map(function (p) {
+            var isCurrent = ws.plan === p || ws.plan === p.toLowerCase()
+            return (
+              <button
+                key={p}
+                onClick={function () { changePlan(p) }}
+                className="text-xs px-2.5 py-1 rounded-full border"
+                style={{
+                  borderColor: isCurrent ? 'var(--accent-magenta)' : 'var(--border)',
+                  background: isCurrent ? 'var(--accent-magenta)' : 'transparent',
+                  color: isCurrent ? '#fff' : 'var(--text-secondary)'
+                }}
+              >
+                {p}
+              </button>
+            )
+          })}
+          <button
+            onClick={toggleStatus}
+            className="text-xs px-2.5 py-1 rounded-full border"
+            style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}
+          >
+            {ws.status === 'ACTIVE' ? 'Suspender' : 'Activar'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function WorkspacesList(props) {
+  var workspaces = props.workspaces
+  var onChanged = props.onChanged
+
+  return (
+    <Card>
+      <p className="text-xs uppercase mb-3" style={{ color: 'var(--accent-yellow)' }}>
+        Workspaces ({workspaces.length})
+      </p>
+      <div className="flex flex-col gap-2">
+        {workspaces.length === 0 && (
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Aun no hay workspaces.</p>
+        )}
+        {workspaces.map(function (ws) {
+          return <WorkspaceRow key={ws.id} ws={ws} onChanged={onChanged} />
+        })}
+      </div>
+    </Card>
+  )
+}
+
 export default function AdminPanel() {
   var auth = useAuth()
 
@@ -430,6 +520,10 @@ export default function AdminPanel() {
   var selectedBarState = useState(null)
   var selectedBar = selectedBarState[0]
   var setSelectedBar = selectedBarState[1]
+
+  var workspacesState = useState([])
+  var workspaces = workspacesState[0]
+  var setWorkspaces = workspacesState[1]
 
   function loadEverything() {
     supabase
@@ -462,6 +556,14 @@ export default function AdminPanel() {
         setStats(function (prev) {
           return { ...prev, djCount: result.count || 0 }
         })
+      })
+
+    supabase
+      .from('workspaces')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .then(function (result) {
+        setWorkspaces(result.data || [])
       })
   }
 
@@ -518,6 +620,7 @@ export default function AdminPanel() {
       ) : (
         <div className="flex flex-col gap-6">
           <Dashboard stats={stats} />
+          <WorkspacesList workspaces={workspaces} onChanged={loadEverything} />
           <NewBarForm onCreated={loadEverything} />
           <BarsList bars={bars} onToggleActive={toggleActive} onSelect={setSelectedBar} />
         </div>
