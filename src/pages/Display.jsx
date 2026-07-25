@@ -71,7 +71,6 @@ function useWaitingMusic(screenMode, hasActiveSession) {
 export default function Display() {
   const { screenMode, hasActiveSession, lastClosedSession } = useKaraokeSession()
   const [showHub] = useState(checkNoParams)
-  const music = useWaitingMusic(screenMode, hasActiveSession)
 
   if (showHub) {
     return <SessionHub />
@@ -79,21 +78,34 @@ export default function Display() {
 
   return (
     <AudioUnlockGate>
-      {!hasActiveSession && lastClosedSession ? (
-        <SessionLeaderboard />
-      ) : screenMode === 'called' ? (
-        <DisplayCalled />
-      ) : screenMode === 'countdown' ? (
-        <DisplayCountdown />
-      ) : screenMode === 'reactions' ? (
-        <DisplayReactions />
-      ) : screenMode === 'rating' ? (
-        <DisplayRating />
-      ) : screenMode === 'result' ? (
-        <DisplayResult />
-      ) : (
-        <DisplayQueue muted={music.muted} toggleMute={music.toggleMute} />
-      )}
+      <DisplayInner
+        screenMode={screenMode}
+        hasActiveSession={hasActiveSession}
+        lastClosedSession={lastClosedSession}
+      />
     </AudioUnlockGate>
+  )
+}
+
+function DisplayInner(props) {
+  var screenMode = props.screenMode
+  var hasActiveSession = props.hasActiveSession
+  var lastClosedSession = props.lastClosedSession
+  var music = useWaitingMusic(screenMode, hasActiveSession)
+
+  return !hasActiveSession && lastClosedSession ? (
+    <SessionLeaderboard />
+  ) : screenMode === 'called' ? (
+    <DisplayCalled />
+  ) : screenMode === 'countdown' ? (
+    <DisplayCountdown />
+  ) : screenMode === 'reactions' ? (
+    <DisplayReactions />
+  ) : screenMode === 'rating' ? (
+    <DisplayRating />
+  ) : screenMode === 'result' ? (
+    <DisplayResult />
+  ) : (
+    <DisplayQueue muted={music.muted} toggleMute={music.toggleMute} />
   )
 }
