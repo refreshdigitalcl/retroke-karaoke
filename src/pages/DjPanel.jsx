@@ -371,14 +371,12 @@ export default function DjPanel() {
           <button
             onClick={function () {
               var url = window.location.origin + '/?' + spaceParam
-              navigator.clipboard.writeText(url)
-              alert('Link copiado: ' + url)
+              window.open(url, '_blank')
             }}
-            className="text-sm underline"
-            style={{ color: 'var(--accent-purple)' }}
-            title="Click para copiar el link de la pantalla (Display) de esta sesion"
+            className="text-sm px-3 h-9 rounded-lg font-medium text-white"
+            style={{ background: 'var(--accent-purple)' }}
           >
-            📋 Copiar link de esta sesion
+            🖥️ Iniciar sala de espera
           </button>
           <button
             onClick={handleCloseSession}
