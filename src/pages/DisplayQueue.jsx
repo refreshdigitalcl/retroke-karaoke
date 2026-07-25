@@ -1,11 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useKaraokeSession } from '../contexts/KaraokeSessionContext'
 import RetroEqualizer from '../components/RetroEqualizer'
 import QRCode from '../components/QRCode'
 import FloatingDecor from '../components/FloatingDecor'
 import FullscreenButton from '../components/FullscreenButton'
 import FallingParty from '../components/FallingParty'
-import { pickRandomTrack } from '../lib/waitingMusic'
 
 function QueueRow(props) {
   var entry = props.entry
@@ -139,37 +138,15 @@ function groupRatings(ratings) {
   return result
 }
 
-export default function DisplayQueue() {
+export default function DisplayQueue(props) {
+  var muted = props.muted
+  var toggleMute = props.toggleMute
   var session = useKaraokeSession()
   var barName = session.barName
   var spaceParam = session.spaceParam
   var sessionCode = session.sessionCode
   var queue = session.queue
   var ratings = session.ratings
-
-  var audioRef = useRef(null)
-  var mutedState = useState(false)
-  var muted = mutedState[0]
-  var setMuted = mutedState[1]
-
-  useEffect(function () {
-    var track = pickRandomTrack()
-    var audio = new Audio(track)
-    audio.loop = true
-    audio.volume = 0.35
-    audio.play().catch(function () {})
-    audioRef.current = audio
-    return function () {
-      audio.pause()
-      audioRef.current = null
-    }
-  }, [])
-
-  function toggleMute() {
-    if (!audioRef.current) return
-    audioRef.current.muted = !audioRef.current.muted
-    setMuted(audioRef.current.muted)
-  }
 
   var sungTonight = groupRatings(ratings)
 
