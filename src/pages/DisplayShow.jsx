@@ -139,7 +139,7 @@ export default function DisplayShow() {
   var session = useKaraokeSession()
   var currentSinger = session.currentSinger
   var reactions = session.reactions
-  var sessionCode = session.sessionCode
+  var spaceParam = session.spaceParam
   var screenMode = session.screenMode
   var startPlaying = session.startPlaying
 
@@ -209,7 +209,7 @@ export default function DisplayShow() {
   if (!currentSinger) return null
 
   var origin = typeof window !== 'undefined' ? window.location.origin : ''
-  var reactUrl = origin + '/reaccionar?bar=' + sessionCode
+  var reactUrl = origin + '/reaccionar?' + spaceParam
 
   var floaters = []
   var i = 0

@@ -301,6 +301,11 @@ export default function DjPanel() {
 
   var urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
   var barSlugParam = urlParams ? urlParams.get('bar') : null
+  var wsParam = urlParams ? urlParams.get('ws') : null
+
+  if (wsParam) {
+    // Modo Workspace directo (DJ Pro / Home): el contexto ya resuelve todo, no pasar por el selector de bares
+  } else {
 
   if (myBars === null) {
     return (
@@ -334,7 +339,8 @@ export default function DjPanel() {
 
   if (!barSlugParam && myBars.length === 1) {
     if (typeof window !== 'undefined') {
-      window.location.href = '/dj?bar=' + myBars[0].slug
+      var only = myBars[0]
+      window.location.href = only.kind === 'bar' ? '/dj?bar=' + only.slug : '/dj?ws=' + only.workspaceId
     }
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-page)' }}>
@@ -342,6 +348,8 @@ export default function DjPanel() {
       </div>
     )
   }
+
+  } // fin del bloque exclusivo para modo bar (no aplica cuando viene con ?ws=)
 
   if (!hasActiveSession) {
     return <StartSessionGate barName={barName} barIsActive={barIsActive} startSession={startSession} />

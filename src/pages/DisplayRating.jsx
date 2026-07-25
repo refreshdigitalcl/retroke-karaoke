@@ -116,7 +116,7 @@ export default function DisplayRating() {
   var session = useKaraokeSession()
   var currentSinger = session.currentSinger
   var ratings = session.ratings
-  var sessionCode = session.sessionCode
+  var spaceParam = session.spaceParam
 
   var burstingState = useState(false)
   var bursting = burstingState[0]
@@ -159,7 +159,7 @@ export default function DisplayRating() {
   if (typeof window !== 'undefined') {
     origin = window.location.origin
   }
-  var rateUrl = origin + '/calificar?bar=' + sessionCode
+  var rateUrl = origin + '/calificar?' + spaceParam
   var timerColor = secondsLeft <= 5 ? '#E91E8C' : secondsLeft <= 10 ? '#F4D03F' : '#7ED957'
   var ringOffset = RING_CIRC * (1 - secondsLeft / VOTE_SECONDS)
 

@@ -159,7 +159,7 @@ export default function DisplayReactions() {
   var session = useKaraokeSession()
   var currentSinger = session.currentSinger
   var reactions = session.reactions
-  var sessionCode = session.sessionCode
+  var spaceParam = session.spaceParam
   var videoPlayer = useVideoPlayer()
 
   var phrase = useMemo(function () {
@@ -202,7 +202,7 @@ export default function DisplayReactions() {
   if (typeof window !== 'undefined') {
     origin = window.location.origin
   }
-  var reactUrl = origin + '/reaccionar?bar=' + sessionCode
+  var reactUrl = origin + '/reaccionar?' + spaceParam
 
   var floaters = []
   var i = 0

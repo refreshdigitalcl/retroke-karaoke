@@ -24,16 +24,24 @@ function getBarSlugFromUrl() {
   return bar ? bar.toLowerCase() : DEFAULT_BAR_SLUG
 }
 
-function makeSessionId(barSlug) {
-  return barSlug.toUpperCase() + '-' + Date.now()
+function getWorkspaceParamFromUrl() {
+  if (typeof window === 'undefined') return null
+  const params = new URLSearchParams(window.location.search)
+  return params.get('ws')
+}
+
+function makeSessionId(code) {
+  return code.toUpperCase() + '-' + Date.now()
 }
 
 export function KaraokeSessionProvider({ children }) {
-  const [barSlug] = useState(getBarSlugFromUrl())
+  const [directWorkspaceId] = useState(getWorkspaceParamFromUrl())
+  const [barSlug] = useState(directWorkspaceId ? null : getBarSlugFromUrl())
   const [barId, setBarId] = useState(null)
   const [barName, setBarName] = useState('')
   const [barIsActive, setBarIsActive] = useState(true)
   const [barLoading, setBarLoading] = useState(true)
+  const [workspaceId, setWorkspaceId] = useState(null)
   const [workspacePlan, setWorkspacePlan] = useState(null)
   const [featureSet, setFeatureSet] = useState(new Set())
 
@@ -48,27 +56,31 @@ export function KaraokeSessionProvider({ children }) {
   const screenMode = activeSession ? activeSession.screen_mode : 'queue'
   const hasActiveSession = !!activeSession
 
-  const refreshActiveSession = useCallback(async (currentBarId) => {
-    if (!currentBarId) return
-    const { data } = await supabase
+  const refreshActiveSession = useCallback(async (anchorBarId, anchorWorkspaceId) => {
+    if (!anchorBarId && !anchorWorkspaceId) return
+    let activeQuery = supabase
       .from('sessions')
       .select('*')
-      .eq('bar_id', currentBarId)
       .eq('status', 'active')
       .order('started_at', { ascending: false })
       .limit(1)
-      .maybeSingle()
+    activeQuery = anchorBarId
+      ? activeQuery.eq('bar_id', anchorBarId)
+      : activeQuery.eq('workspace_id', anchorWorkspaceId).is('bar_id', null)
+    const { data } = await activeQuery.maybeSingle()
     setActiveSession(data || null)
 
     if (!data) {
-      const closedResult = await supabase
+      let closedQuery = supabase
         .from('sessions')
         .select('*')
-        .eq('bar_id', currentBarId)
         .eq('status', 'closed')
         .order('closed_at', { ascending: false })
         .limit(1)
-        .maybeSingle()
+      closedQuery = anchorBarId
+        ? closedQuery.eq('bar_id', anchorBarId)
+        : closedQuery.eq('workspace_id', anchorWorkspaceId).is('bar_id', null)
+      const closedResult = await closedQuery.maybeSingle()
       const closed = closedResult.data
       if (closed && closed.closed_at) {
         const minutesAgo = (Date.now() - new Date(closed.closed_at).getTime()) / 60000
@@ -130,6 +142,31 @@ export function KaraokeSessionProvider({ children }) {
     let cancelled = false
 
     async function init() {
+      if (directWorkspaceId) {
+        const { data: ws } = await supabase
+          .from('workspaces')
+          .select('*')
+          .eq('id', directWorkspaceId)
+          .maybeSingle()
+        if (cancelled) return
+        if (ws) {
+          setWorkspaceId(ws.id)
+          setBarName(ws.name)
+          setBarIsActive(ws.status === 'ACTIVE')
+          const plan = (ws.plan || 'FREE').toUpperCase()
+          setWorkspacePlan(plan)
+          const { data: features } = await supabase
+            .from('plan_features')
+            .select('feature')
+            .eq('plan', plan)
+            .eq('workspace_type', ws.type)
+          setFeatureSet(new Set((features || []).map((f) => f.feature)))
+          await refreshActiveSession(null, ws.id)
+        }
+        setBarLoading(false)
+        return
+      }
+
       const { data: bar } = await supabase.from('bars').select('*').eq('slug', barSlug).maybeSingle()
       if (cancelled) return
       if (bar) {
@@ -155,7 +192,7 @@ export function KaraokeSessionProvider({ children }) {
           }
         }
 
-        await refreshActiveSession(bar.id)
+        await refreshActiveSession(bar.id, null)
       }
       setBarLoading(false)
     }
@@ -164,22 +201,24 @@ export function KaraokeSessionProvider({ children }) {
     return () => {
       cancelled = true
     }
-  }, [barSlug, refreshActiveSession])
+  }, [barSlug, directWorkspaceId, refreshActiveSession])
 
   useEffect(() => {
-    if (!barId) return
+    if (!barId && !workspaceId) return
+    const channelName = barId ? 'bar-sessions-' + barId : 'ws-sessions-' + workspaceId
+    const filter = barId ? 'bar_id=eq.' + barId : 'workspace_id=eq.' + workspaceId
     const channel = supabase
-      .channel('bar-sessions-' + barId)
+      .channel(channelName)
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'sessions', filter: 'bar_id=eq.' + barId },
-        () => refreshActiveSession(barId)
+        { event: '*', schema: 'public', table: 'sessions', filter: filter },
+        () => refreshActiveSession(barId, barId ? null : workspaceId)
       )
       .subscribe()
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [barId, refreshActiveSession])
+  }, [barId, workspaceId, refreshActiveSession])
 
   const loadQueue = useCallback(async (sid) => {
     const { data } = await supabase
@@ -264,26 +303,32 @@ export function KaraokeSessionProvider({ children }) {
 
   const startSession = useCallback(
     async (name) => {
-      if (!barId) return { error: 'Bar no encontrado' }
+      if (!barId && !workspaceId) return { error: 'Espacio no encontrado' }
       const userResult = await supabase.auth.getUser()
       const userId = userResult.data.user ? userResult.data.user.id : null
-      const newId = makeSessionId(barSlug)
-      const { error } = await supabase.from('sessions').insert({
+      const code = barId ? barSlug : workspaceId.slice(0, 8)
+      const newId = makeSessionId(code)
+      const insertData = {
         id: newId,
-        bar_id: barId,
-        bar_name: barName,
         name: name,
         status: 'active',
         started_at: new Date().toISOString(),
         created_by: userId,
         screen_mode: 'queue'
-      })
+      }
+      if (barId) {
+        insertData.bar_id = barId
+        insertData.bar_name = barName
+      } else {
+        insertData.workspace_id = workspaceId
+      }
+      const { error } = await supabase.from('sessions').insert(insertData)
       if (!error) {
-        await refreshActiveSession(barId)
+        await refreshActiveSession(barId, barId ? null : workspaceId)
       }
       return { error: error ? error.message : null }
     },
-    [barId, barName, barSlug, refreshActiveSession]
+    [barId, barName, barSlug, workspaceId, refreshActiveSession]
   )
 
   const closeSession = useCallback(async () => {
@@ -510,6 +555,7 @@ export function KaraokeSessionProvider({ children }) {
     workspacePlan,
     hasFeature: (feature) => featureSet.has(feature),
     sessionCode: barSlug,
+    spaceParam: workspaceId && !barId ? 'ws=' + workspaceId : 'bar=' + barSlug,
     hasActiveSession,
     lastClosedSession,
     loadSessionLeaderboard,

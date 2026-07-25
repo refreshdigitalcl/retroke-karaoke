@@ -141,6 +141,7 @@ function groupRatings(ratings) {
 export default function DisplayQueue() {
   var session = useKaraokeSession()
   var barName = session.barName
+  var spaceParam = session.spaceParam
   var sessionCode = session.sessionCode
   var queue = session.queue
   var ratings = session.ratings
@@ -169,7 +170,7 @@ export default function DisplayQueue() {
   if (typeof window !== 'undefined') {
     origin = window.location.origin
   }
-  var registerUrl = origin + '/registro?bar=' + sessionCode
+  var registerUrl = origin + '/registro?' + spaceParam
 
   return (
     <div className="min-h-screen relative overflow-hidden flex flex-col bg-black">

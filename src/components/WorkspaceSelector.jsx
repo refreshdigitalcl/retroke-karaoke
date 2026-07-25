@@ -12,23 +12,57 @@ export function useMyBars(auth) {
       return
     }
     var cancelled = false
-    supabase
-      .from('bar_members')
-      .select('role, bars(id, slug, name, is_active)')
-      .eq('user_id', auth.session.user.id)
-      .then(function (result) {
-        if (cancelled) return
-        var rows = result.data || []
-        var seen = {}
-        var list = []
-        rows.forEach(function (r) {
-          if (!r.bars) return
-          if (seen[r.bars.id]) return
-          seen[r.bars.id] = true
-          list.push({ id: r.bars.id, slug: r.bars.slug, name: r.bars.name, isActive: r.bars.is_active, role: r.role })
+
+    Promise.all([
+      supabase
+        .from('bar_members')
+        .select('role, bars(id, slug, name, is_active)')
+        .eq('user_id', auth.session.user.id),
+      supabase
+        .from('workspace_members')
+        .select('role, workspaces(id, name, type, status)')
+        .eq('user_id', auth.session.user.id)
+    ]).then(function (results) {
+      if (cancelled) return
+      var barRows = results[0].data || []
+      var wsRows = results[1].data || []
+
+      var seen = {}
+      var list = []
+
+      barRows.forEach(function (r) {
+        if (!r.bars) return
+        if (seen[r.bars.id]) return
+        seen[r.bars.id] = true
+        list.push({
+          id: r.bars.id,
+          slug: r.bars.slug,
+          name: r.bars.name,
+          isActive: r.bars.is_active,
+          role: r.role,
+          kind: 'bar'
         })
-        setBars(list)
       })
+
+      wsRows.forEach(function (r) {
+        if (!r.workspaces) return
+        if (r.workspaces.type === 'BAR') return
+        var key = 'ws-' + r.workspaces.id
+        if (seen[key]) return
+        seen[key] = true
+        list.push({
+          id: r.workspaces.id,
+          workspaceId: r.workspaces.id,
+          name: r.workspaces.name,
+          isActive: r.workspaces.status === 'ACTIVE',
+          role: r.role,
+          kind: r.workspaces.type === 'HOME' ? 'home' : 'dj'
+        })
+      })
+
+      setBars(list)
+    })
+
     return function () { cancelled = true }
   }, [auth.session])
 
@@ -39,8 +73,12 @@ export default function WorkspaceSelector(props) {
   var bars = props.bars
   var notice = props.notice
 
-  function goTo(slug) {
-    window.location.href = '/dj?bar=' + slug
+  function goTo(bar) {
+    if (bar.kind === 'bar') {
+      window.location.href = '/dj?bar=' + bar.slug
+    } else {
+      window.location.href = '/dj?ws=' + bar.workspaceId
+    }
   }
 
   return (
@@ -50,7 +88,7 @@ export default function WorkspaceSelector(props) {
           Selecciona tu espacio
         </p>
         <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>
-          Perteneces a mas de un bar en Retroke
+          Perteneces a mas de un espacio en Retroke
         </p>
 
         {notice && (
@@ -61,16 +99,17 @@ export default function WorkspaceSelector(props) {
 
         <div className="flex flex-col gap-2.5">
           {bars.map(function (bar) {
+            var icon = bar.kind === 'dj' ? '🎧' : bar.kind === 'home' ? '🏠' : '🎤'
             return (
               <button
                 key={bar.id}
-                onClick={function () { goTo(bar.slug) }}
+                onClick={function () { goTo(bar) }}
                 className="w-full h-14 rounded-xl border-2 flex items-center justify-between px-4"
                 style={{ borderColor: 'var(--accent-purple)', background: 'var(--bg-card-alt)' }}
               >
                 <span>
                   <p className="text-sm font-medium text-left" style={{ color: 'var(--text-primary)' }}>
-                    🎤 {bar.name}
+                    {icon} {bar.name}
                   </p>
                   <p className="text-xs text-left" style={{ color: 'var(--text-muted)' }}>
                     {bar.role}
