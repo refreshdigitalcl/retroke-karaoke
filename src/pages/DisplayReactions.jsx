@@ -78,12 +78,12 @@ function useSongInfo(song, active, factsEnabled) {
   }, [song])
 
   useEffect(function () {
-    if (!active || facts.length < 1) return
+    if (!active) return
     var cancelled = false
     setFactVisible(true)
 
     function scheduleNext(showing) {
-      var delay = showing ? 10000 : 13000
+      var delay = showing ? 10000 : 15000
       var id = setTimeout(function () {
         if (cancelled) return
         if (showing) {
@@ -102,7 +102,7 @@ function useSongInfo(song, active, factsEnabled) {
       cancelled = true
       clearTimeout(timeoutId)
     }
-  }, [facts, active])
+  }, [active, facts.length > 0])
 
   return { info: info, fact: facts.length > 0 ? facts[factIndex] : '', factIndex: factIndex, barVisible: factVisible }
 }
@@ -282,54 +282,56 @@ export default function DisplayReactions() {
 
       {hasVideo ? (
         <div className="relative w-full h-screen">
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-3 h-[55vh]">
-            <div className="absolute inset-0 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(139, 92, 246, 0.4)' }}>
+          <div className="absolute left-4 top-1/2 -translate-y-1/2 z-20 w-5 h-[58vh]">
+            <div className="absolute inset-0 rounded-full overflow-hidden track-shell" style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(139, 92, 246, 0.45)' }}>
               <div
-                className="absolute bottom-0 left-0 w-full rounded-full progress-fill"
+                className="absolute bottom-0 left-0 w-full rounded-full progress-fill progress-shimmer"
                 style={{
                   height: progress + '%',
-                  background: 'linear-gradient(0deg, #E91E8C, #8B5CF6, #F4D03F)',
-                  boxShadow: '0 0 10px 2px rgba(233, 30, 140, 0.6)'
+                  background: 'linear-gradient(0deg, #E91E8C, #8B5CF6 45%, #F4D03F)',
+                  backgroundSize: '100% 220%',
+                  boxShadow: '0 0 16px 4px rgba(233, 30, 140, 0.65)'
                 }}
               />
             </div>
             <div
-              className="absolute needle-arrow needle-pulse"
-              style={{ bottom: 'calc(' + progress + '% - 11px)', right: '100%', marginRight: '6px' }}
+              className="absolute needle-arrow needle-pulse needle-trail"
+              style={{ bottom: 'calc(' + progress + '% - 15px)', right: '100%', marginRight: '8px' }}
             >
-              <svg width="34" height="22" viewBox="0 0 34 22">
+              <svg width="46" height="30" viewBox="0 0 34 22">
                 <polygon
                   points="34,11 14,0 14,7 0,7 0,15 14,15 14,22"
                   fill="#F4D03F"
                   stroke="#E91E8C"
                   strokeWidth="1.5"
-                  style={{ filter: 'drop-shadow(0 0 8px rgba(244, 208, 63, 0.95))' }}
+                  style={{ filter: 'drop-shadow(0 0 10px rgba(244, 208, 63, 1))' }}
                 />
               </svg>
             </div>
           </div>
 
           <div
-            className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-3 h-[55vh]"
+            className="absolute right-4 top-1/2 -translate-y-1/2 z-20 w-5 h-[58vh]"
           >
             <div
-              className="absolute inset-0 rounded-full overflow-hidden"
+              className="absolute inset-0 rounded-full overflow-hidden track-shell reaction-glow"
               style={{
                 background: 'linear-gradient(0deg, #E9544A 0%, #F4A93F 50%, #7ED957 100%)',
-                border: '1px solid rgba(255,255,255,0.25)'
+                backgroundSize: '100% 180%',
+                border: '1px solid rgba(255,255,255,0.3)'
               }}
             />
             <div
-              className="absolute needle-arrow needle-pulse"
-              style={{ bottom: 'calc(' + needlePosition + '% - 11px)', left: '100%', marginLeft: '6px' }}
+              className="absolute needle-arrow needle-pulse needle-trail"
+              style={{ bottom: 'calc(' + needlePosition + '% - 15px)', left: '100%', marginLeft: '8px' }}
             >
-              <svg width="34" height="22" viewBox="0 0 34 22">
+              <svg width="46" height="30" viewBox="0 0 34 22">
                 <polygon
                   points="0,11 20,0 20,7 34,7 34,15 20,15 20,22"
                   fill="#fff"
                   stroke="#8B5CF6"
                   strokeWidth="1.5"
-                  style={{ filter: 'drop-shadow(0 0 8px rgba(255,255,255,0.95))' }}
+                  style={{ filter: 'drop-shadow(0 0 10px rgba(255,255,255,1))' }}
                 />
               </svg>
             </div>
@@ -458,11 +460,41 @@ export default function DisplayReactions() {
           to { transform: rotate(360deg); }
         }
         .progress-fill { transition: height 0.5s linear; }
-        .needle-arrow { transition: bottom 0.4s ease-out; }
-        .needle-pulse { animation: needlePulse 1.6s ease-in-out infinite; }
+        .needle-arrow { transition: bottom 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        .needle-pulse { animation: needlePulse 1.3s ease-in-out infinite; }
         @keyframes needlePulse {
-          0%, 100% { transform: scale(1); }
-          50% { transform: scale(1.18); }
+          0%, 100% { transform: scale(1); filter: brightness(1); }
+          50% { transform: scale(1.18); filter: brightness(1.3); }
+        }
+        .needle-trail::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          border-radius: 999px;
+          background: radial-gradient(circle, rgba(244, 208, 63, 0.5), transparent 70%);
+          animation: needleTrail 1.3s ease-in-out infinite;
+          z-index: -1;
+        }
+        @keyframes needleTrail {
+          0%, 100% { transform: scale(0.8); opacity: 0.4; }
+          50% { transform: scale(1.7); opacity: 0; }
+        }
+        .track-shell {
+          box-shadow: inset 0 0 12px rgba(0,0,0,0.5), 0 0 18px 2px rgba(139, 92, 246, 0.25);
+        }
+        .progress-shimmer {
+          animation: shimmerMove 2.4s linear infinite;
+        }
+        @keyframes shimmerMove {
+          0% { background-position: 0% 0%; }
+          100% { background-position: 0% 100%; }
+        }
+        .reaction-glow {
+          animation: reactionBreathe 2.8s ease-in-out infinite;
+        }
+        @keyframes reactionBreathe {
+          0%, 100% { background-position: 0% 0%; filter: brightness(1); }
+          50% { background-position: 0% 20%; filter: brightness(1.15); }
         }
         .fact-clamp {
           display: -webkit-box;
