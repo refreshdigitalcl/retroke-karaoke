@@ -38,6 +38,7 @@ export function KaraokeSessionProvider({ children }) {
   const [directWorkspaceId, setDirectWorkspaceId] = useState(null)
   const [barSlug, setBarSlug] = useState(null)
   const [urlResolved, setUrlResolved] = useState(false)
+  const [urlAttempts, setUrlAttempts] = useState(0)
   const [barId, setBarId] = useState(null)
   const [barName, setBarName] = useState('')
   const [barIsActive, setBarIsActive] = useState(true)
@@ -145,15 +146,38 @@ export function KaraokeSessionProvider({ children }) {
     return list
   }, [])
 
-  // Se resuelve en un efecto (no en el render inicial) para garantizar que
-  // la navegacion ya este completamente asentada en cualquier dispositivo,
-  // incluyendo moviles donde leer la URL de inmediato puede llegar demasiado pronto.
+  // Se resuelve reintentando varias veces en los primeros instantes, en vez de
+  // confiar en una sola lectura, para blindarse contra cualquier retraso de
+  // algunos navegadores moviles en "asentar" los parametros de la URL.
   useEffect(() => {
-    const ws = getWorkspaceParamFromUrl()
-    const bar = ws ? null : getBarSlugFromUrl()
-    setDirectWorkspaceId(ws)
-    setBarSlug(bar)
-    setUrlResolved(true)
+    let cancelled = false
+    let attempts = 0
+    const delays = [0, 60, 150, 350, 700]
+
+    function attempt() {
+      if (cancelled) return
+      const ws = getWorkspaceParamFromUrl()
+      const hasBarParam = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('bar')
+      const hasAnyParam = !!ws || hasBarParam
+
+      if (hasAnyParam || attempts >= delays.length - 1) {
+        const bar = ws ? null : getBarSlugFromUrl()
+        setDirectWorkspaceId(ws)
+        setBarSlug(bar)
+        setUrlAttempts(attempts)
+        setUrlResolved(true)
+        return
+      }
+
+      attempts += 1
+      setTimeout(attempt, delays[attempts])
+    }
+
+    attempt()
+
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   useEffect(() => {
@@ -601,6 +625,7 @@ export function KaraokeSessionProvider({ children }) {
     barIsActive,
     barLoading,
     loadTimedOut,
+    urlAttempts,
     retryLoad: () => setRetryCount((n) => n + 1),
     workspacePlan,
     hasFeature: (feature) => featureSet.has(feature),
