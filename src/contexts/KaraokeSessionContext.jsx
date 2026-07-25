@@ -34,6 +34,8 @@ export function KaraokeSessionProvider({ children }) {
   const [barName, setBarName] = useState('')
   const [barIsActive, setBarIsActive] = useState(true)
   const [barLoading, setBarLoading] = useState(true)
+  const [workspacePlan, setWorkspacePlan] = useState(null)
+  const [featureSet, setFeatureSet] = useState(new Set())
 
   const [activeSession, setActiveSession] = useState(null)
   const [lastClosedSession, setLastClosedSession] = useState(null)
@@ -134,6 +136,25 @@ export function KaraokeSessionProvider({ children }) {
         setBarId(bar.id)
         setBarName(bar.name)
         setBarIsActive(bar.is_active !== false)
+
+        if (bar.workspace_id) {
+          const { data: ws } = await supabase
+            .from('workspaces')
+            .select('plan, type')
+            .eq('id', bar.workspace_id)
+            .maybeSingle()
+          if (ws) {
+            const plan = (ws.plan || 'FREE').toUpperCase()
+            setWorkspacePlan(plan)
+            const { data: features } = await supabase
+              .from('plan_features')
+              .select('feature')
+              .eq('plan', plan)
+              .eq('workspace_type', ws.type)
+            setFeatureSet(new Set((features || []).map((f) => f.feature)))
+          }
+        }
+
         await refreshActiveSession(bar.id)
       }
       setBarLoading(false)
@@ -486,6 +507,8 @@ export function KaraokeSessionProvider({ children }) {
     barName,
     barIsActive,
     barLoading,
+    workspacePlan,
+    hasFeature: (feature) => featureSet.has(feature),
     sessionCode: barSlug,
     hasActiveSession,
     lastClosedSession,

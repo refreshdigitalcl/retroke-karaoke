@@ -225,6 +225,7 @@ export default function SessionLeaderboard() {
   var session = useKaraokeSession()
   var lastClosedSession = session.lastClosedSession
   var loadSessionLeaderboard = session.loadSessionLeaderboard
+  var hasFeature = session.hasFeature
 
   var listState = useState(null)
   var list = listState[0]
@@ -287,7 +288,7 @@ export default function SessionLeaderboard() {
             )}
           </div>
 
-          {nightStats && (
+          {nightStats && hasFeature('advanced_statistics') && (
             <div className="relative z-10 w-full max-w-4xl grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 mb-10">
               <StatCard
                 icon="🎶"
@@ -307,6 +308,14 @@ export default function SessionLeaderboard() {
                 value={nightStats.avgScore.toFixed(1)}
                 sub={nightStats.totalReactions + ' reacciones en total'}
               />
+            </div>
+          )}
+
+          {nightStats && !hasFeature('advanced_statistics') && (
+            <div className="relative z-10 w-full max-w-md rounded-2xl border-2 border-purple-500/40 bg-neutral-950/70 px-6 py-5 mb-10 text-center">
+              <p className="text-sm text-neutral-400">
+                🔒 Las estadisticas de la noche estan disponibles en el plan <span className="text-yellow-400 font-bold">PRO</span>
+              </p>
             </div>
           )}
         </>
