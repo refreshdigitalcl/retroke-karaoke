@@ -133,30 +133,15 @@ export default function RegisterForm() {
   }
 
   if (!hasActiveSession) {
-    var debugUrl = typeof window !== 'undefined' ? window.location.search : ''
-    var debugHref = typeof window !== 'undefined' ? window.location.href : ''
-    var debugUA = typeof navigator !== 'undefined' ? navigator.userAgent : ''
     return (
       <div className="min-h-screen flex items-center justify-center px-6" style={{ background: 'var(--bg-page)' }}>
         <div className="max-w-sm w-full rounded-3xl border p-8 text-center" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
           <p className="text-lg font-medium mb-2" style={{ color: 'var(--text-primary)' }}>
             {barName || 'Este bar'}
           </p>
-          <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
+          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
             No hay una sesion de karaoke activa en este momento. Vuelve a intentarlo cuando empiece la noche.
           </p>
-          <div className="text-left text-[10px] leading-tight p-2 rounded" style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', wordBreak: 'break-all' }}>
-            DEBUG v3<br />
-            href: {debugHref}<br />
-            search: {debugUrl}<br />
-            intentos usados: {urlAttempts}<br />
-            barName: {barName || '(vacio)'}<br />
-            plan: {String(workspacePlan)}<br />
-            spaceParam: {spaceParam}<br />
-            barLoading: {String(barLoading)}<br />
-            loadTimedOut: {String(loadTimedOut)}<br />
-            ua: {debugUA}
-          </div>
         </div>
       </div>
     )
