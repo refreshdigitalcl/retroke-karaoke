@@ -258,8 +258,8 @@ export default function DisplayRating() {
           </p>
 
           {visiblePhrase && (
-            <div key={visiblePhrase.id} className="phrase-toast mt-4 max-w-[280px] rounded-2xl border-2 border-pink-500 bg-neutral-950/90 px-4 py-2.5 text-center">
-              <p className="text-sm text-white font-medium">{visiblePhrase.phrase}</p>
+            <div key={visiblePhrase.id} className="phrase-toast mt-4 max-w-[380px] rounded-2xl border-2 border-pink-500 bg-neutral-950/90 px-5 py-3.5 text-center">
+              <p className="text-xl text-white font-medium leading-snug">{visiblePhrase.phrase}</p>
             </div>
           )}
         </div>

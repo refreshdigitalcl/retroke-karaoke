@@ -6,10 +6,15 @@ import DisplayReactions from './DisplayReactions'
 import DisplayRating from './DisplayRating'
 import DisplayResult from './DisplayResult'
 import SessionLeaderboard from './SessionLeaderboard'
+import SessionHub from './SessionHub'
 import AudioUnlockGate from '../components/AudioUnlockGate'
 
 export default function Display() {
-  const { screenMode, hasActiveSession, lastClosedSession } = useKaraokeSession()
+  const { screenMode, hasActiveSession, lastClosedSession, noParamsGiven, barLoading } = useKaraokeSession()
+
+  if (noParamsGiven && !barLoading) {
+    return <SessionHub />
+  }
 
   return (
     <AudioUnlockGate>

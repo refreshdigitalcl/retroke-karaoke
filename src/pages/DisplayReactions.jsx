@@ -81,7 +81,7 @@ function useSongInfo(song, active) {
     setFactVisible(true)
 
     function scheduleNext(showing) {
-      var delay = showing ? 10000 : 15000
+      var delay = showing ? 10000 : 13000
       var id = setTimeout(function () {
         if (cancelled) return
         if (showing) {
@@ -102,7 +102,7 @@ function useSongInfo(song, active) {
     }
   }, [facts, active])
 
-  return { info: info, fact: facts.length > 0 && factVisible ? facts[factIndex] : '', factIndex: factIndex }
+  return { info: info, fact: facts.length > 0 ? facts[factIndex] : '', factIndex: factIndex, barVisible: factVisible }
 }
 
 var ALT_VISIBLE_SECONDS = 9
@@ -332,71 +332,73 @@ export default function DisplayReactions() {
             </div>
           </div>
 
-          <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-20 w-[92%] max-w-[52rem]">
-            <div className="flex items-center gap-5 rounded-2xl border border-purple-500/60 bg-neutral-950/35 backdrop-blur-sm px-7 py-5 min-h-[100px]">
-              <div
-                className="w-14 h-14 rounded-full overflow-hidden flex items-center justify-center text-2xl bg-pink-600 shrink-0"
-                style={{ boxShadow: '0 0 16px 4px rgba(233, 30, 140, 0.55)' }}
-              >
-                {currentSinger.photo ? (
-                  <img src={currentSinger.photo} alt={currentSinger.name} className="w-full h-full object-cover" />
-                ) : (
-                  currentSinger.avatar
+          {songInfo.barVisible && (
+            <div key={songInfo.factIndex} className="info-bar-toggle absolute bottom-5 left-1/2 -translate-x-1/2 z-20 w-[92%] max-w-[52rem]">
+              <div className="flex items-center gap-5 rounded-2xl border border-purple-500/60 bg-neutral-950/35 backdrop-blur-sm px-7 py-5 min-h-[100px]">
+                <div
+                  className="w-14 h-14 rounded-full overflow-hidden flex items-center justify-center text-2xl bg-pink-600 shrink-0"
+                  style={{ boxShadow: '0 0 16px 4px rgba(233, 30, 140, 0.55)' }}
+                >
+                  {currentSinger.photo ? (
+                    <img src={currentSinger.photo} alt={currentSinger.name} className="w-full h-full object-cover" />
+                  ) : (
+                    currentSinger.avatar
+                  )}
+                </div>
+                <div className="shrink-0">
+                  <p className="text-lg font-bold text-white leading-tight" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>
+                    {currentSinger.name}
+                  </p>
+                  <p className="text-sm text-yellow-400 leading-tight" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>
+                    {songInfo.info ? songInfo.info.artist : currentSinger.song}
+                    {songInfo.info && songInfo.info.year ? ' · ' + songInfo.info.year : ''}
+                  </p>
+                </div>
+                {songInfo.fact && (
+                  <>
+                    <div className="w-px self-stretch bg-neutral-500/40 shrink-0" />
+                    <p
+                      className="fact-clamp text-lg text-neutral-100 leading-snug flex-1"
+                      style={{ textShadow: '0 1px 4px rgba(0,0,0,0.9)' }}
+                    >
+                      {songInfo.fact}
+                    </p>
+                  </>
                 )}
               </div>
-              <div className="shrink-0">
-                <p className="text-lg font-bold text-white leading-tight" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>
-                  {currentSinger.name}
-                </p>
-                <p className="text-sm text-yellow-400 leading-tight" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>
-                  {songInfo.info ? songInfo.info.artist : currentSinger.song}
-                  {songInfo.info && songInfo.info.year ? ' · ' + songInfo.info.year : ''}
-                </p>
-              </div>
-              {songInfo.fact && (
-                <>
-                  <div className="w-px self-stretch bg-neutral-500/40 shrink-0" />
-                  <p
-                    key={songInfo.factIndex}
-                    className="fact-glitch fact-clamp text-lg text-neutral-100 leading-snug flex-1"
-                    style={{ textShadow: '0 1px 4px rgba(0,0,0,0.9)' }}
-                  >
-                    {songInfo.fact}
-                  </p>
-                </>
-              )}
             </div>
-          </div>
+          )}
 
           {qrCycle.which !== 'none' && (
             <div
               className={
-                'absolute bottom-24 left-6 z-20 flex flex-col items-center ' +
+                'absolute bottom-5 z-20 flex flex-col items-center ' +
+                (qrCycle.which === 'reaction' ? 'left-4' : 'right-4') + ' ' +
                 (qrCycle.phase === 'visible' ? 'qr-glitch-in' : 'qr-fade-out')
               }
             >
               {qrCycle.which === 'reaction' ? (
                 <>
                   <p
-                    className="text-sm font-bold text-yellow-400 mb-2 text-center leading-tight"
+                    className="text-sm font-bold text-yellow-400 mb-2 text-center leading-tight w-[130px]"
                     style={{ textShadow: '0 1px 4px rgba(0,0,0,0.9)' }}
                   >
                     ¡Reacciona a esta presentacion!
                   </p>
                   <div className="rounded-2xl border-2 border-yellow-400 bg-neutral-950/90 p-3">
-                    <QRCode url={reactUrl} size={130} />
+                    <QRCode url={reactUrl} size={120} />
                   </div>
                 </>
               ) : (
                 <>
                   <p
-                    className="text-sm font-bold text-purple-300 mb-2 text-center leading-tight"
+                    className="text-sm font-bold text-purple-300 mb-2 text-center leading-tight w-[130px]"
                     style={{ textShadow: '0 1px 4px rgba(0,0,0,0.9)' }}
                   >
                     ¿Aun no te anotas? ¡Escanea aqui!
                   </p>
                   <div className="rounded-2xl border-2 border-purple-400 bg-neutral-950/90 p-3" style={{ boxShadow: '0 0 24px 4px rgba(139, 92, 246, 0.35)' }}>
-                    <QRCode url={registerUrl} size={130} />
+                    <QRCode url={registerUrl} size={120} />
                   </div>
                 </>
               )}
