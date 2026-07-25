@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useKaraokeSession } from '../contexts/KaraokeSessionContext'
 import { supabase } from '../lib/supabase'
 import { getSentiment } from '../lib/reactionEmojis'
+import { isMemeReaction, getMemeSentiment } from '../lib/memeReactions'
 import RetroEqualizer from '../components/RetroEqualizer'
 import QRCode from '../components/QRCode'
 import FallingParty from '../components/FallingParty'
@@ -98,7 +99,7 @@ function usePerformanceZone(queueEntryId) {
         }
         var sum = 0
         rows.forEach(function (r) {
-          sum = sum + getSentiment(r.emoji)
+          sum = sum + (isMemeReaction(r.emoji) ? getMemeSentiment(r.emoji) : getSentiment(r.emoji))
         })
         var avg = sum / rows.length
         var color = avg > 0.7 ? '#7ED957' : avg > 0.4 ? '#F4A93F' : '#E9544A'

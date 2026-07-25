@@ -7,15 +7,8 @@ import FallingParty from '../components/FallingParty'
 import QRCode from '../components/QRCode'
 import { fetchArtistFacts } from '../lib/artistFacts'
 import { getSentiment } from '../lib/reactionEmojis'
-import { isMemeReaction, getMemeUrl } from '../lib/memeReactions'
+import { isMemeReaction, getMemeUrl, getMemeSentiment } from '../lib/memeReactions'
 
-var QR_VISIBLE_SECONDS = 10
-var QR_FADE_SECONDS = 3
-var QR_HIDDEN_SECONDS = 30
-
-var REGISTER_QR_VISIBLE_SECONDS = 8
-var REGISTER_QR_FADE_SECONDS = 3
-var REGISTER_QR_HIDDEN_SECONDS = 19
 
 var PHRASES = [
   'está cantando con todo.', 'está rompiendo el escenario.', 'está rockeando como nunca.',
@@ -112,40 +105,47 @@ function useSongInfo(song, active) {
   return { info: info, fact: facts.length > 0 && factVisible ? facts[factIndex] : '', factIndex: factIndex }
 }
 
-function useQrCycle(active, visibleSeconds, fadeSeconds, hiddenSeconds) {
-  var phaseState = useState('hidden')
-  var phase = phaseState[0]
-  var setPhase = phaseState[1]
+var ALT_VISIBLE_SECONDS = 9
+var ALT_FADE_SECONDS = 3
+var ALT_PAUSE_SECONDS = 15
+
+function useAlternatingQrCycle(active) {
+  var stateState = useState({ which: 'none', phase: 'hidden' })
+  var state = stateState[0]
+  var setState = stateState[1]
 
   useEffect(function () {
     if (!active) {
-      setPhase('hidden')
+      setState({ which: 'none', phase: 'hidden' })
       return
     }
-    setPhase('visible')
-    var timeoutId = null
+    var cancelled = false
 
-    function scheduleNext(nextPhase) {
+    function run(which, phase) {
+      if (cancelled) return
+      setState({ which: which, phase: phase })
+
       var delay =
-        nextPhase === 'visible' ? hiddenSeconds * 1000 :
-        nextPhase === 'fading' ? visibleSeconds * 1000 :
-        fadeSeconds * 1000
+        phase === 'visible' ? ALT_VISIBLE_SECONDS * 1000 :
+        phase === 'fading' ? ALT_FADE_SECONDS * 1000 :
+        ALT_PAUSE_SECONDS * 1000
 
-      timeoutId = setTimeout(function () {
-        setPhase(nextPhase)
-        var after = nextPhase === 'visible' ? 'fading' : nextPhase === 'fading' ? 'hidden' : 'visible'
-        scheduleNext(after)
-      }, delay)
+      var next
+      if (which === 'reaction' && phase === 'visible') next = ['reaction', 'fading']
+      else if (which === 'reaction' && phase === 'fading') next = ['register', 'visible']
+      else if (which === 'register' && phase === 'visible') next = ['register', 'fading']
+      else if (which === 'register' && phase === 'fading') next = ['none', 'pause']
+      else next = ['reaction', 'visible']
+
+      setTimeout(function () { run(next[0], next[1]) }, delay)
     }
 
-    scheduleNext('fading')
+    run('reaction', 'visible')
 
-    return function () {
-      if (timeoutId) clearTimeout(timeoutId)
-    }
+    return function () { cancelled = true }
   }, [active])
 
-  return phase
+  return state
 }
 
 function useNeedlePosition(reactions) {
@@ -159,7 +159,7 @@ function useNeedlePosition(reactions) {
     reactions.forEach(function (r) {
       if (!seenIdsRef.current.has(r.id)) {
         seenIdsRef.current.add(r.id)
-        historyRef.current.push({ sentiment: getSentiment(r.emoji), time: Date.now() })
+        historyRef.current.push({ sentiment: isMemeReaction(r.emoji) ? getMemeSentiment(r.emoji) : getSentiment(r.emoji), time: Date.now() })
       }
     })
   }, [reactions])
@@ -196,8 +196,7 @@ export default function DisplayReactions() {
 
   var hasVideo = !!(currentSinger && currentSinger.videoId)
   var songInfo = useSongInfo(currentSinger ? currentSinger.song : '', hasVideo)
-  var qrPhase = useQrCycle(hasVideo, QR_VISIBLE_SECONDS, QR_FADE_SECONDS, QR_HIDDEN_SECONDS)
-  var registerQrPhase = useQrCycle(hasVideo, REGISTER_QR_VISIBLE_SECONDS, REGISTER_QR_FADE_SECONDS, REGISTER_QR_HIDDEN_SECONDS)
+  var qrCycle = useAlternatingQrCycle(hasVideo)
   var needlePosition = useNeedlePosition(reactions)
 
   var progressState = useState(0)
@@ -244,12 +243,13 @@ export default function DisplayReactions() {
           key={r.id}
           src={memeUrl}
           alt=""
-          className="floating-emoji absolute rounded-xl object-cover"
+          className="floating-meme absolute rounded-xl object-cover border-2 border-white/20"
           style={{
-            left: (30 + Math.random() * 40) + '%',
-            bottom: hasVideo ? '110px' : '50%',
-            width: '90px',
-            height: '90px'
+            left: (25 + Math.random() * 45) + '%',
+            bottom: hasVideo ? '115px' : '48%',
+            width: '150px',
+            height: '150px',
+            boxShadow: '0 6px 24px rgba(0,0,0,0.5)'
           }}
         />
       ) : (
@@ -368,35 +368,38 @@ export default function DisplayReactions() {
             </div>
           </div>
 
-          {qrPhase !== 'hidden' && (
+          {qrCycle.which !== 'none' && (
             <div
-              className={'absolute bottom-6 left-6 z-20 flex flex-col items-center ' + (qrPhase === 'visible' ? 'qr-glitch-in' : 'qr-fade-out')}
+              className={
+                'absolute bottom-24 left-6 z-20 flex flex-col items-center ' +
+                (qrCycle.phase === 'visible' ? 'qr-glitch-in' : 'qr-fade-out')
+              }
             >
-              <p
-                className="text-sm font-bold text-yellow-400 mb-2 text-center leading-tight w-[130px]"
-                style={{ textShadow: '0 1px 4px rgba(0,0,0,0.9)' }}
-              >
-                ¡Reacciona a<br />esta presentacion!
-              </p>
-              <div className="rounded-2xl border-2 border-yellow-400 bg-neutral-950/90 p-3">
-                <QRCode url={reactUrl} size={130} />
-              </div>
-            </div>
-          )}
-
-          {registerQrPhase !== 'hidden' && (
-            <div
-              className={'absolute bottom-6 right-6 z-20 flex flex-col items-center ' + (registerQrPhase === 'visible' ? 'qr-glitch-in' : 'qr-fade-out')}
-            >
-              <div className="rounded-2xl border-2 border-purple-400 bg-neutral-950/90 p-3" style={{ boxShadow: '0 0 24px 4px rgba(139, 92, 246, 0.35)' }}>
-                <QRCode url={registerUrl} size={130} />
-              </div>
-              <p
-                className="text-sm font-bold text-purple-300 mt-2 text-center leading-tight w-[130px]"
-                style={{ textShadow: '0 1px 4px rgba(0,0,0,0.9)' }}
-              >
-                ¿Aun no te anotas?<br />¡Escanea aqui!
-              </p>
+              {qrCycle.which === 'reaction' ? (
+                <>
+                  <p
+                    className="text-sm font-bold text-yellow-400 mb-2 text-center leading-tight"
+                    style={{ textShadow: '0 1px 4px rgba(0,0,0,0.9)' }}
+                  >
+                    ¡Reacciona a esta presentacion!
+                  </p>
+                  <div className="rounded-2xl border-2 border-yellow-400 bg-neutral-950/90 p-3">
+                    <QRCode url={reactUrl} size={130} />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p
+                    className="text-sm font-bold text-purple-300 mb-2 text-center leading-tight"
+                    style={{ textShadow: '0 1px 4px rgba(0,0,0,0.9)' }}
+                  >
+                    ¿Aun no te anotas? ¡Escanea aqui!
+                  </p>
+                  <div className="rounded-2xl border-2 border-purple-400 bg-neutral-950/90 p-3" style={{ boxShadow: '0 0 24px 4px rgba(139, 92, 246, 0.35)' }}>
+                    <QRCode url={registerUrl} size={130} />
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>
@@ -437,6 +440,13 @@ export default function DisplayReactions() {
           to { transform: translateY(-70vh) scale(1.5) rotate(12deg); opacity: 0; }
         }
         .floating-emoji { animation: floatUp 2.2s ease-out forwards; }
+        .floating-meme { animation: floatUpMeme 2.6s ease-out forwards; }
+        @keyframes floatUpMeme {
+          0% { transform: translateY(0) scale(0.85); opacity: 0; }
+          12% { transform: translateY(-8vh) scale(1); opacity: 1; }
+          75% { transform: translateY(-55vh) scale(1); opacity: 1; }
+          100% { transform: translateY(-70vh) scale(1.05); opacity: 0; }
+        }
         .spin-vinyl { animation: spinVinyl 7s linear infinite; }
         @keyframes spinVinyl {
           from { transform: rotate(0deg); }

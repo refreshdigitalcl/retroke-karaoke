@@ -39,6 +39,7 @@ export function KaraokeSessionProvider({ children }) {
   const [barSlug, setBarSlug] = useState(null)
   const [urlResolved, setUrlResolved] = useState(false)
   const [urlAttempts, setUrlAttempts] = useState(0)
+  const [noParamsGiven, setNoParamsGiven] = useState(false)
   const [barId, setBarId] = useState(null)
   const [barName, setBarName] = useState('')
   const [barIsActive, setBarIsActive] = useState(true)
@@ -165,6 +166,7 @@ export function KaraokeSessionProvider({ children }) {
         setDirectWorkspaceId(ws)
         setBarSlug(bar)
         setUrlAttempts(attempts)
+        setNoParamsGiven(!hasAnyParam)
         setUrlResolved(true)
         return
       }
@@ -346,7 +348,7 @@ export function KaraokeSessionProvider({ children }) {
       setReactions((prev) => [...prev, { id, emoji }])
       setTimeout(() => {
         setReactions((prev) => prev.filter((r) => r.id !== id))
-      }, 2000)
+      }, 2700)
     }
 
     const channel = supabase
@@ -627,6 +629,7 @@ export function KaraokeSessionProvider({ children }) {
     barLoading,
     loadTimedOut,
     urlAttempts,
+    noParamsGiven,
     retryLoad: () => setRetryCount((n) => n + 1),
     workspacePlan,
     hasFeature: (feature) => featureSet.has(feature),
