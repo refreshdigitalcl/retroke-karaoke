@@ -19,27 +19,53 @@ function checkNoParams() {
 
 var WAITING_MODES = ['queue', 'called', 'countdown']
 
-function useWaitingMusic(screenMode, hasActiveSession) {
+export default function Display() {
+  const { screenMode, hasActiveSession, lastClosedSession } = useKaraokeSession()
+  const [showHub] = useState(checkNoParams)
+
   var audioRef = useRef(null)
   var wasWaitingRef = useRef(false)
+  var firstEffectRunRef = useRef(true)
   var mutedState = useState(false)
   var muted = mutedState[0]
   var setMuted = mutedState[1]
 
   var isWaiting = hasActiveSession && WAITING_MODES.indexOf(screenMode) !== -1
 
+  function startNewWaitingTrack() {
+    if (audioRef.current) {
+      audioRef.current.pause()
+    }
+    var track = pickRandomTrack()
+    var audio = new Audio(track)
+    audio.loop = true
+    audio.volume = 0.35
+    audio.muted = muted
+    audio.play().catch(function () {})
+    audioRef.current = audio
+  }
+
+  // Primer arranque: se dispara en el mismo clic de "activar sonido" (sincrono),
+  // asi los navegadores de Smart TV mas estrictos lo permiten igual que al video.
+  function handleUnlock() {
+    if (isWaiting) {
+      startNewWaitingTrack()
+    }
+  }
+
+  // Transiciones posteriores (volver a la sala de espera despues de una cancion,
+  // o pasar de la sala de espera a la presentacion): reaccionan al cambio de estado.
   useEffect(function () {
+    if (firstEffectRunRef.current) {
+      // El primer arranque ya lo maneja handleUnlock, disparado por el toque real.
+      // Aqui solo sincronizamos el estado sin volver a llamar play().
+      firstEffectRunRef.current = false
+      wasWaitingRef.current = isWaiting
+      return
+    }
     if (isWaiting && !wasWaitingRef.current) {
-      // Recien entramos a la sala de espera: elegir una cancion nueva
-      var track = pickRandomTrack()
-      var audio = new Audio(track)
-      audio.loop = true
-      audio.volume = 0.35
-      audio.muted = muted
-      audio.play().catch(function () {})
-      audioRef.current = audio
+      startNewWaitingTrack()
     } else if (!isWaiting && wasWaitingRef.current) {
-      // Salimos de la sala de espera (empezo la presentacion): cortar
       if (audioRef.current) {
         audioRef.current.pause()
         audioRef.current = null
@@ -65,47 +91,27 @@ function useWaitingMusic(screenMode, hasActiveSession) {
     })
   }
 
-  return { muted: muted, toggleMute: toggleMute }
-}
-
-export default function Display() {
-  const { screenMode, hasActiveSession, lastClosedSession } = useKaraokeSession()
-  const [showHub] = useState(checkNoParams)
-
   if (showHub) {
     return <SessionHub />
   }
 
   return (
-    <AudioUnlockGate>
-      <DisplayInner
-        screenMode={screenMode}
-        hasActiveSession={hasActiveSession}
-        lastClosedSession={lastClosedSession}
-      />
+    <AudioUnlockGate onUnlock={handleUnlock}>
+      {!hasActiveSession && lastClosedSession ? (
+        <SessionLeaderboard />
+      ) : screenMode === 'called' ? (
+        <DisplayCalled />
+      ) : screenMode === 'countdown' ? (
+        <DisplayCountdown />
+      ) : screenMode === 'reactions' ? (
+        <DisplayReactions />
+      ) : screenMode === 'rating' ? (
+        <DisplayRating />
+      ) : screenMode === 'result' ? (
+        <DisplayResult />
+      ) : (
+        <DisplayQueue muted={muted} toggleMute={toggleMute} />
+      )}
     </AudioUnlockGate>
-  )
-}
-
-function DisplayInner(props) {
-  var screenMode = props.screenMode
-  var hasActiveSession = props.hasActiveSession
-  var lastClosedSession = props.lastClosedSession
-  var music = useWaitingMusic(screenMode, hasActiveSession)
-
-  return !hasActiveSession && lastClosedSession ? (
-    <SessionLeaderboard />
-  ) : screenMode === 'called' ? (
-    <DisplayCalled />
-  ) : screenMode === 'countdown' ? (
-    <DisplayCountdown />
-  ) : screenMode === 'reactions' ? (
-    <DisplayReactions />
-  ) : screenMode === 'rating' ? (
-    <DisplayRating />
-  ) : screenMode === 'result' ? (
-    <DisplayResult />
-  ) : (
-    <DisplayQueue muted={music.muted} toggleMute={music.toggleMute} />
   )
 }

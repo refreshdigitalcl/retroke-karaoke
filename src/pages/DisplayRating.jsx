@@ -146,6 +146,22 @@ export default function DisplayRating() {
     return function () { clearTimeout(t) }
   }, [latestPhraseRating ? latestPhraseRating.id : null])
 
+  var phraseVisual = useMemo(function () {
+    if (!visiblePhrase) return null
+    var idStr = String(visiblePhrase.id)
+    var seed = 0
+    var i = 0
+    while (i < idStr.length) {
+      seed = seed + idStr.charCodeAt(i)
+      i = i + 1
+    }
+    var shapes = ['bubble', 'square', 'cloud']
+    var shape = shapes[seed % shapes.length]
+    var vertical = seed % 2 === 0 ? 'top' : 'bottom'
+    var leftPct = 22 + (seed % 56)
+    return { shape: shape, vertical: vertical, leftPct: leftPct }
+  }, [visiblePhrase])
+
   var average = useMemo(function () {
     if (songRatings.length === 0) return null
     var sum = 0
@@ -256,13 +272,24 @@ export default function DisplayRating() {
           <p className="text-sm font-bold text-yellow-400 mt-5 uppercase tracking-widest">
             Escanea para votar
           </p>
-
-          {visiblePhrase && (
-            <div key={visiblePhrase.id} className="phrase-toast mt-4 max-w-[380px] rounded-2xl border-2 border-pink-500 bg-neutral-950/90 px-5 py-3.5 text-center">
-              <p className="text-xl text-white font-medium leading-snug">{visiblePhrase.phrase}</p>
-            </div>
-          )}
         </div>
+
+        {visiblePhrase && phraseVisual && (
+          <div
+            key={visiblePhrase.id}
+            className="fixed z-40"
+            style={{
+              left: phraseVisual.leftPct + '%',
+              top: phraseVisual.vertical === 'top' ? '6%' : 'auto',
+              bottom: phraseVisual.vertical === 'bottom' ? '6%' : 'auto',
+              transform: 'translateX(-50%)'
+            }}
+          >
+            <div className={'phrase-toast max-w-[460px] px-7 py-5 text-center shape-' + phraseVisual.shape}>
+              <p className="text-3xl text-white font-bold leading-snug">{visiblePhrase.phrase}</p>
+            </div>
+          </div>
+        )}
 
         <div className="hologram-card tilt-right flex-1 max-w-xs rounded-3xl border-2 border-yellow-400 bg-neutral-950/80 px-6 py-8 flex flex-col items-center text-center relative">
           {bursting && <ConfettiBurst />}
@@ -304,12 +331,32 @@ export default function DisplayRating() {
         .zone-fill { transition: width 0.6s ease-out; }
         .phrase-toast {
           animation: phraseToast 6s ease-in-out;
+          border-width: 3px;
+          border-style: solid;
         }
         @keyframes phraseToast {
-          0% { opacity: 0; transform: translateY(10px) scale(0.9); }
+          0% { opacity: 0; transform: translateY(14px) scale(0.85); }
           10% { opacity: 1; transform: translateY(0) scale(1); }
           85% { opacity: 1; transform: translateY(0) scale(1); }
-          100% { opacity: 0; transform: translateY(-6px) scale(0.95); }
+          100% { opacity: 0; transform: translateY(-8px) scale(0.92); }
+        }
+        .shape-bubble {
+          border-radius: 999px;
+          border-color: #E91E8C;
+          background: rgba(20, 10, 24, 0.95);
+          box-shadow: 0 0 26px 4px rgba(233, 30, 140, 0.35);
+        }
+        .shape-square {
+          border-radius: 14px;
+          border-color: #F4D03F;
+          background: rgba(20, 18, 6, 0.95);
+          box-shadow: 0 0 26px 4px rgba(244, 208, 63, 0.3);
+        }
+        .shape-cloud {
+          border-color: #8B5CF6;
+          background: rgba(16, 10, 26, 0.95);
+          box-shadow: 0 0 26px 4px rgba(139, 92, 246, 0.35);
+          border-radius: 50% 50% 45% 55% / 60% 55% 45% 40%;
         }
         .hologram-card {
           animation: cardFloat 4s ease-in-out infinite;

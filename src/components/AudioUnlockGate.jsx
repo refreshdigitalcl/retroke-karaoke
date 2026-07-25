@@ -19,7 +19,10 @@ function GateInner(props) {
       {!player.unlocked ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black px-8">
           <button
-            onClick={player.unlock}
+            onClick={function () {
+              if (props.onUnlock) props.onUnlock()
+              player.unlock()
+            }}
             className="flex flex-col items-center gap-4 rounded-3xl border-2 px-12 py-10"
             style={{ borderColor: '#F4D03F', background: 'rgba(139, 92, 246, 0.08)' }}
           >
@@ -42,7 +45,7 @@ function GateInner(props) {
 export default function AudioUnlockGate(props) {
   return (
     <VideoPlayerProvider>
-      <GateInner>{props.children}</GateInner>
+      <GateInner onUnlock={props.onUnlock}>{props.children}</GateInner>
     </VideoPlayerProvider>
   )
 }

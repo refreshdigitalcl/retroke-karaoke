@@ -95,7 +95,7 @@ function Backstage(props) {
       <h2 className="text-2xl font-extrabold text-white mb-5">Backstage</h2>
       {rows.length === 0 && (
         <p className="text-base text-neutral-500">
-          Aun no hay nadie anotado. Escanea el QR y se el primero en subir al escenario.
+          Aún no hay nadie anotado. Escanea el QR y sé el primero en subir al escenario.
         </p>
       )}
       <div className="flex flex-col gap-3 overflow-y-auto pr-1 max-h-[520px]">{rows}</div>
@@ -201,15 +201,15 @@ export default function DisplayQueue(props) {
           <p className="text-xs tracking-[6px] uppercase text-yellow-400 mb-3">
             Karaoke en vivo
           </p>
-          <h1 className="text-2xl md:text-4xl font-extrabold text-white leading-tight mb-2">
-            El karaoke nunca volvio a ser igual.
+          <h1 className="hero-title text-2xl md:text-4xl font-extrabold leading-tight mb-2">
+            El karaoke nunca volvió a ser igual.
           </h1>
-          <p className="text-lg md:text-2xl font-bold text-pink-500 mb-4">
+          <p className="text-lg md:text-2xl font-bold text-pink-500 mb-4 hero-subtitle">
             Somos el sistema operativo del karaoke moderno.
           </p>
           <p className="text-base md:text-lg text-neutral-300 mb-8 max-w-md">
-            Escanea el codigo QR, anota tu nombre y tu cancion, y preparate
-            para vivir el verdadero espectaculo interactivo.
+            Escanea el código QR, anota tu nombre y tu canción, y prepárate
+            para vivir el verdadero espectáculo interactivo.
           </p>
           <div className="rounded-3xl border-2 border-yellow-400 bg-neutral-900/90 px-8 py-7 flex flex-col items-center gap-3 shadow-2xl">
             <QRCode url={registerUrl} size={220} />
@@ -244,6 +244,33 @@ export default function DisplayQueue(props) {
               30% { transform: translate(-3px, 1px); text-shadow: 2px 0 #E91E8C, -2px 0 #7ED957; }
               45% { transform: translate(2px, -1px); text-shadow: none; }
               60%, 100% { transform: translate(0,0); text-shadow: none; opacity: 1; }
+            }
+            .hero-title {
+              background: linear-gradient(90deg, #F4D03F, #E91E8C, #8B5CF6, #7ED957, #F4D03F);
+              background-size: 300% 100%;
+              -webkit-background-clip: text;
+              background-clip: text;
+              color: transparent;
+              animation: heroGradient 6s linear infinite, heroEntrance 0.7s steps(4) both;
+              text-shadow: 0 0 24px rgba(233, 30, 140, 0.35);
+            }
+            @keyframes heroGradient {
+              0% { background-position: 0% 50%; }
+              100% { background-position: 300% 50%; }
+            }
+            @keyframes heroEntrance {
+              0% { opacity: 0; transform: translate(-10px, 4px) scale(0.96); }
+              25% { opacity: 1; transform: translate(6px, -3px) scale(1.02); }
+              50% { transform: translate(-4px, 2px) scale(0.99); }
+              75% { transform: translate(2px, -1px) scale(1.01); }
+              100% { opacity: 1; transform: translate(0,0) scale(1); }
+            }
+            .hero-subtitle {
+              animation: subtitlePulse 3.2s ease-in-out infinite;
+            }
+            @keyframes subtitlePulse {
+              0%, 100% { text-shadow: 0 0 6px rgba(233, 30, 140, 0.4); }
+              50% { text-shadow: 0 0 18px rgba(233, 30, 140, 0.9); }
             }
           `}</style>
         </div>
