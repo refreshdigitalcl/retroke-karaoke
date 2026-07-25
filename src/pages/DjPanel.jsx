@@ -224,6 +224,7 @@ export default function DjPanel() {
 
   var session = useKaraokeSession()
   var barName = session.barName
+  var workspacePlan = session.workspacePlan
   var barIsActive = session.barIsActive
   var barLoading = session.barLoading
   var sessionCode = session.sessionCode
@@ -379,9 +380,33 @@ export default function DjPanel() {
     <div className="min-h-screen px-6 py-8" style={{ background: 'var(--bg-page)' }}>
       <header className="flex flex-col sm:flex-row sm:items-center justify-between mb-2 gap-3">
         <div>
-          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-            {barName} · {activeSessionName}
-          </p>
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+              {barName} · {activeSessionName}
+            </p>
+            {workspacePlan && (
+              <span
+                className="text-[10px] font-bold px-2 py-0.5 rounded-full tracking-wide"
+                style={{
+                  background:
+                    workspacePlan === 'PREMIUM' ? 'rgba(244, 208, 63, 0.18)' :
+                    workspacePlan === 'PRO' ? 'rgba(139, 92, 246, 0.18)' :
+                    'rgba(255, 255, 255, 0.08)',
+                  color:
+                    workspacePlan === 'PREMIUM' ? '#F4D03F' :
+                    workspacePlan === 'PRO' ? '#8B5CF6' :
+                    'var(--text-muted)',
+                  border: '1px solid ' + (
+                    workspacePlan === 'PREMIUM' ? 'rgba(244, 208, 63, 0.4)' :
+                    workspacePlan === 'PRO' ? 'rgba(139, 92, 246, 0.4)' :
+                    'var(--border)'
+                  )
+                }}
+              >
+                {workspacePlan === 'PREMIUM' ? '👑 PREMIUM' : workspacePlan === 'PRO' ? '⭐ PRO' : 'FREE'}
+              </span>
+            )}
+          </div>
           <p className="text-xl font-medium" style={{ color: 'var(--text-primary)' }}>
             Panel del DJ
           </p>
