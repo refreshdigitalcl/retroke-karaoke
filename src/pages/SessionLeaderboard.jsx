@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useKaraokeSession } from '../contexts/KaraokeSessionContext'
 import { supabase } from '../lib/supabase'
 import RetroEqualizer from '../components/RetroEqualizer'
@@ -231,10 +231,20 @@ export default function SessionLeaderboard() {
   var list = listState[0]
   var setList = listState[1]
 
+  var applausePlayedRef = useRef(false)
+
   useEffect(function () {
     if (!lastClosedSession) return
     loadSessionLeaderboard(lastClosedSession.id).then(setList)
   }, [lastClosedSession, loadSessionLeaderboard])
+
+  useEffect(function () {
+    if (list && list.length > 0 && !applausePlayedRef.current) {
+      applausePlayedRef.current = true
+      var audio = new Audio('/sounds/applause.mp3')
+      audio.play().catch(function () {})
+    }
+  }, [list])
 
   var nightStats = useNightStats(
     lastClosedSession ? lastClosedSession.id : null,

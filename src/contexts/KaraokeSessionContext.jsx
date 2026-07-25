@@ -324,7 +324,7 @@ export function KaraokeSessionProvider({ children }) {
       .order('created_at')
     if (data) {
       setRatings(
-        data.map((r) => ({ singerId: r.singer_id, name: r.singer_name, song: r.song, score: r.score }))
+        data.map((r) => ({ singerId: r.singer_id, name: r.singer_name, song: r.song, score: r.score, phrase: r.phrase, id: r.id }))
       )
     }
   }, [])
@@ -546,14 +546,15 @@ export function KaraokeSessionProvider({ children }) {
   }, [sessionId, currentSinger])
 
   const submitRating = useCallback(
-    async (score) => {
+    async (score, phrase) => {
       if (!sessionId || !currentSinger) return
       await supabase.from('ratings').insert({
         session_id: sessionId,
         singer_id: String(currentSinger.id),
         singer_name: currentSinger.name,
         song: currentSinger.song,
-        score
+        score,
+        phrase: phrase || null
       })
     },
     [sessionId, currentSinger]

@@ -7,10 +7,15 @@ import FallingParty from '../components/FallingParty'
 import QRCode from '../components/QRCode'
 import { fetchArtistFacts } from '../lib/artistFacts'
 import { getSentiment } from '../lib/reactionEmojis'
+import { isMemeReaction, getMemeUrl } from '../lib/memeReactions'
 
 var QR_VISIBLE_SECONDS = 10
 var QR_FADE_SECONDS = 3
 var QR_HIDDEN_SECONDS = 30
+
+var REGISTER_QR_VISIBLE_SECONDS = 8
+var REGISTER_QR_FADE_SECONDS = 3
+var REGISTER_QR_HIDDEN_SECONDS = 19
 
 var PHRASES = [
   'está cantando con todo.', 'está rompiendo el escenario.', 'está rockeando como nunca.',
@@ -39,7 +44,7 @@ function pickPhrase(seed) {
   return PHRASES[index % PHRASES.length]
 }
 
-function useSongInfo(song) {
+function useSongInfo(song, active) {
   var infoState = useState(null)
   var info = infoState[0]
   var setInfo = infoState[1]
@@ -49,6 +54,9 @@ function useSongInfo(song) {
   var factIndexState = useState(0)
   var factIndex = factIndexState[0]
   var setFactIndex = factIndexState[1]
+  var factVisibleState = useState(true)
+  var factVisible = factVisibleState[0]
+  var setFactVisible = factVisibleState[1]
 
   useEffect(function () {
     var cancelled = false
@@ -75,17 +83,36 @@ function useSongInfo(song) {
   }, [song])
 
   useEffect(function () {
-    if (facts.length < 2) return
-    var id = setInterval(function () {
-      setFactIndex(function (prev) { return (prev + 1) % facts.length })
-    }, 6500)
-    return function () { clearInterval(id) }
-  }, [facts])
+    if (!active || facts.length < 1) return
+    var cancelled = false
+    setFactVisible(true)
 
-  return { info: info, fact: facts.length > 0 ? facts[factIndex] : '', factIndex: factIndex }
+    function scheduleNext(showing) {
+      var delay = showing ? 10000 : 15000
+      var id = setTimeout(function () {
+        if (cancelled) return
+        if (showing) {
+          setFactVisible(false)
+        } else {
+          setFactIndex(function (prev) { return facts.length > 0 ? (prev + 1) % facts.length : 0 })
+          setFactVisible(true)
+        }
+        scheduleNext(!showing)
+      }, delay)
+      return id
+    }
+
+    var timeoutId = scheduleNext(true)
+    return function () {
+      cancelled = true
+      clearTimeout(timeoutId)
+    }
+  }, [facts, active])
+
+  return { info: info, fact: facts.length > 0 && factVisible ? facts[factIndex] : '', factIndex: factIndex }
 }
 
-function useQrCycle(active) {
+function useQrCycle(active, visibleSeconds, fadeSeconds, hiddenSeconds) {
   var phaseState = useState('hidden')
   var phase = phaseState[0]
   var setPhase = phaseState[1]
@@ -100,9 +127,9 @@ function useQrCycle(active) {
 
     function scheduleNext(nextPhase) {
       var delay =
-        nextPhase === 'visible' ? QR_HIDDEN_SECONDS * 1000 :
-        nextPhase === 'fading' ? QR_VISIBLE_SECONDS * 1000 :
-        QR_FADE_SECONDS * 1000
+        nextPhase === 'visible' ? hiddenSeconds * 1000 :
+        nextPhase === 'fading' ? visibleSeconds * 1000 :
+        fadeSeconds * 1000
 
       timeoutId = setTimeout(function () {
         setPhase(nextPhase)
@@ -167,9 +194,10 @@ export default function DisplayReactions() {
     return pickPhrase(String(currentSinger.id))
   }, [currentSinger])
 
-  var songInfo = useSongInfo(currentSinger ? currentSinger.song : '')
   var hasVideo = !!(currentSinger && currentSinger.videoId)
-  var qrPhase = useQrCycle(hasVideo)
+  var songInfo = useSongInfo(currentSinger ? currentSinger.song : '', hasVideo)
+  var qrPhase = useQrCycle(hasVideo, QR_VISIBLE_SECONDS, QR_FADE_SECONDS, QR_HIDDEN_SECONDS)
+  var registerQrPhase = useQrCycle(hasVideo, REGISTER_QR_VISIBLE_SECONDS, REGISTER_QR_FADE_SECONDS, REGISTER_QR_HIDDEN_SECONDS)
   var needlePosition = useNeedlePosition(reactions)
 
   var progressState = useState(0)
@@ -203,19 +231,36 @@ export default function DisplayReactions() {
     origin = window.location.origin
   }
   var reactUrl = origin + '/reaccionar?' + spaceParam
+  var registerUrl = origin + '/registro?' + spaceParam
 
   var floaters = []
   var i = 0
   while (i < reactions.length) {
     var r = reactions[i]
+    var memeUrl = isMemeReaction(r.emoji) ? getMemeUrl(r.emoji) : null
     floaters.push(
-      <span
-        key={r.id}
-        className="floating-emoji absolute text-6xl"
-        style={{ left: (30 + Math.random() * 40) + '%', bottom: hasVideo ? '110px' : '50%' }}
-      >
-        {r.emoji}
-      </span>
+      memeUrl ? (
+        <img
+          key={r.id}
+          src={memeUrl}
+          alt=""
+          className="floating-emoji absolute rounded-xl object-cover"
+          style={{
+            left: (30 + Math.random() * 40) + '%',
+            bottom: hasVideo ? '110px' : '50%',
+            width: '90px',
+            height: '90px'
+          }}
+        />
+      ) : (
+        <span
+          key={r.id}
+          className="floating-emoji absolute text-6xl"
+          style={{ left: (30 + Math.random() * 40) + '%', bottom: hasVideo ? '110px' : '50%' }}
+        >
+          {r.emoji}
+        </span>
+      )
     )
     i = i + 1
   }
@@ -338,6 +383,22 @@ export default function DisplayReactions() {
               </div>
             </div>
           )}
+
+          {registerQrPhase !== 'hidden' && (
+            <div
+              className={'absolute bottom-6 right-6 z-20 flex flex-col items-center ' + (registerQrPhase === 'visible' ? 'qr-glitch-in' : 'qr-fade-out')}
+            >
+              <div className="rounded-2xl border-2 border-purple-400 bg-neutral-950/90 p-3" style={{ boxShadow: '0 0 24px 4px rgba(139, 92, 246, 0.35)' }}>
+                <QRCode url={registerUrl} size={130} />
+              </div>
+              <p
+                className="text-sm font-bold text-purple-300 mt-2 text-center leading-tight w-[130px]"
+                style={{ textShadow: '0 1px 4px rgba(0,0,0,0.9)' }}
+              >
+                ¿Aun no te anotas?<br />¡Escanea aqui!
+              </p>
+            </div>
+          )}
         </div>
       ) : (
         <div className="relative z-10 min-h-screen flex flex-col items-center justify-center px-8">
@@ -394,13 +455,12 @@ export default function DisplayReactions() {
           -webkit-box-orient: vertical;
           overflow: hidden;
         }
-        .fact-glitch { animation: factGlitch 6.5s ease-in-out; }
+        .fact-glitch { animation: factGlitch 0.6s ease-out; }
         @keyframes factGlitch {
           0% { opacity: 0; transform: translate(-4px, 0); text-shadow: 2px 0 #E91E8C, -2px 0 #7ED957; }
-          8% { opacity: 1; transform: translate(2px, 0); text-shadow: -2px 0 #8B5CF6, 2px 0 #F4D03F; }
-          16% { transform: translate(0,0); text-shadow: none; }
-          90% { opacity: 1; }
-          100% { opacity: 0; }
+          30% { opacity: 1; transform: translate(2px, 0); text-shadow: -2px 0 #8B5CF6, 2px 0 #F4D03F; }
+          60% { transform: translate(0,0); text-shadow: none; }
+          100% { opacity: 1; }
         }
         .qr-glitch-in { animation: qrGlitchIn 0.6s ease-out; }
         @keyframes qrGlitchIn {

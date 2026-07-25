@@ -127,6 +127,24 @@ export default function DisplayRating() {
     return ratings.filter(function (r) { return r.singerId === String(currentSinger.id) })
   }, [ratings, currentSinger])
 
+  var latestPhraseRating = useMemo(function () {
+    var withPhrase = songRatings.filter(function (r) { return r.phrase })
+    return withPhrase.length > 0 ? withPhrase[withPhrase.length - 1] : null
+  }, [songRatings])
+
+  var visiblePhraseState = useState(null)
+  var visiblePhrase = visiblePhraseState[0]
+  var setVisiblePhrase = visiblePhraseState[1]
+
+  useEffect(function () {
+    if (!latestPhraseRating) return
+    setVisiblePhrase(latestPhraseRating)
+    var t = setTimeout(function () {
+      setVisiblePhrase(null)
+    }, 6000)
+    return function () { clearTimeout(t) }
+  }, [latestPhraseRating ? latestPhraseRating.id : null])
+
   var average = useMemo(function () {
     if (songRatings.length === 0) return null
     var sum = 0
@@ -141,6 +159,12 @@ export default function DisplayRating() {
   var secondsLeft = useCountdown(currentSinger ? currentSinger.id : 'none')
   var artist = useArtist(currentSinger ? currentSinger.song : '')
   var zone = usePerformanceZone(currentSinger ? currentSinger.id : null)
+
+  useEffect(function () {
+    if (!currentSinger) return
+    var audio = new Audio('/sounds/vote-start.mp3')
+    audio.play().catch(function () {})
+  }, [currentSinger ? currentSinger.id : null])
 
   useEffect(function () {
     if (average === null) return
@@ -231,6 +255,12 @@ export default function DisplayRating() {
           <p className="text-sm font-bold text-yellow-400 mt-5 uppercase tracking-widest">
             Escanea para votar
           </p>
+
+          {visiblePhrase && (
+            <div key={visiblePhrase.id} className="phrase-toast mt-4 max-w-[280px] rounded-2xl border-2 border-pink-500 bg-neutral-950/90 px-4 py-2.5 text-center">
+              <p className="text-sm text-white font-medium">{visiblePhrase.phrase}</p>
+            </div>
+          )}
         </div>
 
         <div className="hologram-card tilt-right flex-1 max-w-xs rounded-3xl border-2 border-yellow-400 bg-neutral-950/80 px-6 py-8 flex flex-col items-center text-center relative">
@@ -271,6 +301,15 @@ export default function DisplayRating() {
           box-shadow: 0 0 30px 6px rgba(244, 208, 63, 0.25);
         }
         .zone-fill { transition: width 0.6s ease-out; }
+        .phrase-toast {
+          animation: phraseToast 6s ease-in-out;
+        }
+        @keyframes phraseToast {
+          0% { opacity: 0; transform: translateY(10px) scale(0.9); }
+          10% { opacity: 1; transform: translateY(0) scale(1); }
+          85% { opacity: 1; transform: translateY(0) scale(1); }
+          100% { opacity: 0; transform: translateY(-6px) scale(0.95); }
+        }
         .hologram-card {
           animation: cardFloat 4s ease-in-out infinite;
         }
