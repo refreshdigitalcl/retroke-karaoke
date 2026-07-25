@@ -35,8 +35,9 @@ function makeSessionId(code) {
 }
 
 export function KaraokeSessionProvider({ children }) {
-  const [directWorkspaceId] = useState(getWorkspaceParamFromUrl())
-  const [barSlug] = useState(directWorkspaceId ? null : getBarSlugFromUrl())
+  const [directWorkspaceId, setDirectWorkspaceId] = useState(null)
+  const [barSlug, setBarSlug] = useState(null)
+  const [urlResolved, setUrlResolved] = useState(false)
   const [barId, setBarId] = useState(null)
   const [barName, setBarName] = useState('')
   const [barIsActive, setBarIsActive] = useState(true)
@@ -144,7 +145,19 @@ export function KaraokeSessionProvider({ children }) {
     return list
   }, [])
 
+  // Se resuelve en un efecto (no en el render inicial) para garantizar que
+  // la navegacion ya este completamente asentada en cualquier dispositivo,
+  // incluyendo moviles donde leer la URL de inmediato puede llegar demasiado pronto.
   useEffect(() => {
+    const ws = getWorkspaceParamFromUrl()
+    const bar = ws ? null : getBarSlugFromUrl()
+    setDirectWorkspaceId(ws)
+    setBarSlug(bar)
+    setUrlResolved(true)
+  }, [])
+
+  useEffect(() => {
+    if (!urlResolved) return
     let cancelled = false
     let finished = false
     setBarLoading(true)
@@ -236,7 +249,7 @@ export function KaraokeSessionProvider({ children }) {
       cancelled = true
       clearTimeout(safetyTimeout)
     }
-  }, [barSlug, directWorkspaceId, refreshActiveSession, retryCount])
+  }, [urlResolved, barSlug, directWorkspaceId, refreshActiveSession, retryCount])
 
   useEffect(() => {
     if (!barId && !workspaceId) return
