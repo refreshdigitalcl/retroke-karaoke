@@ -209,6 +209,7 @@ export default function DjPanel() {
   var barIsActive = session.barIsActive
   var barLoading = session.barLoading
   var sessionCode = session.sessionCode
+  var spaceParam = session.spaceParam
   var hasActiveSession = session.hasActiveSession
   var activeSessionName = session.activeSessionName
   var queue = session.queue
@@ -367,9 +368,18 @@ export default function DjPanel() {
           </p>
         </div>
         <div className="flex items-center flex-wrap gap-2">
-          <span className="text-sm" style={{ color: 'var(--accent-purple)' }}>
-            karaoke.cl/{sessionCode}
-          </span>
+          <button
+            onClick={function () {
+              var url = window.location.origin + '/?' + spaceParam
+              navigator.clipboard.writeText(url)
+              alert('Link copiado: ' + url)
+            }}
+            className="text-sm underline"
+            style={{ color: 'var(--accent-purple)' }}
+            title="Click para copiar el link de la pantalla (Display) de esta sesion"
+          >
+            📋 Copiar link de esta sesion
+          </button>
           <button
             onClick={handleCloseSession}
             disabled={closing}
