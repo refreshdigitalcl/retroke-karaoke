@@ -41,8 +41,10 @@ export function KaraokeSessionProvider({ children }) {
   const [barName, setBarName] = useState('')
   const [barIsActive, setBarIsActive] = useState(true)
   const [barLoading, setBarLoading] = useState(true)
+  const [loadTimedOut, setLoadTimedOut] = useState(false)
   const [workspaceId, setWorkspaceId] = useState(null)
   const [workspacePlan, setWorkspacePlan] = useState(null)
+  const [retryCount, setRetryCount] = useState(0)
   const [featureSet, setFeatureSet] = useState(new Set())
 
   const [activeSession, setActiveSession] = useState(null)
@@ -144,6 +146,9 @@ export function KaraokeSessionProvider({ children }) {
 
   useEffect(() => {
     let cancelled = false
+    let finished = false
+    setBarLoading(true)
+    setLoadTimedOut(false)
 
     async function init() {
       try {
@@ -212,20 +217,26 @@ export function KaraokeSessionProvider({ children }) {
       } catch (err) {
         console.error('Error cargando espacio:', err)
       } finally {
-        if (!cancelled) setBarLoading(false)
+        finished = true
+        if (!cancelled) {
+          setBarLoading(false)
+          setLoadTimedOut(false)
+        }
       }
     }
     init()
 
     const safetyTimeout = setTimeout(function () {
-      if (!cancelled) setBarLoading(false)
-    }, 8000)
+      if (!cancelled && !finished) {
+        setLoadTimedOut(true)
+      }
+    }, 15000)
 
     return () => {
       cancelled = true
       clearTimeout(safetyTimeout)
     }
-  }, [barSlug, directWorkspaceId, refreshActiveSession])
+  }, [barSlug, directWorkspaceId, refreshActiveSession, retryCount])
 
   useEffect(() => {
     if (!barId && !workspaceId) return
@@ -576,6 +587,8 @@ export function KaraokeSessionProvider({ children }) {
     barName,
     barIsActive,
     barLoading,
+    loadTimedOut,
+    retryLoad: () => setRetryCount((n) => n + 1),
     workspacePlan,
     hasFeature: (feature) => featureSet.has(feature),
     sessionCode: barSlug,

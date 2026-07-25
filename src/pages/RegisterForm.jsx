@@ -36,6 +36,8 @@ export default function RegisterForm() {
   var addToQueue = session.addToQueue
   var hasActiveSession = session.hasActiveSession
   var barLoading = session.barLoading
+  var loadTimedOut = session.loadTimedOut
+  var retryLoad = session.retryLoad
 
   var nameState = useState('')
   var name = nameState[0]
@@ -96,6 +98,28 @@ export default function RegisterForm() {
   }
 
   var position = queue.length + 1
+
+  if (loadTimedOut) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-6" style={{ background: 'var(--bg-page)' }}>
+        <div className="max-w-sm w-full rounded-3xl border p-8 text-center" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
+          <p className="text-lg font-medium mb-2" style={{ color: 'var(--text-primary)' }}>
+            Conexion lenta
+          </p>
+          <p className="text-sm mb-5" style={{ color: 'var(--text-secondary)' }}>
+            Esta tardando mas de lo normal. Revisa tu conexion e intenta de nuevo.
+          </p>
+          <button
+            onClick={retryLoad}
+            className="h-11 px-6 rounded-lg font-medium text-white"
+            style={{ background: 'var(--accent-magenta)' }}
+          >
+            Reintentar
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   if (barLoading) {
     return (
