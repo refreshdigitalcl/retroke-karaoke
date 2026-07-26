@@ -444,6 +444,14 @@ export function KaraokeSessionProvider({ children }) {
     setActiveSession(null)
   }, [sessionId])
 
+  const dismissPodium = useCallback(async (targetSessionId) => {
+    if (!targetSessionId) return
+    await supabase
+      .from('sessions')
+      .update({ dismiss_podium_at: new Date().toISOString() })
+      .eq('id', targetSessionId)
+  }, [])
+
   const loadPastSessions = useCallback(async () => {
     if (!barId) return []
     const { data: sessions } = await supabase
@@ -677,6 +685,7 @@ export function KaraokeSessionProvider({ children }) {
     hasActiveSession,
     lastClosedSession,
     loadSessionLeaderboard,
+    dismissPodium,
     activeSessionName: activeSession ? activeSession.name : '',
     activeSessionPin: activeSession ? activeSession.pin : '',
     queue,

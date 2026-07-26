@@ -240,6 +240,28 @@ export default function SessionLeaderboard() {
   }, [lastClosedSession, loadSessionLeaderboard])
 
   useEffect(function () {
+    if (!lastClosedSession) return
+    var cancelled = false
+    var intervalId = setInterval(function () {
+      supabase
+        .from('sessions')
+        .select('dismiss_podium_at')
+        .eq('id', lastClosedSession.id)
+        .maybeSingle()
+        .then(function (result) {
+          if (cancelled) return
+          if (result.data && result.data.dismiss_podium_at) {
+            window.location.href = '/'
+          }
+        })
+    }, 4000)
+    return function () {
+      cancelled = true
+      clearInterval(intervalId)
+    }
+  }, [lastClosedSession])
+
+  useEffect(function () {
     if (list && list.length > 0 && !applausePlayedRef.current) {
       applausePlayedRef.current = true
       var audio = new Audio('/sounds/applause.mp3')

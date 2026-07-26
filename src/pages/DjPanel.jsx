@@ -281,6 +281,7 @@ function StartSessionGate(props) {
   var barName = props.barName
   var barIsActive = props.barIsActive
   var startSession = props.startSession
+  var auth = useAuth()
 
   var nameState = useState('Karaoke ' + new Date().toLocaleDateString('es-CL', { weekday: 'long' }))
   var name = nameState[0]
@@ -374,6 +375,15 @@ function StartSessionGate(props) {
             <p className="text-sm mt-3" style={{ color: 'var(--accent-magenta)' }}>{error}</p>
           )}
         </form>
+        <button
+          onClick={function () {
+            auth.signOut().then(function () { window.location.href = '/' })
+          }}
+          className="text-xs mt-5 underline"
+          style={{ color: 'var(--text-muted)' }}
+        >
+          🚪 Salir de Retroke
+        </button>
       </div>
     </div>
   )
@@ -424,11 +434,16 @@ function NightEndedPanel(props) {
   var barName = props.barName
   var lastClosedSession = props.lastClosedSession
   var loadSessionLeaderboard = props.loadSessionLeaderboard
+  var dismissPodium = props.dismissPodium
   var onStartNew = props.onStartNew
 
   var listState = useState(null)
   var list = listState[0]
   var setList = listState[1]
+
+  var sentState = useState(false)
+  var sentToHub = sentState[0]
+  var setSentToHub = sentState[1]
 
   useEffect(function () {
     if (!lastClosedSession) return
@@ -485,11 +500,22 @@ function NightEndedPanel(props) {
 
         <div className="flex flex-col gap-2.5">
           <button
+            onClick={function () {
+              dismissPodium(lastClosedSession.id)
+              setSentToHub(true)
+              setTimeout(function () { setSentToHub(false) }, 2500)
+            }}
+            className="h-12 rounded-xl font-bold text-white"
+            style={{ background: 'linear-gradient(90deg, #F4D03F, #E91E8C)' }}
+          >
+            {sentToHub ? '✅ Enviado a las TVs' : '📺 Enviar TVs a selección de salas'}
+          </button>
+          <button
             onClick={function () { window.location.href = '/' }}
             className="h-12 rounded-xl font-bold text-white"
             style={{ background: 'linear-gradient(90deg, #E91E8C, #8B5CF6)' }}
           >
-            🏠 Ir a selección de salas
+            🏠 Ir a selección de salas (este dispositivo)
           </button>
           <button
             onClick={onStartNew}
@@ -519,6 +545,7 @@ export default function DjPanel() {
   var hasActiveSession = session.hasActiveSession
   var lastClosedSession = session.lastClosedSession
   var loadSessionLeaderboard = session.loadSessionLeaderboard
+  var dismissPodium = session.dismissPodium
   var activeSessionName = session.activeSessionName
   var queue = session.queue
   var currentSinger = session.currentSinger
@@ -559,6 +586,22 @@ export default function DjPanel() {
   var showProfileState = useState(false)
   var showProfile = showProfileState[0]
   var setShowProfile = showProfileState[1]
+
+  var djAvatarUrlState = useState('')
+  var djAvatarUrl = djAvatarUrlState[0]
+  var setDjAvatarUrl = djAvatarUrlState[1]
+
+  useEffect(function () {
+    if (!auth.session) return
+    supabase
+      .from('profiles')
+      .select('avatar_url')
+      .eq('id', auth.session.user.id)
+      .maybeSingle()
+      .then(function (result) {
+        if (result.data && result.data.avatar_url) setDjAvatarUrl(result.data.avatar_url)
+      })
+  }, [auth.session])
 
   useEffect(function () {
     if (hasActiveSession) setForceNewSession(false)
@@ -692,6 +735,7 @@ export default function DjPanel() {
           barName={barName}
           lastClosedSession={lastClosedSession}
           loadSessionLeaderboard={loadSessionLeaderboard}
+          dismissPodium={dismissPodium}
           onStartNew={function () { setForceNewSession(true) }}
         />
       )
@@ -702,7 +746,21 @@ export default function DjPanel() {
   return (
     <div className="min-h-screen px-6 py-8" style={{ background: 'var(--bg-page)' }}>
       <header className="flex flex-col sm:flex-row sm:items-center justify-between mb-2 gap-3">
-        <div>
+        <div className="flex items-center gap-3">
+          <div
+            className="w-14 h-14 rounded-full overflow-hidden flex items-center justify-center text-2xl shrink-0"
+            style={{
+              background: 'linear-gradient(135deg, #8B5CF6, #E91E8C)',
+              boxShadow: '0 0 0 2px var(--bg-page), 0 0 0 4px #F4D03F, 0 0 18px 2px rgba(244, 208, 63, 0.55)'
+            }}
+          >
+            {djAvatarUrl ? (
+              <img src={djAvatarUrl} alt="" className="w-full h-full object-cover" />
+            ) : (
+              '🎧'
+            )}
+          </div>
+          <div>
           <div className="flex items-center gap-2 flex-wrap">
             <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
               {barName} · {activeSessionName}
@@ -733,6 +791,7 @@ export default function DjPanel() {
           <p className="text-xl font-medium" style={{ color: 'var(--text-primary)' }}>
             Panel del DJ
           </p>
+          </div>
         </div>
         <div className="flex items-center flex-wrap gap-2">
           {activeSessionPin && (
@@ -771,7 +830,7 @@ export default function DjPanel() {
             className="text-sm px-3 h-9 rounded-lg border whitespace-nowrap"
             style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}
           >
-            Cerrar sesion
+            🚪 Salir de Retroke
           </button>
           <button
             onClick={function () { setShowProfile(true) }}

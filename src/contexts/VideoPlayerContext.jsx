@@ -23,6 +23,7 @@ export function VideoPlayerProvider(props) {
   var containerRef = useRef(null)
   var playerRef = useRef(null)
   var readyRef = useRef(false)
+  var pendingVideoIdRef = useRef(null)
 
   var unlockedState = useState(false)
   var unlocked = unlockedState[0]
@@ -48,6 +49,11 @@ export function VideoPlayerProvider(props) {
               e.target.playVideo()
             } catch (err) {}
             setUnlocked(true)
+            if (pendingVideoIdRef.current) {
+              var pending = pendingVideoIdRef.current
+              pendingVideoIdRef.current = null
+              playVideoById(pending)
+            }
           },
           onError: function () {}
         }
@@ -57,7 +63,11 @@ export function VideoPlayerProvider(props) {
 
   function playVideoById(videoId) {
     setVideoError(null)
-    if (!playerRef.current || !readyRef.current || !videoId) return
+    if (!videoId) return
+    if (!playerRef.current || !readyRef.current) {
+      pendingVideoIdRef.current = videoId
+      return
+    }
     try {
       playerRef.current.unMute()
       playerRef.current.loadVideoById(videoId)
@@ -90,6 +100,23 @@ export function VideoPlayerProvider(props) {
     }
   }
 
+  function getPlayerState() {
+    if (!playerRef.current || !readyRef.current) return -1
+    try {
+      return playerRef.current.getPlayerState()
+    } catch (err) {
+      return -1
+    }
+  }
+
+  function forcePlay() {
+    if (!playerRef.current || !readyRef.current) return
+    try {
+      playerRef.current.unMute()
+      playerRef.current.playVideo()
+    } catch (err) {}
+  }
+
   var value = {
     unlocked: unlocked,
     unlock: unlock,
@@ -97,6 +124,8 @@ export function VideoPlayerProvider(props) {
     stopVideo: stopVideo,
     getCurrentTime: getCurrentTime,
     getDuration: getDuration,
+    getPlayerState: getPlayerState,
+    forcePlay: forcePlay,
     containerRef: containerRef,
     videoError: videoError
   }
