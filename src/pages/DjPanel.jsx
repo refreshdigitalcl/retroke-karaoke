@@ -208,6 +208,7 @@ function ProfileTab(props) {
 }
 
 
+function LoginGate() {
   var auth = useAuth()
   var emailState = useState('')
   var email = emailState[0]
