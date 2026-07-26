@@ -119,8 +119,11 @@ function Dashboard(props) {
   )
 }
 
-function NewBarForm(props) {
+function NewWorkspaceForm(props) {
   var onCreated = props.onCreated
+  var typeState = useState('BAR')
+  var type = typeState[0]
+  var setType = typeState[1]
   var nameState = useState('')
   var name = nameState[0]
   var setName = nameState[1]
@@ -130,6 +133,12 @@ function NewBarForm(props) {
   var cityState = useState('')
   var city = cityState[0]
   var setCity = cityState[1]
+  var planState = useState('FREE')
+  var plan = planState[0]
+  var setPlan = planState[1]
+  var ownerEmailState = useState('')
+  var ownerEmail = ownerEmailState[0]
+  var setOwnerEmail = ownerEmailState[1]
   var errorState = useState('')
   var error = errorState[0]
   var setError = errorState[1]
@@ -150,58 +159,122 @@ function NewBarForm(props) {
   function handleSubmit(e) {
     e.preventDefault()
     setError('')
-    if (!name.trim() || !slug.trim()) return
+    if (!name.trim()) return
+    if (type === 'BAR' && !slug.trim()) return
+
+    var settings = ownerEmail.trim() ? { pending_owner_email: ownerEmail.trim() } : {}
+
     supabase
-      .from('bars')
-      .insert({ name: name.trim(), slug: slug.trim(), city: city.trim(), is_active: true })
-      .then(function (result) {
-        if (result.error) {
-          setError(result.error.message)
-        } else {
-          setName('')
-          setSlug('')
-          setCity('')
-          onCreated()
+      .from('workspaces')
+      .insert({ type: type, name: name.trim(), plan: plan, status: 'ACTIVE', settings: settings })
+      .select()
+      .single()
+      .then(function (wsResult) {
+        if (wsResult.error) {
+          setError(wsResult.error.message)
+          return
         }
+        if (type !== 'BAR') {
+          setName('')
+          setOwnerEmail('')
+          onCreated()
+          return
+        }
+        supabase
+          .from('bars')
+          .insert({
+            name: name.trim(),
+            slug: slug.trim(),
+            city: city.trim(),
+            is_active: true,
+            workspace_id: wsResult.data.id
+          })
+          .then(function (barResult) {
+            if (barResult.error) {
+              setError('Workspace creado, pero el bar fallo: ' + barResult.error.message)
+            } else {
+              setName('')
+              setSlug('')
+              setCity('')
+              setOwnerEmail('')
+              onCreated()
+            }
+          })
       })
   }
 
   return (
     <Card>
-      <p className="text-xs uppercase mb-3" style={{ color: 'var(--accent-yellow)' }}>Nuevo bar</p>
+      <p className="text-xs uppercase mb-3" style={{ color: 'var(--accent-yellow)' }}>
+        Nuevo Workspace
+      </p>
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+        <div className="flex gap-2">
+          <select
+            value={type}
+            onChange={function (e) { setType(e.target.value) }}
+            className="h-10 rounded-lg px-3 border outline-none"
+            style={{ background: 'var(--bg-card-alt)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+          >
+            <option value="BAR">Bar</option>
+            <option value="DJ">DJ Pro</option>
+            <option value="HOME">Home</option>
+          </select>
+          <select
+            value={plan}
+            onChange={function (e) { setPlan(e.target.value) }}
+            className="h-10 rounded-lg px-3 border outline-none"
+            style={{ background: 'var(--bg-card-alt)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+          >
+            <option value="FREE">FREE</option>
+            <option value="PRO">PRO</option>
+            <option value="PREMIUM">PREMIUM</option>
+          </select>
+        </div>
         <input
           type="text"
           value={name}
-          onChange={handleNameChange}
-          placeholder="Nombre del bar"
+          onChange={type === 'BAR' ? handleNameChange : function (e) { setName(e.target.value) }}
+          placeholder={type === 'BAR' ? 'Nombre del bar' : 'Nombre (ej: Carlos DJ Pro)'}
           required
           className="h-10 rounded-lg px-3 border outline-none"
           style={{ background: 'var(--bg-card-alt)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
         />
+        {type === 'BAR' && (
+          <>
+            <input
+              type="text"
+              value={slug}
+              onChange={function (e) { setSlug(e.target.value) }}
+              placeholder="identificador-unico"
+              required
+              className="h-10 rounded-lg px-3 border outline-none"
+              style={{ background: 'var(--bg-card-alt)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+            />
+            <input
+              type="text"
+              value={city}
+              onChange={function (e) { setCity(e.target.value) }}
+              placeholder="Ciudad (opcional)"
+              className="h-10 rounded-lg px-3 border outline-none"
+              style={{ background: 'var(--bg-card-alt)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+            />
+          </>
+        )}
         <input
-          type="text"
-          value={slug}
-          onChange={function (e) { setSlug(e.target.value) }}
-          placeholder="identificador-unico"
-          required
-          className="h-10 rounded-lg px-3 border outline-none"
-          style={{ background: 'var(--bg-card-alt)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
-        />
-        <input
-          type="text"
-          value={city}
-          onChange={function (e) { setCity(e.target.value) }}
-          placeholder="Ciudad (opcional)"
+          type="email"
+          value={ownerEmail}
+          onChange={function (e) { setOwnerEmail(e.target.value) }}
+          placeholder="Correo del dueño (opcional, vincular despues)"
           className="h-10 rounded-lg px-3 border outline-none"
           style={{ background: 'var(--bg-card-alt)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
         />
         <button
           type="submit"
           className="h-10 rounded-lg font-medium text-white"
-          style={{ background: 'var(--accent-magenta)' }}
+          style={{ background: 'var(--accent-purple)' }}
         >
-          Crear bar
+          Crear Workspace
         </button>
         {error && <p className="text-sm" style={{ color: 'var(--accent-magenta)' }}>{error}</p>}
       </form>
@@ -413,102 +486,6 @@ function BarDetail(props) {
         </div>
       </Card>
     </div>
-  )
-}
-
-function NewWorkspaceForm(props) {
-  var onCreated = props.onCreated
-  var nameState = useState('')
-  var name = nameState[0]
-  var setName = nameState[1]
-  var typeState = useState('DJ')
-  var type = typeState[0]
-  var setType = typeState[1]
-  var planState = useState('FREE')
-  var plan = planState[0]
-  var setPlan = planState[1]
-  var ownerEmailState = useState('')
-  var ownerEmail = ownerEmailState[0]
-  var setOwnerEmail = ownerEmailState[1]
-  var errorState = useState('')
-  var error = errorState[0]
-  var setError = errorState[1]
-
-  function handleSubmit(e) {
-    e.preventDefault()
-    setError('')
-    if (!name.trim()) return
-
-    var settings = ownerEmail.trim() ? { pending_owner_email: ownerEmail.trim() } : {}
-
-    supabase
-      .from('workspaces')
-      .insert({ type: type, name: name.trim(), plan: plan, status: 'ACTIVE', settings: settings })
-      .then(function (result) {
-        if (result.error) {
-          setError(result.error.message)
-        } else {
-          setName('')
-          setOwnerEmail('')
-          onCreated()
-        }
-      })
-  }
-
-  return (
-    <Card>
-      <p className="text-xs uppercase mb-3" style={{ color: 'var(--accent-yellow)' }}>
-        Nuevo Workspace (DJ Pro / Home)
-      </p>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-        <div className="flex gap-2">
-          <select
-            value={type}
-            onChange={function (e) { setType(e.target.value) }}
-            className="h-10 rounded-lg px-3 border outline-none"
-            style={{ background: 'var(--bg-card-alt)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
-          >
-            <option value="DJ">DJ Pro</option>
-            <option value="HOME">Home</option>
-          </select>
-          <select
-            value={plan}
-            onChange={function (e) { setPlan(e.target.value) }}
-            className="h-10 rounded-lg px-3 border outline-none"
-            style={{ background: 'var(--bg-card-alt)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
-          >
-            <option value="FREE">FREE</option>
-            <option value="PRO">PRO</option>
-            <option value="PREMIUM">PREMIUM</option>
-          </select>
-        </div>
-        <input
-          type="text"
-          value={name}
-          onChange={function (e) { setName(e.target.value) }}
-          placeholder="Nombre (ej: Carlos DJ Pro)"
-          required
-          className="h-10 rounded-lg px-3 border outline-none"
-          style={{ background: 'var(--bg-card-alt)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
-        />
-        <input
-          type="email"
-          value={ownerEmail}
-          onChange={function (e) { setOwnerEmail(e.target.value) }}
-          placeholder="Correo del dueño (opcional, vincular despues)"
-          className="h-10 rounded-lg px-3 border outline-none"
-          style={{ background: 'var(--bg-card-alt)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
-        />
-        <button
-          type="submit"
-          className="h-10 rounded-lg font-medium text-white"
-          style={{ background: 'var(--accent-purple)' }}
-        >
-          Crear Workspace
-        </button>
-        {error && <p className="text-sm" style={{ color: 'var(--accent-magenta)' }}>{error}</p>}
-      </form>
-    </Card>
   )
 }
 
@@ -726,7 +703,6 @@ export default function AdminPanel() {
           <Dashboard stats={stats} />
           <WorkspacesList workspaces={workspaces} onChanged={loadEverything} />
           <NewWorkspaceForm onCreated={loadEverything} />
-          <NewBarForm onCreated={loadEverything} />
           <BarsList bars={bars} onToggleActive={toggleActive} onSelect={setSelectedBar} />
         </div>
       )}
