@@ -230,7 +230,7 @@ export function KaraokeSessionProvider({ children }) {
           return
         }
 
-        const { data: bar } = await supabase.from('bars').select('*').eq('slug', barSlug).maybeSingle()
+        const { data: bar } = await supabase.from('bars').select('*').ilike('slug', barSlug).maybeSingle()
         if (cancelled) return
         if (bar) {
           setBarId(bar.id)

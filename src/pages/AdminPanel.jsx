@@ -162,6 +162,14 @@ function NewWorkspaceForm(props) {
     if (!name.trim()) return
     if (type === 'BAR' && !slug.trim()) return
 
+    var normalizedSlug = slug
+      .trim()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '')
+
     var settings = ownerEmail.trim() ? { pending_owner_email: ownerEmail.trim() } : {}
 
     supabase
@@ -184,7 +192,7 @@ function NewWorkspaceForm(props) {
           .from('bars')
           .insert({
             name: name.trim(),
-            slug: slug.trim(),
+            slug: normalizedSlug,
             city: city.trim(),
             is_active: true,
             workspace_id: wsResult.data.id
