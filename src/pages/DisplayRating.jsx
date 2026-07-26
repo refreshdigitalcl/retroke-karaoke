@@ -181,6 +181,9 @@ export default function DisplayRating() {
     if (!currentSinger) return
     var audio = new Audio('/sounds/vote-start.mp3')
     audio.play().catch(function () {})
+    return function () {
+      audio.pause()
+    }
   }, [currentSinger ? currentSinger.id : null])
 
   useEffect(function () {

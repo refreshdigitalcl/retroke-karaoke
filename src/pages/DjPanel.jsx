@@ -280,6 +280,90 @@ function HistoryPanel(props) {
   )
 }
 
+function NightEndedPanel(props) {
+  var barName = props.barName
+  var lastClosedSession = props.lastClosedSession
+  var loadSessionLeaderboard = props.loadSessionLeaderboard
+  var onStartNew = props.onStartNew
+
+  var listState = useState(null)
+  var list = listState[0]
+  var setList = listState[1]
+
+  useEffect(function () {
+    if (!lastClosedSession) return
+    loadSessionLeaderboard(lastClosedSession.id).then(setList)
+  }, [lastClosedSession, loadSessionLeaderboard])
+
+  var top3 = (list || []).slice(0, 3)
+
+  return (
+    <div className="min-h-screen flex items-center justify-center px-6 py-10" style={{ background: 'var(--bg-page)' }}>
+      <div className="max-w-md w-full rounded-3xl border p-8 text-center" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
+        <p className="text-4xl mb-2">🏁</p>
+        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{barName}</p>
+        <p className="text-xl font-bold mb-1" style={{ color: 'var(--text-primary)' }}>
+          Noche finalizada
+        </p>
+        <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>
+          {lastClosedSession.name}
+        </p>
+
+        {top3.length > 0 && (
+          <div className="flex flex-col gap-2 mb-6 text-left">
+            {top3.map(function (entry, i) {
+              var medal = i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉'
+              return (
+                <div
+                  key={i}
+                  className="flex items-center gap-3 px-3 py-2 rounded-xl"
+                  style={{ background: 'var(--bg-card-alt)' }}
+                >
+                  <span className="text-xl shrink-0">{medal}</span>
+                  <div
+                    className="w-9 h-9 rounded-full overflow-hidden flex items-center justify-center text-base shrink-0"
+                    style={{ background: 'var(--accent-purple)' }}
+                  >
+                    {entry.photo ? (
+                      <img src={entry.photo} alt={entry.name} className="w-full h-full object-cover" />
+                    ) : (
+                      entry.avatar
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm truncate" style={{ color: 'var(--text-primary)' }}>{entry.name}</p>
+                    <p className="text-xs truncate" style={{ color: 'var(--text-secondary)' }}>{entry.song}</p>
+                  </div>
+                  <p className="text-sm font-bold shrink-0" style={{ color: 'var(--accent-yellow)' }}>
+                    {entry.average.toFixed(1)}
+                  </p>
+                </div>
+              )
+            })}
+          </div>
+        )}
+
+        <div className="flex flex-col gap-2.5">
+          <button
+            onClick={function () { window.location.href = '/' }}
+            className="h-12 rounded-xl font-bold text-white"
+            style={{ background: 'linear-gradient(90deg, #E91E8C, #8B5CF6)' }}
+          >
+            🏠 Ir a selección de salas
+          </button>
+          <button
+            onClick={onStartNew}
+            className="h-11 rounded-xl font-medium border"
+            style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}
+          >
+            🎤 Iniciar otra noche aquí
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function DjPanel() {
   var auth = useAuth()
   var myBars = useMyBars(auth)
@@ -293,6 +377,8 @@ export default function DjPanel() {
   var activeSessionPin = session.activeSessionPin
   var spaceParam = session.spaceParam
   var hasActiveSession = session.hasActiveSession
+  var lastClosedSession = session.lastClosedSession
+  var loadSessionLeaderboard = session.loadSessionLeaderboard
   var activeSessionName = session.activeSessionName
   var queue = session.queue
   var currentSinger = session.currentSinger
@@ -325,6 +411,14 @@ export default function DjPanel() {
   var closingState = useState(false)
   var closing = closingState[0]
   var setClosing = closingState[1]
+
+  var forceNewSessionState = useState(false)
+  var forceNewSession = forceNewSessionState[0]
+  var setForceNewSession = forceNewSessionState[1]
+
+  useEffect(function () {
+    if (hasActiveSession) setForceNewSession(false)
+  }, [hasActiveSession])
 
   var checkStatusState = useState('idle')
   var checkStatus = checkStatusState[0]
@@ -438,6 +532,16 @@ export default function DjPanel() {
   } // fin del bloque exclusivo para modo bar (no aplica cuando viene con ?ws=)
 
   if (!hasActiveSession) {
+    if (lastClosedSession && !forceNewSession) {
+      return (
+        <NightEndedPanel
+          barName={barName}
+          lastClosedSession={lastClosedSession}
+          loadSessionLeaderboard={loadSessionLeaderboard}
+          onStartNew={function () { setForceNewSession(true) }}
+        />
+      )
+    }
     return <StartSessionGate barName={barName} barIsActive={barIsActive} startSession={startSession} />
   }
 

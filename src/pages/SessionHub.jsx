@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import RetroEqualizer from '../components/RetroEqualizer'
 import FloatingDecor from '../components/FloatingDecor'
@@ -152,21 +152,10 @@ function PinGate(props) {
 export default function SessionHub() {
   var sessions = useActiveSessions()
 
-  var welcomePlayedRef = useRef(false)
-  useEffect(function () {
-    if (welcomePlayedRef.current) return
-    welcomePlayedRef.current = true
-    var audio = new Audio('/sounds/welcome.mp3')
-    audio.play().catch(function () {})
-  }, [])
-
-  var selectedState = useState(null)
-  var selected = selectedState[0]
-  var setSelected = selectedState[1]
-
   useEffect(function () {
     var played = false
     var audio = new Audio('/sounds/welcome.mp3')
+    var timeoutId = null
 
     function playOnce() {
       if (played) return
@@ -176,15 +165,20 @@ export default function SessionHub() {
       document.removeEventListener('keydown', playOnce)
     }
 
-    playOnce()
+    timeoutId = setTimeout(playOnce, 3000)
     document.addEventListener('pointerdown', playOnce)
     document.addEventListener('keydown', playOnce)
 
     return function () {
+      clearTimeout(timeoutId)
       document.removeEventListener('pointerdown', playOnce)
       document.removeEventListener('keydown', playOnce)
     }
   }, [])
+
+  var selectedState = useState(null)
+  var selected = selectedState[0]
+  var setSelected = selectedState[1]
 
   function handlePick(s) {
     if (s.pin) {

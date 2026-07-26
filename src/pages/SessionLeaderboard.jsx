@@ -232,6 +232,7 @@ export default function SessionLeaderboard() {
   var setList = listState[1]
 
   var applausePlayedRef = useRef(false)
+  var applauseAudioRef = useRef(null)
 
   useEffect(function () {
     if (!lastClosedSession) return
@@ -242,9 +243,19 @@ export default function SessionLeaderboard() {
     if (list && list.length > 0 && !applausePlayedRef.current) {
       applausePlayedRef.current = true
       var audio = new Audio('/sounds/applause.mp3')
+      applauseAudioRef.current = audio
       audio.play().catch(function () {})
     }
   }, [list])
+
+  useEffect(function () {
+    return function () {
+      if (applauseAudioRef.current) {
+        applauseAudioRef.current.pause()
+        applauseAudioRef.current = null
+      }
+    }
+  }, [])
 
   var nightStats = useNightStats(
     lastClosedSession ? lastClosedSession.id : null,
