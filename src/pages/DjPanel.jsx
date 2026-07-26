@@ -5,6 +5,68 @@ import { checkYoutubeEmbeddable } from '../components/YouTubePlayer'
 import SimilarTrackSearch from '../components/SimilarTrackSearch'
 import WorkspaceSelector, { useMyBars } from '../components/WorkspaceSelector'
 import ThemeToggle from '../components/ThemeToggle'
+import { supabase } from '../lib/supabase'
+
+function LogoUploader(props) {
+  var logoUrl = props.logoUrl
+  var updateLogo = props.updateLogo
+
+  var uploadingState = useState(false)
+  var uploading = uploadingState[0]
+  var setUploading = uploadingState[1]
+
+  var errorState = useState('')
+  var error = errorState[0]
+  var setError = errorState[1]
+
+  function handleFile(e) {
+    var file = e.target.files && e.target.files[0]
+    if (!file) return
+    setError('')
+    setUploading(true)
+    var ext = file.name.split('.').pop()
+    var path = 'logo-' + Date.now() + '.' + ext
+    supabase.storage
+      .from('logos')
+      .upload(path, file, { upsert: true })
+      .then(function (result) {
+        if (result.error) {
+          setError('No se pudo subir el logo')
+          setUploading(false)
+          return
+        }
+        var publicUrlResult = supabase.storage.from('logos').getPublicUrl(path)
+        var publicUrl = publicUrlResult.data.publicUrl
+        return updateLogo(publicUrl)
+      })
+      .then(function (res) {
+        if (res && res.error) setError('No se pudo guardar el logo')
+        setUploading(false)
+      })
+      .catch(function () {
+        setError('No se pudo subir el logo')
+        setUploading(false)
+      })
+  }
+
+  return (
+    <div
+      className="flex items-center gap-3 px-3 h-9 rounded-lg border"
+      style={{ borderColor: 'var(--border)', background: 'var(--bg-card-alt)' }}
+    >
+      {logoUrl ? (
+        <img src={logoUrl} alt="Logo" className="h-6 w-6 rounded object-cover" />
+      ) : (
+        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Sin logo</span>
+      )}
+      <label className="text-xs cursor-pointer font-medium" style={{ color: 'var(--accent-purple)' }}>
+        {uploading ? 'Subiendo...' : logoUrl ? 'Cambiar logo' : '📷 Subir logo'}
+        <input type="file" accept="image/*" onChange={handleFile} disabled={uploading} className="hidden" />
+      </label>
+      {error && <span className="text-xs" style={{ color: 'var(--accent-magenta)' }}>{error}</span>}
+    </div>
+  )
+}
 
 function LoginGate() {
   var auth = useAuth()
@@ -248,6 +310,9 @@ export default function DjPanel() {
   var startSession = session.startSession
   var closeSession = session.closeSession
   var loadPastSessions = session.loadPastSessions
+  var hasFeature = session.hasFeature
+  var logoUrl = session.logoUrl
+  var updateLogo = session.updateLogo
 
   var showHistoryState = useState(false)
   var showHistory = showHistoryState[0]
@@ -301,7 +366,7 @@ export default function DjPanel() {
   }
 
   function handleCloseSession() {
-    if (!window.confirm('Cerrar la sesion de esta noche? No se aceptaran mas canciones.')) return
+    if (!window.confirm('Finalizar la noche de karaoke? Se mostrara el podio final y no se aceptaran mas canciones.')) return
     setClosing(true)
     closeSession().then(function () {
       setClosing(false)
@@ -431,20 +496,27 @@ export default function DjPanel() {
           >
             🖥️ Iniciar sala de espera
           </button>
+          {hasFeature('custom_branding') && (
+            <LogoUploader logoUrl={logoUrl} updateLogo={updateLogo} />
+          )}
           <button
             onClick={handleCloseSession}
             disabled={closing}
             className="text-sm px-3 h-9 rounded-lg border disabled:opacity-50 whitespace-nowrap"
             style={{ borderColor: 'var(--accent-magenta)', color: 'var(--accent-magenta)' }}
           >
-            {closing ? 'Cerrando...' : 'Cerrar sesion'}
+            {closing ? 'Finalizando...' : '🏁 Finalizar noche de karaoke'}
           </button>
           <button
-            onClick={function () { auth.signOut() }}
+            onClick={function () {
+              auth.signOut().then(function () {
+                window.location.href = '/'
+              })
+            }}
             className="text-sm px-3 h-9 rounded-lg border whitespace-nowrap"
             style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}
           >
-            Salir
+            Cerrar sesion
           </button>
           <ThemeToggle />
         </div>
@@ -605,6 +677,7 @@ export default function DjPanel() {
                 callSinger={callSinger}
                 removeFromQueue={removeFromQueue}
                 setQueueEntryVideo={setQueueEntryVideo}
+                videoPreviewEnabled={hasFeature('video_preview')}
               />
             )
           })}
@@ -637,6 +710,12 @@ export default function DjPanel() {
   )
 }
 
+function extractYoutubeId(url) {
+  if (!url) return null
+  var match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/)
+  return match ? match[1] : null
+}
+
 function QueueRowAdmin(props) {
   var entry = props.entry
   var index = props.index
@@ -644,6 +723,7 @@ function QueueRowAdmin(props) {
   var callSinger = props.callSinger
   var removeFromQueue = props.removeFromQueue
   var setQueueEntryVideo = props.setQueueEntryVideo
+  var videoPreviewEnabled = props.videoPreviewEnabled
 
   var openState = useState(false)
   var open = openState[0]
@@ -657,11 +737,34 @@ function QueueRowAdmin(props) {
   var saved = savedState[0]
   var setSaved = savedState[1]
 
-  function handleSave() {
-    setQueueEntryVideo(entry.id, url.trim()).then(function () {
+  var previewState = useState(null)
+  var preview = previewState[0]
+  var setPreview = previewState[1]
+
+  function commitSave(videoUrl) {
+    setQueueEntryVideo(entry.id, videoUrl).then(function () {
       setSaved(true)
+      setPreview(null)
       setTimeout(function () { setSaved(false) }, 1500)
     })
+  }
+
+  function handleSave() {
+    var videoId = extractYoutubeId(url.trim())
+    if (videoPreviewEnabled && videoId) {
+      setPreview({ url: url.trim(), videoId: videoId })
+      return
+    }
+    commitSave(url.trim())
+  }
+
+  function handleSelectSimilar(videoUrl, videoId) {
+    setUrl(videoUrl)
+    if (videoPreviewEnabled) {
+      setPreview({ url: videoUrl, videoId: videoId })
+      return
+    }
+    commitSave(videoUrl)
   }
 
   return (
@@ -729,21 +832,94 @@ function QueueRowAdmin(props) {
               className="h-9 px-3 rounded-lg text-sm font-medium text-white w-full sm:w-auto shrink-0"
               style={{ background: 'var(--accent-magenta)' }}
             >
-              {saved ? 'Guardado' : 'Guardar'}
+              {saved ? 'Guardado' : videoPreviewEnabled ? 'Previsualizar' : 'Guardar'}
             </button>
           </div>
           <SimilarTrackSearch
             query={entry.song}
-            onSelect={function (videoUrl, videoId) {
-              setUrl(videoUrl)
-              setQueueEntryVideo(entry.id, videoUrl).then(function () {
-                setSaved(true)
-                setTimeout(function () { setSaved(false) }, 1500)
-              })
-            }}
+            onSelect={handleSelectSimilar}
           />
+
+          {preview && (
+            <VideoPreviewModal
+              videoId={preview.videoId}
+              entryName={entry.name}
+              onCancel={function () { setPreview(null) }}
+              onConfirm={function () { commitSave(preview.url) }}
+            />
+          )}
         </div>
       )}
+    </div>
+  )
+}
+
+function VideoPreviewModal(props) {
+  var videoId = props.videoId
+  var entryName = props.entryName
+  var onCancel = props.onCancel
+  var onConfirm = props.onConfirm
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/75 backdrop-blur-sm" onClick={onCancel}>
+      <div
+        className="w-full max-w-lg rounded-2xl border-2 overflow-hidden preview-modal-in"
+        style={{ background: 'var(--bg-card)', borderColor: 'var(--accent-purple)' }}
+        onClick={function (e) { e.stopPropagation() }}
+      >
+        <div className="px-4 py-3 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border)' }}>
+          <div className="min-w-0">
+            <p className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
+              Vista previa
+            </p>
+            <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>
+              Para {entryName}
+            </p>
+          </div>
+          <button onClick={onCancel} className="text-xl leading-none px-2" style={{ color: 'var(--text-muted)' }}>
+            ×
+          </button>
+        </div>
+
+        <div className="relative w-full bg-black" style={{ aspectRatio: '16 / 9' }}>
+          <iframe
+            key={videoId}
+            src={'https://www.youtube.com/embed/' + videoId + '?autoplay=1'}
+            title="Vista previa del video"
+            allow="autoplay; encrypted-media"
+            allowFullScreen
+            className="absolute inset-0 w-full h-full"
+            style={{ border: 0 }}
+          />
+        </div>
+
+        <div className="flex gap-2 p-3">
+          <button
+            onClick={onCancel}
+            className="flex-1 h-11 rounded-xl text-sm font-medium border"
+            style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={onConfirm}
+            className="flex-1 h-11 rounded-xl text-sm font-bold text-white"
+            style={{ background: 'linear-gradient(90deg, #E91E8C, #8B5CF6)' }}
+          >
+            ✅ Usar esta pista
+          </button>
+        </div>
+      </div>
+
+      <style>{`
+        .preview-modal-in {
+          animation: previewModalIn 0.2s ease-out;
+        }
+        @keyframes previewModalIn {
+          from { opacity: 0; transform: scale(0.94) translateY(8px); }
+          to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+      `}</style>
     </div>
   )
 }

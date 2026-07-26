@@ -70,6 +70,14 @@ export default function RegisterForm() {
   var submitted = submittedState[0]
   var setSubmitted = submittedState[1]
 
+  var myEntryIdState = useState(null)
+  var myEntryId = myEntryIdState[0]
+  var setMyEntryId = myEntryIdState[1]
+
+  var optimisticPositionState = useState(null)
+  var optimisticPosition = optimisticPositionState[0]
+  var setOptimisticPosition = optimisticPositionState[1]
+
   var fileInputRef = useRef(null)
 
   function handlePhotoChange(e) {
@@ -89,6 +97,7 @@ export default function RegisterForm() {
   function handleSubmit(e) {
     e.preventDefault()
     if (!name.trim() || !song.trim()) return
+    setOptimisticPosition(queue.length + 1)
     addToQueue({
       name: name.trim(),
       avatar: avatar,
@@ -96,11 +105,14 @@ export default function RegisterForm() {
       youtubeUrl: youtubeUrl.trim(),
       videoUrl: youtubeUrl.trim(),
       photo: photo
+    }).then(function (row) {
+      if (row) setMyEntryId(row.id)
     })
     setSubmitted(true)
   }
 
-  var position = queue.length + 1
+  var realIndex = myEntryId ? queue.findIndex(function (q) { return q.id === myEntryId }) : -1
+  var position = realIndex !== -1 ? realIndex + 1 : (optimisticPosition || queue.length + 1)
 
   if (loadTimedOut) {
     return (

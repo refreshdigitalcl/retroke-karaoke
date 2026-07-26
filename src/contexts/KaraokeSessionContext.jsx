@@ -48,6 +48,7 @@ export function KaraokeSessionProvider({ children }) {
   const [workspaceId, setWorkspaceId] = useState(null)
   const [workspacePlan, setWorkspacePlan] = useState(null)
   const [workspaceType, setWorkspaceType] = useState(null)
+  const [logoUrl, setLogoUrl] = useState(null)
   const [retryCount, setRetryCount] = useState(0)
   const [featureSet, setFeatureSet] = useState(new Set())
 
@@ -209,6 +210,7 @@ export function KaraokeSessionProvider({ children }) {
             setBarName(ws.name)
             setBarIsActive(ws.status === 'ACTIVE')
             setWorkspaceType(ws.type)
+            setLogoUrl(ws.logo_url || null)
             const plan = (ws.plan || 'FREE').toUpperCase()
             setWorkspacePlan(plan)
 
@@ -234,6 +236,7 @@ export function KaraokeSessionProvider({ children }) {
           setBarId(bar.id)
           setBarName(bar.name)
           setBarIsActive(bar.is_active !== false)
+          setLogoUrl(bar.logo_url || null)
 
           if (bar.workspace_id) {
             // Workspace + features en segundo plano, no bloquea la pantalla
@@ -383,6 +386,23 @@ export function KaraokeSessionProvider({ children }) {
     }
   }, [sessionId, loadQueue, loadRatings])
 
+  const updateLogo = useCallback(
+    async (url) => {
+      if (barId) {
+        const { error } = await supabase.from('bars').update({ logo_url: url }).eq('id', barId)
+        if (!error) setLogoUrl(url)
+        return { error: error ? error.message : null }
+      }
+      if (workspaceId) {
+        const { error } = await supabase.from('workspaces').update({ logo_url: url }).eq('id', workspaceId)
+        if (!error) setLogoUrl(url)
+        return { error: error ? error.message : null }
+      }
+      return { error: 'Espacio no encontrado' }
+    },
+    [barId, workspaceId]
+  )
+
   const startSession = useCallback(
     async (name, pin) => {
       if (!barId && !workspaceId) return { error: 'Espacio no encontrado' }
@@ -462,21 +482,26 @@ export function KaraokeSessionProvider({ children }) {
 
   const addToQueue = useCallback(
     async (entry) => {
-      if (!sessionId) return
+      if (!sessionId) return null
       const nextPosition = queue.length + 1
       const videoUrl = entry.videoUrl || ''
-      await supabase.from('queue_entries').insert({
-        session_id: sessionId,
-        name: entry.name,
-        avatar: entry.avatar,
-        song: entry.song,
-        youtube_url: entry.youtubeUrl || '',
-        photo: entry.photo || null,
-        position: nextPosition,
-        video_url: videoUrl,
-        video_id: parseYoutubeId(videoUrl),
-        video_source: videoUrl ? 'youtube' : null
-      })
+      const { data } = await supabase
+        .from('queue_entries')
+        .insert({
+          session_id: sessionId,
+          name: entry.name,
+          avatar: entry.avatar,
+          song: entry.song,
+          youtube_url: entry.youtubeUrl || '',
+          photo: entry.photo || null,
+          position: nextPosition,
+          video_url: videoUrl,
+          video_id: parseYoutubeId(videoUrl),
+          video_source: videoUrl ? 'youtube' : null
+        })
+        .select()
+        .single()
+      return data
     },
     [sessionId, queue.length]
   )
@@ -642,7 +667,10 @@ export function KaraokeSessionProvider({ children }) {
     noParamsGiven,
     retryLoad: () => setRetryCount((n) => n + 1),
     workspacePlan,
+    workspaceId,
     workspaceType,
+    logoUrl,
+    updateLogo,
     hasFeature: (feature) => featureSet.has(feature),
     sessionCode: barSlug,
     spaceParam: workspaceId && !barId ? 'ws=' + workspaceId : 'bar=' + barSlug,

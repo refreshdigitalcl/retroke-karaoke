@@ -144,6 +144,7 @@ export default function DisplayQueue(props) {
   var musicEnabled = props.musicEnabled
   var session = useKaraokeSession()
   var barName = session.barName
+  var logoUrl = session.logoUrl
   var spaceParam = session.spaceParam
   var sessionCode = session.sessionCode
   var queue = session.queue
@@ -191,7 +192,15 @@ export default function DisplayQueue(props) {
         </button>
       )}
 
-      <header className="flex items-center justify-center relative z-10 pt-8 pb-4">
+      <header className="flex items-center justify-center gap-3 relative z-10 pt-8 pb-4">
+        {logoUrl && (
+          <img
+            src={logoUrl}
+            alt={barName}
+            className="h-11 w-11 rounded-full object-cover border-2 border-yellow-400"
+            style={{ boxShadow: '0 0 14px 2px rgba(244, 208, 63, 0.4)' }}
+          />
+        )}
         <div className="px-5 py-2 -skew-x-6 bg-pink-600">
           <span className="inline-block skew-x-6 text-base font-bold text-white tracking-wide">
             {barName}
