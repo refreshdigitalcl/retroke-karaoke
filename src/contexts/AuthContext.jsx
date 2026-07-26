@@ -61,6 +61,28 @@ export function AuthProvider({ children }) {
         .eq('invited_email', userEmail)
         .is('user_id', null)
         .then(function () {})
+
+      supabase
+        .from('workspaces')
+        .select('id, settings')
+        .filter('settings->>pending_owner_email', 'ilike', userEmail)
+        .then(function (result) {
+          var pendingWorkspaces = result.data || []
+          pendingWorkspaces.forEach(function (ws) {
+            supabase
+              .from('workspace_members')
+              .insert({ workspace_id: ws.id, user_id: userId, role: 'OWNER', status: 'ACTIVE' })
+              .then(function () {})
+
+            var newSettings = Object.assign({}, ws.settings)
+            delete newSettings.pending_owner_email
+            supabase
+              .from('workspaces')
+              .update({ owner_id: userId, settings: newSettings })
+              .eq('id', ws.id)
+              .then(function () {})
+          })
+        })
     }
 
     supabase
