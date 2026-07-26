@@ -7,68 +7,207 @@ import WorkspaceSelector, { useMyBars } from '../components/WorkspaceSelector'
 import ThemeToggle from '../components/ThemeToggle'
 import { supabase } from '../lib/supabase'
 
-function LogoUploader(props) {
-  var logoUrl = props.logoUrl
-  var updateLogo = props.updateLogo
+function ProfileTab(props) {
+  var auth = props.auth
+  var workspacePlan = props.workspacePlan
+  var onBack = props.onBack
+
+  var loadingState = useState(true)
+  var loading = loadingState[0]
+  var setLoading = loadingState[1]
+
+  var savingState = useState(false)
+  var saving = savingState[0]
+  var setSaving = savingState[1]
+
+  var savedState = useState(false)
+  var saved = savedState[0]
+  var setSaved = savedState[1]
+
+  var avatarUrlState = useState('')
+  var avatarUrl = avatarUrlState[0]
+  var setAvatarUrl = avatarUrlState[1]
+
+  var displayNameState = useState('')
+  var displayName = displayNameState[0]
+  var setDisplayName = displayNameState[1]
+
+  var addressState = useState('')
+  var address = addressState[0]
+  var setAddress = addressState[1]
+
+  var phoneState = useState('')
+  var phone = phoneState[0]
+  var setPhone = phoneState[1]
 
   var uploadingState = useState(false)
-  var uploading = uploadingState[0]
-  var setUploading = uploadingState[1]
+  var uploadingAvatar = uploadingState[0]
+  var setUploadingAvatar = uploadingState[1]
 
-  var errorState = useState('')
-  var error = errorState[0]
-  var setError = errorState[1]
+  useEffect(function () {
+    if (!auth.session) return
+    supabase
+      .from('profiles')
+      .select('avatar_url, display_name, address, phone')
+      .eq('id', auth.session.user.id)
+      .maybeSingle()
+      .then(function (result) {
+        var p = result.data
+        if (p) {
+          setAvatarUrl(p.avatar_url || '')
+          setDisplayName(p.display_name || '')
+          setAddress(p.address || '')
+          setPhone(p.phone || '')
+        }
+        setLoading(false)
+      })
+  }, [auth.session])
 
-  function handleFile(e) {
+  function handleAvatarChange(e) {
     var file = e.target.files && e.target.files[0]
     if (!file) return
-    setError('')
-    setUploading(true)
+    setUploadingAvatar(true)
     var ext = file.name.split('.').pop()
-    var path = 'logo-' + Date.now() + '.' + ext
+    var path = auth.session.user.id + '-' + Date.now() + '.' + ext
     supabase.storage
-      .from('logos')
+      .from('avatars')
       .upload(path, file, { upsert: true })
       .then(function (result) {
         if (result.error) {
-          setError('No se pudo subir el logo')
-          setUploading(false)
+          setUploadingAvatar(false)
           return
         }
-        var publicUrlResult = supabase.storage.from('logos').getPublicUrl(path)
-        var publicUrl = publicUrlResult.data.publicUrl
-        return updateLogo(publicUrl)
-      })
-      .then(function (res) {
-        if (res && res.error) setError('No se pudo guardar el logo')
-        setUploading(false)
-      })
-      .catch(function () {
-        setError('No se pudo subir el logo')
-        setUploading(false)
+        var publicUrl = supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl
+        setAvatarUrl(publicUrl)
+        setUploadingAvatar(false)
       })
   }
 
+  function handleSave() {
+    setSaving(true)
+    setSaved(false)
+    supabase
+      .from('profiles')
+      .update({
+        avatar_url: avatarUrl || null,
+        display_name: displayName.trim() || null,
+        address: address.trim() || null,
+        phone: phone.trim() || null
+      })
+      .eq('id', auth.session.user.id)
+      .then(function () {
+        setSaving(false)
+        setSaved(true)
+        setTimeout(function () { setSaved(false) }, 2000)
+      })
+  }
+
+  var planLabel = workspacePlan === 'PREMIUM' ? '👑 PREMIUM' : workspacePlan === 'PRO' ? '⭐ PRO' : 'FREE'
+  var planColor =
+    workspacePlan === 'PREMIUM' ? '#F4D03F' :
+    workspacePlan === 'PRO' ? '#8B5CF6' :
+    'var(--text-muted)'
+  var planBg =
+    workspacePlan === 'PREMIUM' ? 'rgba(244, 208, 63, 0.14)' :
+    workspacePlan === 'PRO' ? 'rgba(139, 92, 246, 0.14)' :
+    'var(--bg-card-alt)'
+
   return (
-    <div
-      className="flex items-center gap-3 px-3 h-9 rounded-lg border"
-      style={{ borderColor: 'var(--border)', background: 'var(--bg-card-alt)' }}
-    >
-      {logoUrl ? (
-        <img src={logoUrl} alt="Logo" className="h-6 w-6 rounded object-cover" />
-      ) : (
-        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Sin logo</span>
-      )}
-      <label className="text-xs cursor-pointer font-medium" style={{ color: 'var(--accent-purple)' }}>
-        {uploading ? 'Subiendo...' : logoUrl ? 'Cambiar logo' : '📷 Subir logo'}
-        <input type="file" accept="image/*" onChange={handleFile} disabled={uploading} className="hidden" />
-      </label>
-      {error && <span className="text-xs" style={{ color: 'var(--accent-magenta)' }}>{error}</span>}
+    <div className="min-h-screen px-6 py-8" style={{ background: 'var(--bg-page)' }}>
+      <div className="max-w-lg mx-auto">
+        <button
+          onClick={onBack}
+          className="text-sm mb-6 underline"
+          style={{ color: 'var(--text-muted)' }}
+        >
+          ← Volver al panel
+        </button>
+
+        <div className="rounded-2xl border p-6 mb-5" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
+          <p className="text-xs uppercase tracking-wide mb-4" style={{ color: 'var(--accent-yellow)' }}>
+            Mi perfil
+          </p>
+
+          {loading ? (
+            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Cargando...</p>
+          ) : (
+            <>
+              <div className="flex items-center gap-4 mb-6">
+                <div
+                  className="w-20 h-20 rounded-full overflow-hidden flex items-center justify-center text-3xl shrink-0"
+                  style={{ background: 'var(--accent-purple)' }}
+                >
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    '🎧'
+                  )}
+                </div>
+                <label
+                  className="text-sm cursor-pointer font-medium px-3 py-2 rounded-lg border"
+                  style={{ borderColor: 'var(--border)', color: 'var(--accent-purple)' }}
+                >
+                  {uploadingAvatar ? 'Subiendo...' : avatarUrl ? 'Cambiar foto' : '📷 Subir foto'}
+                  <input type="file" accept="image/*" onChange={handleAvatarChange} disabled={uploadingAvatar} className="hidden" />
+                </label>
+              </div>
+
+              <div className="flex flex-col gap-3">
+                <input
+                  type="text"
+                  value={displayName}
+                  onChange={function (e) { setDisplayName(e.target.value) }}
+                  placeholder="Tu nombre"
+                  className="h-11 rounded-lg px-3 border outline-none"
+                  style={{ background: 'var(--bg-card-alt)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+                />
+                <input
+                  type="text"
+                  value={address}
+                  onChange={function (e) { setAddress(e.target.value) }}
+                  placeholder="Dirección"
+                  className="h-11 rounded-lg px-3 border outline-none"
+                  style={{ background: 'var(--bg-card-alt)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+                />
+                <input
+                  type="text"
+                  value={phone}
+                  onChange={function (e) { setPhone(e.target.value) }}
+                  placeholder="Teléfono"
+                  className="h-11 rounded-lg px-3 border outline-none"
+                  style={{ background: 'var(--bg-card-alt)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+                />
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                  Correo: {auth.session.user.email}
+                </p>
+              </div>
+
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="w-full h-12 mt-5 rounded-xl font-bold text-white disabled:opacity-50"
+                style={{ background: 'linear-gradient(90deg, #E91E8C, #8B5CF6)' }}
+              >
+                {saving ? 'Guardando...' : saved ? '✅ Guardado' : 'Guardar cambios'}
+              </button>
+            </>
+          )}
+        </div>
+
+        <div className="rounded-2xl border p-6 text-center" style={{ background: planBg, borderColor: planColor }}>
+          <p className="text-xs uppercase tracking-wide mb-2" style={{ color: 'var(--text-muted)' }}>
+            Plan actual
+          </p>
+          <p className="text-3xl font-extrabold" style={{ color: planColor }}>
+            {planLabel}
+          </p>
+        </div>
+      </div>
     </div>
   )
 }
 
-function LoginGate() {
+
   var auth = useAuth()
   var emailState = useState('')
   var email = emailState[0]
@@ -416,6 +555,10 @@ export default function DjPanel() {
   var forceNewSession = forceNewSessionState[0]
   var setForceNewSession = forceNewSessionState[1]
 
+  var showProfileState = useState(false)
+  var showProfile = showProfileState[0]
+  var setShowProfile = showProfileState[1]
+
   useEffect(function () {
     if (hasActiveSession) setForceNewSession(false)
   }, [hasActiveSession])
@@ -477,6 +620,16 @@ export default function DjPanel() {
 
   if (!auth.session) {
     return <LoginGate />
+  }
+
+  if (showProfile) {
+    return (
+      <ProfileTab
+        auth={auth}
+        workspacePlan={workspacePlan}
+        onBack={function () { setShowProfile(false) }}
+      />
+    )
   }
 
   var urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
@@ -555,7 +708,7 @@ export default function DjPanel() {
             </p>
             {workspacePlan && (
               <span
-                className="text-[10px] font-bold px-2 py-0.5 rounded-full tracking-wide"
+                className="text-xs font-bold px-3 py-1 rounded-full tracking-wide"
                 style={{
                   background:
                     workspacePlan === 'PREMIUM' ? 'rgba(244, 208, 63, 0.18)' :
@@ -565,7 +718,7 @@ export default function DjPanel() {
                     workspacePlan === 'PREMIUM' ? '#F4D03F' :
                     workspacePlan === 'PRO' ? '#8B5CF6' :
                     'var(--text-muted)',
-                  border: '1px solid ' + (
+                  border: '2px solid ' + (
                     workspacePlan === 'PREMIUM' ? 'rgba(244, 208, 63, 0.4)' :
                     workspacePlan === 'PRO' ? 'rgba(139, 92, 246, 0.4)' :
                     'var(--border)'
@@ -595,21 +748,18 @@ export default function DjPanel() {
               var url = window.location.origin + '/?' + spaceParam
               window.open(url, '_blank')
             }}
-            className="text-sm px-3 h-9 rounded-lg font-medium text-white"
+            className="text-sm px-3 py-2 min-h-9 rounded-lg font-medium text-white leading-tight text-center"
             style={{ background: 'var(--accent-purple)' }}
           >
-            🖥️ Iniciar sala de espera
+            🖥️ Sala de espera
           </button>
-          {hasFeature('custom_branding') && (
-            <LogoUploader logoUrl={logoUrl} updateLogo={updateLogo} />
-          )}
           <button
             onClick={handleCloseSession}
             disabled={closing}
-            className="text-sm px-3 h-9 rounded-lg border disabled:opacity-50 whitespace-nowrap"
+            className="text-sm px-3 py-2 min-h-9 rounded-lg border disabled:opacity-50 leading-tight text-center"
             style={{ borderColor: 'var(--accent-magenta)', color: 'var(--accent-magenta)' }}
           >
-            {closing ? 'Finalizando...' : '🏁 Finalizar noche de karaoke'}
+            {closing ? 'Finalizando...' : '🏁 Finalizar noche'}
           </button>
           <button
             onClick={function () {
@@ -621,6 +771,13 @@ export default function DjPanel() {
             style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}
           >
             Cerrar sesion
+          </button>
+          <button
+            onClick={function () { setShowProfile(true) }}
+            className="text-sm px-3 h-9 rounded-lg border whitespace-nowrap"
+            style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}
+          >
+            👤 Mi perfil
           </button>
           <ThemeToggle />
         </div>
@@ -873,51 +1030,55 @@ function QueueRowAdmin(props) {
 
   return (
     <div className="rounded-lg py-2.5 px-3" style={{ background: 'var(--bg-card-alt)' }}>
-      <div className="flex items-center flex-wrap gap-2 sm:gap-3">
-        <span className="text-sm w-5 shrink-0" style={{ color: 'var(--text-muted)' }}>
-          {index + 1}
-        </span>
-        <div
-          className="w-9 h-9 rounded-full flex items-center justify-center text-base overflow-hidden shrink-0"
-          style={{ background: 'var(--accent-purple)' }}
-        >
-          {entry.photo ? (
-            <img src={entry.photo} alt={entry.name} className="w-full h-full object-cover" />
-          ) : (
-            entry.avatar
-          )}
-        </div>
-        <div className="flex-1 min-w-[90px]">
-          <p className="text-sm truncate" style={{ color: 'var(--text-primary)' }}>
-            {entry.name}
-          </p>
-          <p className="text-xs truncate" style={{ color: 'var(--text-secondary)' }}>
-            {entry.song}
-          </p>
-        </div>
-        <button
-          onClick={function () { setOpen(!open) }}
-          className="text-xs px-2.5 py-1 rounded shrink-0"
-          style={{ color: entry.videoId ? 'var(--accent-green)' : 'var(--text-muted)' }}
-        >
-          {entry.videoId ? 'Video listo' : 'Agregar video'}
-        </button>
-        {canCall && (
-          <button
-            onClick={function () { callSinger(entry.id) }}
-            className="text-xs px-3 py-1.5 rounded-lg font-medium text-white shrink-0"
-            style={{ background: 'var(--accent-magenta)' }}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          <span className="text-sm w-5 shrink-0" style={{ color: 'var(--text-muted)' }}>
+            {index + 1}
+          </span>
+          <div
+            className="w-9 h-9 rounded-full flex items-center justify-center text-base overflow-hidden shrink-0"
+            style={{ background: 'var(--accent-purple)' }}
           >
-            Llamar
+            {entry.photo ? (
+              <img src={entry.photo} alt={entry.name} className="w-full h-full object-cover" />
+            ) : (
+              entry.avatar
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm truncate" style={{ color: 'var(--text-primary)' }}>
+              {entry.name}
+            </p>
+            <p className="text-xs truncate" style={{ color: 'var(--text-secondary)' }}>
+              {entry.song}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center flex-wrap gap-2 pl-7 sm:pl-0">
+          <button
+            onClick={function () { setOpen(!open) }}
+            className="text-xs px-2.5 py-1 rounded shrink-0"
+            style={{ color: entry.videoId ? 'var(--accent-green)' : 'var(--text-muted)' }}
+          >
+            {entry.videoId ? 'Video listo' : 'Agregar video'}
           </button>
-        )}
-        <button
-          onClick={function () { removeFromQueue(entry.id) }}
-          className="text-xs px-2.5 py-1 rounded shrink-0"
-          style={{ color: 'var(--text-muted)' }}
-        >
-          Quitar
-        </button>
+          {canCall && (
+            <button
+              onClick={function () { callSinger(entry.id) }}
+              className="text-xs px-3 py-1.5 rounded-lg font-medium text-white shrink-0"
+              style={{ background: 'var(--accent-magenta)' }}
+            >
+              Llamar
+            </button>
+          )}
+          <button
+            onClick={function () { removeFromQueue(entry.id) }}
+            className="text-xs px-2.5 py-1 rounded shrink-0"
+            style={{ color: 'var(--text-muted)' }}
+          >
+            Quitar
+          </button>
+        </div>
       </div>
 
       {open && (
