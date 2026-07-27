@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useKaraokeSession, parseYoutubeId } from '../contexts/KaraokeSessionContext'
 import ThemeToggle from '../components/ThemeToggle'
-import { startMicSender } from '../lib/webrtcMic'
 
 const AVATARS = ['🔥', '🦄', '👽', '🐸', '🎤', '🐙', '⭐', '👑', '🍄', '🌊', '🎸', '🦋']
 
@@ -48,20 +47,14 @@ function YourTurnScreen(props) {
   var micError = errorState[0]
   var setMicError = errorState[1]
 
-  var connState = useState('idle')
-  var connStatus = connState[0]
-  var setConnStatus = connState[1]
-
   var streamRef = useRef(null)
   var audioCtxRef = useRef(null)
   var rafRef = useRef(null)
   var peakSeenRef = useRef(false)
-  var senderRef = useRef(null)
 
   useEffect(function () {
     return function () {
       if (rafRef.current) cancelAnimationFrame(rafRef.current)
-      if (senderRef.current) senderRef.current.close()
       if (streamRef.current) streamRef.current.getTracks().forEach(function (t) { t.stop() })
       if (audioCtxRef.current) audioCtxRef.current.close()
     }
@@ -121,11 +114,6 @@ function YourTurnScreen(props) {
 
   function handleContinue() {
     setMicStatus('ready')
-    if (sessionId && entryId && streamRef.current) {
-      senderRef.current = startMicSender(sessionId, entryId, streamRef.current, function (state) {
-        setConnStatus(state)
-      })
-    }
   }
 
   var hasSignal = peakSeenRef.current
@@ -239,23 +227,13 @@ function YourTurnScreen(props) {
 
         {micStatus === 'ready' && (
           <div>
-            <p className="text-4xl mb-3">{connStatus === 'connected' ? '📡' : '🎧'}</p>
+            <p className="text-4xl mb-3">🎧</p>
             <p className="text-sm font-semibold mb-2" style={{ color: '#7ED957' }}>
               Micrófono listo
             </p>
-            {connStatus === 'connected' ? (
-              <p className="text-xs font-semibold" style={{ color: '#7ED957' }}>
-                🔴 En vivo — tu voz está sonando en la pantalla principal
-              </p>
-            ) : connStatus === 'connecting' || connStatus === 'idle' ? (
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                Conectando con la pantalla principal...
-              </p>
-            ) : (
-              <p className="text-xs" style={{ color: 'var(--accent-magenta)' }}>
-                No se pudo conectar con la pantalla principal. Canta igual frente a ella, tu presentación sigue en curso 🎉
-              </p>
-            )}
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+              Tu Retroke Score llega en la próxima actualización. Por ahora, ¡canta frente a la pantalla principal! 🎉
+            </p>
           </div>
         )}
       </div>

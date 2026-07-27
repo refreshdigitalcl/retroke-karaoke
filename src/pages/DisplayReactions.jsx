@@ -8,7 +8,6 @@ import QRCode from '../components/QRCode'
 import { fetchArtistFacts } from '../lib/artistFacts'
 import { getSentiment } from '../lib/reactionEmojis'
 import { isMemeReaction, getMemeUrl, getMemeSentiment } from '../lib/memeReactions'
-import { startMicReceiver } from '../lib/webrtcMic'
 
 
 var PHRASES = [
@@ -227,39 +226,6 @@ export default function DisplayReactions() {
     }
   }, [hasVideo, currentSinger ? currentSinger.videoId : null])
 
-  var micAudioCtxRef = useRef(null)
-  var micAnalyserRef = useRef(null)
-  var micReceiverRef = useRef(null)
-
-  useEffect(function () {
-    if (workspaceType !== 'HOME' || !sessionId || !currentSinger) return
-
-    micReceiverRef.current = startMicReceiver(sessionId, currentSinger.id, function (stream) {
-      // No reproducimos el audio por los parlantes (evita eco con la voz en vivo).
-      // Lo conectamos a un analizador silencioso, listo para el analisis vocal (Fase D).
-      var AudioContextClass = window.AudioContext || window.webkitAudioContext
-      var audioCtx = new AudioContextClass()
-      micAudioCtxRef.current = audioCtx
-      var source = audioCtx.createMediaStreamSource(stream)
-      var analyser = audioCtx.createAnalyser()
-      analyser.fftSize = 2048
-      source.connect(analyser)
-      // Intencionalmente NO conectamos analyser -> audioCtx.destination: no debe sonar.
-      micAnalyserRef.current = analyser
-    })
-
-    return function () {
-      if (micReceiverRef.current) {
-        micReceiverRef.current.close()
-        micReceiverRef.current = null
-      }
-      if (micAudioCtxRef.current) {
-        micAudioCtxRef.current.close()
-        micAudioCtxRef.current = null
-      }
-      micAnalyserRef.current = null
-    }
-  }, [workspaceType, sessionId, currentSinger ? currentSinger.id : null])
 
   useEffect(function () {
     if (!hasVideo) return
@@ -355,6 +321,20 @@ export default function DisplayReactions() {
 
       {hasVideo ? (
         <div className="relative w-full h-screen">
+          <div className="absolute top-4 left-4 z-20 flex items-center gap-2 px-3 py-2 rounded-full neon-wave-shell">
+            <svg width="46" height="20" viewBox="0 0 46 20" className="shrink-0">
+              <rect className="neon-wave-bar" x="0" y="7" width="4" rx="2" fill="#F4D03F" />
+              <rect className="neon-wave-bar" x="7" y="4" width="4" rx="2" fill="#E91E8C" style={{ animationDelay: '0.1s' }} />
+              <rect className="neon-wave-bar" x="14" y="1" width="4" rx="2" fill="#8B5CF6" style={{ animationDelay: '0.2s' }} />
+              <rect className="neon-wave-bar" x="21" y="5" width="4" rx="2" fill="#F4D03F" style={{ animationDelay: '0.3s' }} />
+              <rect className="neon-wave-bar" x="28" y="2" width="4" rx="2" fill="#E91E8C" style={{ animationDelay: '0.15s' }} />
+              <rect className="neon-wave-bar" x="35" y="6" width="4" rx="2" fill="#8B5CF6" style={{ animationDelay: '0.25s' }} />
+              <rect className="neon-wave-bar" x="42" y="7" width="4" rx="2" fill="#F4D03F" style={{ animationDelay: '0.05s' }} />
+            </svg>
+            <span className="text-[10px] uppercase tracking-wide font-bold" style={{ color: '#F4D03F' }}>
+              🎙️ Escuchando
+            </span>
+          </div>
           <div className="absolute left-4 top-1/2 -translate-y-1/2 z-20 w-5 h-[58vh]">
             <div className="absolute inset-0 rounded-full overflow-hidden track-shell" style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(139, 92, 246, 0.45)' }}>
               <div
@@ -554,6 +534,21 @@ export default function DisplayReactions() {
         }
         .track-shell {
           box-shadow: inset 0 0 12px rgba(0,0,0,0.5), 0 0 18px 2px rgba(139, 92, 246, 0.25);
+        }
+        .neon-wave-shell {
+          background: rgba(10, 8, 20, 0.55);
+          border: 1px solid rgba(244, 208, 63, 0.35);
+          box-shadow: 0 0 14px -2px rgba(244, 208, 63, 0.45);
+          backdrop-filter: blur(2px);
+        }
+        .neon-wave-bar {
+          transform-origin: center;
+          animation: neonWaveBounce 0.9s ease-in-out infinite;
+          filter: drop-shadow(0 0 3px currentColor);
+        }
+        @keyframes neonWaveBounce {
+          0%, 100% { transform: scaleY(0.4); }
+          50% { transform: scaleY(1.6); }
         }
         .progress-shimmer {
           animation: shimmerMove 2.4s linear infinite;
