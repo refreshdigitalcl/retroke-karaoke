@@ -170,10 +170,6 @@ function YourTurnScreen(props) {
 
   function handleContinue() {
     setMicStatus('ready')
-    if (analyserRef.current && audioCtxRef.current) {
-      vocalAnalyzerRef.current = createVocalAnalyzer(analyserRef.current, audioCtxRef.current)
-      vocalAnalyzerRef.current.start()
-    }
   }
 
   function finalizePerformance() {
@@ -201,10 +197,20 @@ function YourTurnScreen(props) {
   }
 
   useEffect(function () {
-    if (micStatus !== 'ready') return
     var stillCurrentSinger = props.currentSinger && props.currentSinger.id === props.entryId
-    var stillSinging = stillCurrentSinger && props.screenMode === 'reactions'
-    if (!stillSinging) {
+    var isPerforming = stillCurrentSinger && props.screenMode === 'reactions'
+
+    if (micStatus === 'ready' && isPerforming) {
+      // El DJ recien inicio la reproduccion: arrancamos el analisis justo ahora.
+      setMicStatus('singing')
+      if (analyserRef.current && audioCtxRef.current) {
+        vocalAnalyzerRef.current = createVocalAnalyzer(analyserRef.current, audioCtxRef.current)
+        vocalAnalyzerRef.current.start()
+      }
+      return
+    }
+
+    if (micStatus === 'singing' && !isPerforming) {
       finalizePerformance()
     }
   }, [props.currentSinger, props.screenMode, micStatus])
@@ -325,7 +331,19 @@ function YourTurnScreen(props) {
               Micrófono listo
             </p>
             <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-              Estamos escuchando tu presentación. ¡Canta frente a la pantalla principal! 🎉
+              Esperando que el DJ inicie tu presentación...
+            </p>
+          </div>
+        )}
+
+        {micStatus === 'singing' && !results && (
+          <div>
+            <p className="text-4xl mb-3 singing-pulse">🔴</p>
+            <p className="text-sm font-semibold mb-2" style={{ color: '#E91E8C' }}>
+              Midiendo tu presentación
+            </p>
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+              ¡Canta frente a la pantalla principal! 🎉
             </p>
           </div>
         )}
@@ -371,6 +389,11 @@ function YourTurnScreen(props) {
 
       <style>{`
         .your-turn-pulse { animation: yourTurnPulse 1.6s ease-in-out infinite; }
+        .singing-pulse { animation: singingPulse 1s ease-in-out infinite; }
+        @keyframes singingPulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.35; }
+        }
         @keyframes yourTurnPulse {
           0%, 100% { transform: scale(1); }
           50% { transform: scale(1.02); }

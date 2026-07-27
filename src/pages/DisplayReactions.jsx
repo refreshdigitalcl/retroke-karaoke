@@ -321,20 +321,24 @@ export default function DisplayReactions() {
 
       {hasVideo ? (
         <div className="relative w-full h-screen">
-          <div className="absolute top-4 left-4 z-20 flex items-center gap-2 px-3 py-2 rounded-full neon-wave-shell">
-            <svg width="46" height="20" viewBox="0 0 46 20" className="shrink-0">
-              <rect className="neon-wave-bar" x="0" y="7" width="4" rx="2" fill="#F4D03F" />
-              <rect className="neon-wave-bar" x="7" y="4" width="4" rx="2" fill="#E91E8C" style={{ animationDelay: '0.1s' }} />
-              <rect className="neon-wave-bar" x="14" y="1" width="4" rx="2" fill="#8B5CF6" style={{ animationDelay: '0.2s' }} />
-              <rect className="neon-wave-bar" x="21" y="5" width="4" rx="2" fill="#F4D03F" style={{ animationDelay: '0.3s' }} />
-              <rect className="neon-wave-bar" x="28" y="2" width="4" rx="2" fill="#E91E8C" style={{ animationDelay: '0.15s' }} />
-              <rect className="neon-wave-bar" x="35" y="6" width="4" rx="2" fill="#8B5CF6" style={{ animationDelay: '0.25s' }} />
-              <rect className="neon-wave-bar" x="42" y="7" width="4" rx="2" fill="#F4D03F" style={{ animationDelay: '0.05s' }} />
+          <div className="absolute top-4 left-4 z-20 flex items-center gap-3 pl-2.5 pr-4 py-2.5 rounded-full neon-wave-shell">
+            <div className="relative w-8 h-8 rounded-full flex items-center justify-center shrink-0 neon-mic-orb">
+              <span className="text-sm relative z-10">🎙️</span>
+            </div>
+            <svg width="52" height="24" viewBox="0 0 52 24" className="shrink-0">
+              <rect className="neon-wave-bar" x="0" y="8" width="5" rx="2.5" fill="#F4D03F" />
+              <rect className="neon-wave-bar" x="8" y="4" width="5" rx="2.5" fill="#E91E8C" style={{ animationDelay: '0.1s' }} />
+              <rect className="neon-wave-bar" x="16" y="1" width="5" rx="2.5" fill="#8B5CF6" style={{ animationDelay: '0.2s' }} />
+              <rect className="neon-wave-bar" x="24" y="6" width="5" rx="2.5" fill="#F4D03F" style={{ animationDelay: '0.3s' }} />
+              <rect className="neon-wave-bar" x="32" y="2" width="5" rx="2.5" fill="#E91E8C" style={{ animationDelay: '0.15s' }} />
+              <rect className="neon-wave-bar" x="40" y="7" width="5" rx="2.5" fill="#8B5CF6" style={{ animationDelay: '0.25s' }} />
+              <rect className="neon-wave-bar" x="47" y="8" width="5" rx="2.5" fill="#F4D03F" style={{ animationDelay: '0.05s' }} />
             </svg>
-            <span className="text-[10px] uppercase tracking-wide font-bold" style={{ color: '#F4D03F' }}>
-              🎙️ Escuchando
+            <span className="text-xs uppercase tracking-wider font-extrabold neon-wave-label">
+              Escuchando
             </span>
           </div>
+
           <div className="absolute left-4 top-1/2 -translate-y-1/2 z-20 w-5 h-[58vh]">
             <div className="absolute inset-0 rounded-full overflow-hidden track-shell" style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(139, 92, 246, 0.45)' }}>
               <div
@@ -536,15 +540,33 @@ export default function DisplayReactions() {
           box-shadow: inset 0 0 12px rgba(0,0,0,0.5), 0 0 18px 2px rgba(139, 92, 246, 0.25);
         }
         .neon-wave-shell {
-          background: rgba(10, 8, 20, 0.55);
-          border: 1px solid rgba(244, 208, 63, 0.35);
-          box-shadow: 0 0 14px -2px rgba(244, 208, 63, 0.45);
-          backdrop-filter: blur(2px);
+          background: linear-gradient(135deg, rgba(139,92,246,0.22), rgba(233,30,140,0.18), rgba(10,8,20,0.65));
+          border: 1.5px solid rgba(244, 208, 63, 0.55);
+          box-shadow: 0 0 22px -2px rgba(244, 208, 63, 0.55), 0 0 40px -10px rgba(139, 92, 246, 0.6), inset 0 0 12px rgba(0,0,0,0.35);
+          backdrop-filter: blur(4px);
+          animation: neonShellGlow 2.4s ease-in-out infinite;
+        }
+        @keyframes neonShellGlow {
+          0%, 100% { box-shadow: 0 0 22px -2px rgba(244, 208, 63, 0.55), 0 0 40px -10px rgba(139, 92, 246, 0.6), inset 0 0 12px rgba(0,0,0,0.35); }
+          50% { box-shadow: 0 0 30px 0px rgba(244, 208, 63, 0.8), 0 0 55px -8px rgba(233, 30, 140, 0.7), inset 0 0 12px rgba(0,0,0,0.35); }
+        }
+        .neon-mic-orb {
+          background: radial-gradient(circle, rgba(244,208,63,0.9), rgba(233,30,140,0.5) 70%);
+          box-shadow: 0 0 12px 2px rgba(244, 208, 63, 0.8);
+          animation: neonOrbPulse 1.3s ease-in-out infinite;
+        }
+        @keyframes neonOrbPulse {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.12); }
+        }
+        .neon-wave-label {
+          color: #fff;
+          text-shadow: 0 0 8px rgba(244, 208, 63, 0.9), 0 0 16px rgba(233, 30, 140, 0.6);
         }
         .neon-wave-bar {
           transform-origin: center;
           animation: neonWaveBounce 0.9s ease-in-out infinite;
-          filter: drop-shadow(0 0 3px currentColor);
+          filter: drop-shadow(0 0 4px currentColor);
         }
         @keyframes neonWaveBounce {
           0%, 100% { transform: scaleY(0.4); }
