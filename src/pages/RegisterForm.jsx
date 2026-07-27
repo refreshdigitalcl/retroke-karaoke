@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { useKaraokeSession, parseYoutubeId } from '../contexts/KaraokeSessionContext'
 import ThemeToggle from '../components/ThemeToggle'
+import { supabase } from '../lib/supabase'
+import { createVocalAnalyzer, getFeedback } from '../lib/vocalAnalysis'
 
 const AVATARS = ['🔥', '🦄', '👽', '🐸', '🎤', '🐙', '⭐', '👑', '🍄', '🌊', '🎸', '🦋']
 
@@ -49,12 +51,20 @@ function YourTurnScreen(props) {
 
   var streamRef = useRef(null)
   var audioCtxRef = useRef(null)
+  var analyserRef = useRef(null)
   var rafRef = useRef(null)
   var peakSeenRef = useRef(false)
+  var vocalAnalyzerRef = useRef(null)
+  var finalizedRef = useRef(false)
+
+  var resultsState = useState(null)
+  var results = resultsState[0]
+  var setResults = resultsState[1]
 
   useEffect(function () {
     return function () {
       if (rafRef.current) cancelAnimationFrame(rafRef.current)
+      if (vocalAnalyzerRef.current && !finalizedRef.current) vocalAnalyzerRef.current.stop()
       if (streamRef.current) streamRef.current.getTracks().forEach(function (t) { t.stop() })
       if (audioCtxRef.current) audioCtxRef.current.close()
     }
@@ -81,8 +91,9 @@ function YourTurnScreen(props) {
         audioCtxRef.current = audioCtx
         var source = audioCtx.createMediaStreamSource(stream)
         var analyser = audioCtx.createAnalyser()
-        analyser.fftSize = 512
+        analyser.fftSize = 2048
         source.connect(analyser)
+        analyserRef.current = analyser
         var data = new Uint8Array(analyser.frequencyBinCount)
 
         function tick() {
@@ -114,7 +125,44 @@ function YourTurnScreen(props) {
 
   function handleContinue() {
     setMicStatus('ready')
+    if (analyserRef.current && audioCtxRef.current) {
+      vocalAnalyzerRef.current = createVocalAnalyzer(analyserRef.current, audioCtxRef.current)
+      vocalAnalyzerRef.current.start()
+    }
   }
+
+  function finalizePerformance() {
+    if (finalizedRef.current) return
+    finalizedRef.current = true
+    var scores = vocalAnalyzerRef.current
+      ? vocalAnalyzerRef.current.stop()
+      : { pitchScore: 0, stabilityScore: 0, energyScore: 0, rhythmScore: 0, finalScore: 0, hasEnoughData: false }
+    var feedback = getFeedback(scores)
+    setResults({ scores: scores, feedback: feedback })
+
+    if (props.sessionId && props.entryId) {
+      supabase
+        .from('vocal_results')
+        .insert({
+          session_id: props.sessionId,
+          queue_entry_id: props.entryId,
+          pitch_score: scores.pitchScore,
+          rhythm_score: scores.rhythmScore,
+          stability_score: scores.stabilityScore,
+          energy_score: scores.energyScore,
+          final_score: scores.finalScore,
+          feedback: feedback
+        })
+        .then(function () {})
+    }
+  }
+
+  useEffect(function () {
+    if (micStatus !== 'ready') return
+    if (!props.currentSinger || props.currentSinger.id !== props.entryId) {
+      finalizePerformance()
+    }
+  }, [props.currentSinger, micStatus])
 
   var hasSignal = peakSeenRef.current
 
@@ -225,15 +273,53 @@ function YourTurnScreen(props) {
           </div>
         )}
 
-        {micStatus === 'ready' && (
+        {micStatus === 'ready' && !results && (
           <div>
             <p className="text-4xl mb-3">🎧</p>
             <p className="text-sm font-semibold mb-2" style={{ color: '#7ED957' }}>
               Micrófono listo
             </p>
             <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-              Tu Retroke Score llega en la próxima actualización. Por ahora, ¡canta frente a la pantalla principal! 🎉
+              Estamos escuchando tu presentación. ¡Canta frente a la pantalla principal! 🎉
             </p>
+          </div>
+        )}
+
+        {results && (
+          <div>
+            <p className="text-lg font-extrabold mb-4" style={{ color: 'var(--text-primary)' }}>
+              🎤 TU RESULTADO RETROKE
+            </p>
+            <div className="grid grid-cols-2 gap-2 mb-4 text-left">
+              <div className="rounded-xl px-3 py-2" style={{ background: 'var(--bg-card-alt)' }}>
+                <p className="text-[10px] uppercase" style={{ color: 'var(--text-muted)' }}>🎯 Afinación</p>
+                <p className="text-lg font-bold" style={{ color: '#F4D03F' }}>{results.scores.pitchScore}/100</p>
+              </div>
+              <div className="rounded-xl px-3 py-2" style={{ background: 'var(--bg-card-alt)' }}>
+                <p className="text-[10px] uppercase" style={{ color: 'var(--text-muted)' }}>🥁 Ritmo</p>
+                <p className="text-lg font-bold" style={{ color: '#8B5CF6' }}>{results.scores.rhythmScore}/100</p>
+              </div>
+              <div className="rounded-xl px-3 py-2" style={{ background: 'var(--bg-card-alt)' }}>
+                <p className="text-[10px] uppercase" style={{ color: 'var(--text-muted)' }}>🎵 Estabilidad</p>
+                <p className="text-lg font-bold" style={{ color: '#E91E8C' }}>{results.scores.stabilityScore}/100</p>
+              </div>
+              <div className="rounded-xl px-3 py-2" style={{ background: 'var(--bg-card-alt)' }}>
+                <p className="text-[10px] uppercase" style={{ color: 'var(--text-muted)' }}>🔥 Energía</p>
+                <p className="text-lg font-bold" style={{ color: '#7ED957' }}>{results.scores.energyScore}/100</p>
+              </div>
+            </div>
+            <div className="rounded-2xl p-4 mb-4" style={{ background: 'linear-gradient(90deg, rgba(233,30,140,0.15), rgba(139,92,246,0.15))', border: '1px solid rgba(244,208,63,0.4)' }}>
+              <p className="text-xs uppercase tracking-wide mb-1" style={{ color: 'var(--text-muted)' }}>⭐ Retroke Score</p>
+              <p className="text-4xl font-extrabold" style={{ color: '#F4D03F' }}>{results.scores.finalScore}/100</p>
+            </div>
+            <p className="text-sm mb-5" style={{ color: 'var(--text-primary)' }}>{results.feedback}</p>
+            <button
+              onClick={props.onDone}
+              className="w-full h-12 rounded-xl font-bold text-white"
+              style={{ background: 'linear-gradient(90deg, #E91E8C, #8B5CF6)' }}
+            >
+              Listo
+            </button>
           </div>
         )}
       </div>
@@ -394,8 +480,25 @@ export default function RegisterForm() {
     )
   }
 
-  if (itsMyTurn) {
-    return <YourTurnScreen name={name} song={song} sessionId={session.sessionId} entryId={myEntryId} />
+  var showPerformanceState = useState(false)
+  var showPerformance = showPerformanceState[0]
+  var setShowPerformance = showPerformanceState[1]
+
+  useEffect(function () {
+    if (itsMyTurn) setShowPerformance(true)
+  }, [itsMyTurn])
+
+  if (showPerformance) {
+    return (
+      <YourTurnScreen
+        name={name}
+        song={song}
+        entryId={myEntryId}
+        sessionId={session.sessionId}
+        currentSinger={currentSinger}
+        onDone={function () { setShowPerformance(false) }}
+      />
+    )
   }
 
   if (submitted) {
