@@ -87,10 +87,12 @@ export function createVocalAnalyzer(analyserNode, audioCtx) {
     var rms = Math.sqrt(sumSquares / buf.length)
 
     samples.push({ t: Date.now(), freq: freq, rms: rms })
+    // Limite de memoria para presentaciones largas en telefonos con poca RAM.
+    if (samples.length > 1200) samples.shift()
   }
 
   function start() {
-    intervalId = setInterval(tick, 120)
+    intervalId = setInterval(tick, 180)
   }
 
   function stop() {

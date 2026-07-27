@@ -31,6 +31,50 @@ function resizeToSquareJpeg(file) {
   })
 }
 
+var PENDING_RESULTS_KEY = 'retroke_pending_vocal_results'
+
+function getPendingResults() {
+  try {
+    var raw = localStorage.getItem(PENDING_RESULTS_KEY)
+    return raw ? JSON.parse(raw) : []
+  } catch (e) {
+    return []
+  }
+}
+
+function setPendingResults(list) {
+  try {
+    localStorage.setItem(PENDING_RESULTS_KEY, JSON.stringify(list))
+  } catch (e) {}
+}
+
+function saveVocalResult(payload) {
+  supabase
+    .from('vocal_results')
+    .insert(payload)
+    .then(function (result) {
+      if (result.error) {
+        var pending = getPendingResults()
+        pending.push(payload)
+        setPendingResults(pending)
+      }
+    })
+    .catch(function () {
+      var pending = getPendingResults()
+      pending.push(payload)
+      setPendingResults(pending)
+    })
+}
+
+function flushPendingVocalResults() {
+  var pending = getPendingResults()
+  if (!pending.length) return
+  setPendingResults([])
+  pending.forEach(function (payload) {
+    saveVocalResult(payload)
+  })
+}
+
 function YourTurnScreen(props) {
   var name = props.name
   var song = props.song
@@ -62,6 +106,7 @@ function YourTurnScreen(props) {
   var setResults = resultsState[1]
 
   useEffect(function () {
+    flushPendingVocalResults()
     return function () {
       if (rafRef.current) cancelAnimationFrame(rafRef.current)
       if (vocalAnalyzerRef.current && !finalizedRef.current) vocalAnalyzerRef.current.stop()
@@ -91,7 +136,7 @@ function YourTurnScreen(props) {
         audioCtxRef.current = audioCtx
         var source = audioCtx.createMediaStreamSource(stream)
         var analyser = audioCtx.createAnalyser()
-        analyser.fftSize = 2048
+        analyser.fftSize = 1024
         source.connect(analyser)
         analyserRef.current = analyser
         var data = new Uint8Array(analyser.frequencyBinCount)
@@ -141,19 +186,17 @@ function YourTurnScreen(props) {
     setResults({ scores: scores, feedback: feedback })
 
     if (props.sessionId && props.entryId) {
-      supabase
-        .from('vocal_results')
-        .insert({
-          session_id: props.sessionId,
-          queue_entry_id: props.entryId,
-          pitch_score: scores.pitchScore,
-          rhythm_score: scores.rhythmScore,
-          stability_score: scores.stabilityScore,
-          energy_score: scores.energyScore,
-          final_score: scores.finalScore,
-          feedback: feedback
-        })
-        .then(function () {})
+      var payload = {
+        session_id: props.sessionId,
+        queue_entry_id: props.entryId,
+        pitch_score: scores.pitchScore,
+        rhythm_score: scores.rhythmScore,
+        stability_score: scores.stabilityScore,
+        energy_score: scores.energyScore,
+        final_score: scores.finalScore,
+        feedback: feedback
+      }
+      saveVocalResult(payload)
     }
   }
 
@@ -441,6 +484,10 @@ export default function RegisterForm() {
   var showPerformance = showPerformanceState[0]
   var setShowPerformance = showPerformanceState[1]
 
+  var showThanksState = useState(false)
+  var showThanks = showThanksState[0]
+  var setShowThanks = showThanksState[1]
+
   useEffect(function () {
     if (itsMyTurn) setShowPerformance(true)
   }, [itsMyTurn])
@@ -499,8 +546,34 @@ export default function RegisterForm() {
         sessionId={session.sessionId}
         currentSinger={currentSinger}
         screenMode={session.screenMode}
-        onDone={function () { setShowPerformance(false) }}
+        onDone={function () {
+          setShowPerformance(false)
+          setShowThanks(true)
+        }}
       />
+    )
+  }
+
+  if (showThanks) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-6" style={{ background: 'var(--bg-page)' }}>
+        <div
+          className="max-w-sm w-full rounded-3xl border-2 p-8 text-center"
+          style={{
+            background: 'linear-gradient(135deg, rgba(139,92,246,0.12), rgba(233,30,140,0.10))',
+            borderColor: '#8B5CF6',
+            boxShadow: '0 0 40px -8px rgba(139,92,246,0.6)'
+          }}
+        >
+          <p className="text-6xl mb-3">🎉</p>
+          <p className="text-2xl font-extrabold mb-3" style={{ color: '#F4D03F' }}>
+            ¡Gracias por participar!
+          </p>
+          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+            Recuerda que puedes unirte nuevamente cuando quieras.
+          </p>
+        </div>
+      </div>
     )
   }
 
