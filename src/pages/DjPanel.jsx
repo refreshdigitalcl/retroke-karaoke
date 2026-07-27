@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { Component, useEffect, useState } from 'react'
 import { useKaraokeSession } from '../contexts/KaraokeSessionContext'
 import { useAuth } from '../contexts/AuthContext'
 import { checkYoutubeEmbeddable } from '../components/YouTubePlayer'
@@ -516,7 +516,7 @@ function NightEndedPanel(props) {
   )
 }
 
-export default function DjPanel() {
+function DjPanelInner() {
   var auth = useAuth()
   var myBars = useMyBars(auth)
 
@@ -1301,5 +1301,58 @@ function DjRatingShortcut(props) {
     >
       Simular voto de prueba
     </button>
+  )
+}
+
+class DjPanelErrorBoundary extends Component {
+  constructor(props) {
+    super(props)
+    this.state = { error: null }
+  }
+
+  static getDerivedStateFromError(error) {
+    return { error: error }
+  }
+
+  componentDidCatch(error, info) {
+    console.error('DjPanel crash:', error, info)
+  }
+
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="min-h-screen flex items-center justify-center px-6" style={{ background: '#0a0a0a' }}>
+          <div className="max-w-lg w-full rounded-2xl border-2 p-6" style={{ borderColor: '#E9544A', background: '#1a1010' }}>
+            <p className="text-lg font-bold mb-2" style={{ color: '#E9544A' }}>
+              ⚠️ Ocurrió un error en el panel
+            </p>
+            <p className="text-sm mb-4" style={{ color: '#ddd' }}>
+              Copia este mensaje y compártelo para poder arreglarlo:
+            </p>
+            <pre className="text-xs p-3 rounded-lg overflow-auto" style={{ background: '#000', color: '#F4D03F', whiteSpace: 'pre-wrap' }}>
+              {String(this.state.error && this.state.error.message)}
+              {'\n\n'}
+              {String(this.state.error && this.state.error.stack)}
+            </pre>
+            <button
+              onClick={function () { window.location.reload() }}
+              className="mt-4 h-11 px-5 rounded-xl font-bold text-white"
+              style={{ background: '#8B5CF6' }}
+            >
+              Recargar página
+            </button>
+          </div>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
+
+export default function DjPanel() {
+  return (
+    <DjPanelErrorBoundary>
+      <DjPanelInner />
+    </DjPanelErrorBoundary>
   )
 }
