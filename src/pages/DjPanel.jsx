@@ -88,17 +88,19 @@ function ProfileTab(props) {
     setSaved(false)
     supabase
       .from('profiles')
-      .update({
+      .upsert({
+        id: auth.session.user.id,
         avatar_url: avatarUrl || null,
         display_name: displayName.trim() || null,
         address: address.trim() || null,
         phone: phone.trim() || null
       })
-      .eq('id', auth.session.user.id)
-      .then(function () {
+      .then(function (result) {
         setSaving(false)
-        setSaved(true)
-        setTimeout(function () { setSaved(false) }, 2000)
+        if (!result.error) {
+          setSaved(true)
+          setTimeout(function () { setSaved(false) }, 2000)
+        }
       })
   }
 
@@ -434,16 +436,11 @@ function NightEndedPanel(props) {
   var barName = props.barName
   var lastClosedSession = props.lastClosedSession
   var loadSessionLeaderboard = props.loadSessionLeaderboard
-  var dismissPodium = props.dismissPodium
   var onStartNew = props.onStartNew
 
   var listState = useState(null)
   var list = listState[0]
   var setList = listState[1]
-
-  var sentState = useState(false)
-  var sentToHub = sentState[0]
-  var setSentToHub = sentState[1]
 
   useEffect(function () {
     if (!lastClosedSession) return
@@ -500,17 +497,6 @@ function NightEndedPanel(props) {
 
         <div className="flex flex-col gap-2.5">
           <button
-            onClick={function () {
-              dismissPodium(lastClosedSession.id)
-              setSentToHub(true)
-              setTimeout(function () { setSentToHub(false) }, 2500)
-            }}
-            className="h-12 rounded-xl font-bold text-white"
-            style={{ background: 'linear-gradient(90deg, #F4D03F, #E91E8C)' }}
-          >
-            {sentToHub ? '✅ Enviado a las TVs' : '📺 Enviar TVs a selección de salas'}
-          </button>
-          <button
             onClick={function () { window.location.href = '/' }}
             className="h-12 rounded-xl font-bold text-white"
             style={{ background: 'linear-gradient(90deg, #E91E8C, #8B5CF6)' }}
@@ -545,7 +531,6 @@ export default function DjPanel() {
   var hasActiveSession = session.hasActiveSession
   var lastClosedSession = session.lastClosedSession
   var loadSessionLeaderboard = session.loadSessionLeaderboard
-  var dismissPodium = session.dismissPodium
   var activeSessionName = session.activeSessionName
   var queue = session.queue
   var currentSinger = session.currentSinger
@@ -599,9 +584,9 @@ export default function DjPanel() {
       .eq('id', auth.session.user.id)
       .maybeSingle()
       .then(function (result) {
-        if (result.data && result.data.avatar_url) setDjAvatarUrl(result.data.avatar_url)
+        if (result.data) setDjAvatarUrl(result.data.avatar_url || '')
       })
-  }, [auth.session])
+  }, [auth.session, showProfile])
 
   useEffect(function () {
     if (hasActiveSession) setForceNewSession(false)
@@ -735,7 +720,6 @@ export default function DjPanel() {
           barName={barName}
           lastClosedSession={lastClosedSession}
           loadSessionLeaderboard={loadSessionLeaderboard}
-          dismissPodium={dismissPodium}
           onStartNew={function () { setForceNewSession(true) }}
         />
       )
