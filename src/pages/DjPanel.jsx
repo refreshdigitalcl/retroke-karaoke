@@ -523,6 +523,7 @@ function DjPanelInner() {
   var session = useKaraokeSession()
   var barName = session.barName
   var workspacePlan = session.workspacePlan
+  var workspaceType = session.workspaceType
   var barIsActive = session.barIsActive
   var barLoading = session.barLoading
   var sessionCode = session.sessionCode
