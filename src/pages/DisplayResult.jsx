@@ -227,66 +227,62 @@ export default function DisplayResult() {
   var phrase = pickFromList(RESULT_PHRASES, String(currentSinger.id) + 'x')
 
   return (
-    <div className="min-h-screen relative overflow-hidden flex flex-col items-center justify-center px-6 py-8 bg-black">
+    <div className="min-h-screen relative overflow-hidden flex flex-col items-center justify-center px-10 py-10 bg-black">
       <RetroEqualizer />
       <ResultStageLights />
       <FallingParty />
 
-      <p key={titleInfo.index} className="result-title-glitch relative z-10 text-lg md:text-2xl font-extrabold text-white mb-1 text-center">
+      <p key={titleInfo.index} className="result-title-glitch relative z-10 text-3xl md:text-5xl font-extrabold text-white mb-2 text-center">
         {titleInfo.title}
       </p>
-      <p className="relative z-10 text-base md:text-lg text-purple-300 mb-6 text-center tracking-wide">
+      <p className="relative z-10 text-xl md:text-2xl text-purple-300 mb-10 text-center tracking-wide">
         {currentSinger.name}
       </p>
 
-      {notaFinal && (
-        <div className="relative z-10 mb-8 flex flex-col items-center nota-final-in">
-          {bursting && <ConfettiBurst burstKey={burstKey} />}
-          <div className="nota-final-ring-outer">
-            <div className="nota-final-ring-inner">
-              <p className="text-[10px] md:text-xs uppercase tracking-[4px] font-bold mb-1" style={{ color: '#F4D03F', textShadow: '0 0 10px rgba(244,208,63,0.8)' }}>
-                ⭐ Nota Final
-              </p>
-              <p className="nota-final-number leading-none">
-                {notaFinal}
-              </p>
-              {average && retrokeAsNota !== null && (
-                <p className="text-[10px] md:text-xs mt-2 uppercase tracking-wide" style={{ color: 'rgba(255,255,255,0.55)' }}>
-                  👥 Público + 🎤 Retroke Score
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div className="relative z-10 flex flex-col sm:flex-row gap-3 items-stretch w-full max-w-2xl">
-        <div className="flex-1 rounded-2xl border px-5 py-4 flex flex-col items-center justify-center result-panel-glow-pink" style={{ borderColor: 'rgba(244,208,63,0.55)', background: 'rgba(15,10,20,0.85)' }}>
-          <p className="text-[10px] uppercase tracking-widest text-neutral-400 mb-1">👥 Público</p>
+      <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-6xl items-stretch">
+        <div className="rounded-3xl border-2 px-8 py-8 flex flex-col items-center justify-center text-center result-panel-glow-pink" style={{ borderColor: 'rgba(244,208,63,0.55)', background: 'rgba(15,10,20,0.88)' }}>
+          <p className="text-sm md:text-base uppercase tracking-[3px] text-neutral-400 mb-3 font-bold">👥 Público</p>
           {average ? (
             <>
-              <p className="text-4xl md:text-5xl font-extrabold text-yellow-400 leading-none">
+              <p className="text-7xl md:text-8xl font-extrabold text-yellow-400 leading-none">
                 {average}
               </p>
-              <p className="text-xs md:text-sm font-semibold text-white mt-2 text-center">
+              <p className="text-lg md:text-xl font-bold text-white mt-4">
                 {phrase}
               </p>
-              <p className="text-[11px] text-neutral-400 mt-1">
+              <p className="text-sm text-neutral-400 mt-2">
                 {songRatings.length} {songRatings.length === 1 ? 'voto' : 'votos'}
               </p>
             </>
           ) : (
-            <p className="text-sm text-neutral-400 mt-1">Sin votos suficientes</p>
+            <p className="text-xl text-neutral-400 mt-1">Sin votos suficientes</p>
           )}
         </div>
 
+        {notaFinal && (
+          <div className="rounded-3xl border-2 px-8 py-8 flex flex-col items-center justify-center text-center nota-final-panel">
+            {bursting && <ConfettiBurst burstKey={burstKey} />}
+            <p className="text-sm md:text-base uppercase tracking-[3px] font-bold mb-3" style={{ color: '#F4D03F', textShadow: '0 0 10px rgba(244,208,63,0.8)' }}>
+              ⭐ Nota Final
+            </p>
+            <p className="nota-final-number leading-none">
+              {notaFinal}
+            </p>
+            {average && retrokeAsNota !== null && (
+              <p className="text-xs md:text-sm mt-4 uppercase tracking-wide" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                Promedio Público + Retroke
+              </p>
+            )}
+          </div>
+        )}
+
         {vocalResult && (
-          <div className="flex-1 rounded-2xl border px-5 py-4 flex flex-col items-center justify-center result-panel-glow-gold" style={{ borderColor: 'rgba(139,92,246,0.55)', background: 'rgba(10,8,20,0.9)' }}>
-            <p className="text-[10px] uppercase tracking-widest mb-1" style={{ color: '#F4D03F' }}>🎤 Retroke Score</p>
-            <p className="text-4xl md:text-5xl font-extrabold leading-none" style={{ color: '#F4D03F', textShadow: '0 0 16px rgba(244,208,63,0.6)' }}>
+          <div className="rounded-3xl border-2 px-8 py-8 flex flex-col items-center justify-center text-center result-panel-glow-gold" style={{ borderColor: 'rgba(139,92,246,0.55)', background: 'rgba(10,8,20,0.92)' }}>
+            <p className="text-sm md:text-base uppercase tracking-[3px] mb-3 font-bold" style={{ color: '#F4D03F' }}>🎤 Retroke Score</p>
+            <p className="text-7xl md:text-8xl font-extrabold leading-none" style={{ color: '#F4D03F', textShadow: '0 0 20px rgba(244,208,63,0.6)' }}>
               {vocalResult.final_score}
             </p>
-            <div className="grid grid-cols-2 gap-1.5 mt-3 w-full">
+            <div className="grid grid-cols-2 gap-3 mt-6 w-full">
               {[
                 { label: '🎯 Afinación', value: vocalResult.pitch_score, color: '#F4D03F' },
                 { label: '🥁 Ritmo', value: vocalResult.rhythm_score, color: '#8B5CF6' },
@@ -294,18 +290,18 @@ export default function DisplayResult() {
                 { label: '🔥 Energía', value: vocalResult.energy_score, color: '#7ED957' }
               ].map(function (m) {
                 return (
-                  <div key={m.label} className="rounded-lg px-2 py-1.5" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                    <p className="text-[9px] uppercase text-neutral-400 truncate">{m.label}</p>
-                    <div className="h-1 rounded-full overflow-hidden mt-1 mb-1" style={{ background: 'rgba(255,255,255,0.1)' }}>
+                  <div key={m.label} className="rounded-xl px-3.5 py-3" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)' }}>
+                    <p className="text-sm uppercase text-neutral-300 truncate font-bold">{m.label}</p>
+                    <div className="h-2 rounded-full overflow-hidden mt-2 mb-2" style={{ background: 'rgba(255,255,255,0.12)' }}>
                       <div className="h-full rounded-full" style={{ width: m.value + '%', background: m.color, boxShadow: '0 0 6px ' + m.color }} />
                     </div>
-                    <p className="text-xs font-bold" style={{ color: m.color }}>{m.value}</p>
+                    <p className="text-2xl font-extrabold" style={{ color: m.color }}>{m.value}</p>
                   </div>
                 )
               })}
             </div>
             {vocalResult.feedback && (
-              <p className="text-[11px] text-neutral-300 mt-3 text-center">{vocalResult.feedback}</p>
+              <p className="text-base text-neutral-200 mt-5 font-medium">{vocalResult.feedback}</p>
             )}
           </div>
         )}
@@ -328,35 +324,18 @@ export default function DisplayResult() {
           from { opacity: 0; transform: scale(0.6) translateY(-10px); }
           to { opacity: 1; transform: scale(1) translateY(0); }
         }
-        .nota-final-ring-outer {
+        .nota-final-panel {
           position: relative;
-          width: 260px;
-          height: 260px;
-          border-radius: 9999px;
-          padding: 6px;
-          background: conic-gradient(from 0deg, #F4D03F, #E91E8C, #8B5CF6, #F4D03F);
-          animation: notaRingSpin 6s linear infinite;
-          box-shadow: 0 0 50px -6px rgba(244, 208, 63, 0.7), 0 0 90px -20px rgba(233, 30, 140, 0.6);
+          border-color: rgba(244, 208, 63, 0.75);
+          background: linear-gradient(160deg, rgba(139,92,246,0.16), rgba(10,8,20,0.94) 55%);
+          animation: notaFinalPanelGlow 2.6s ease-in-out infinite;
         }
-        @media (min-width: 768px) {
-          .nota-final-ring-outer { width: 320px; height: 320px; }
-        }
-        @keyframes notaRingSpin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        .nota-final-ring-inner {
-          width: 100%;
-          height: 100%;
-          border-radius: 9999px;
-          background: radial-gradient(circle, #150e22, #0a0612 75%);
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
+        @keyframes notaFinalPanelGlow {
+          0%, 100% { box-shadow: 0 0 45px -10px rgba(244, 208, 63, 0.7), 0 0 80px -25px rgba(139, 92, 246, 0.6); }
+          50% { box-shadow: 0 0 65px -6px rgba(244, 208, 63, 0.95), 0 0 100px -18px rgba(233, 30, 140, 0.7); }
         }
         .nota-final-number {
-          font-size: 5.5rem;
+          font-size: 6.5rem;
           font-weight: 900;
           background: linear-gradient(90deg, #F4D03F, #E91E8C, #8B5CF6, #F4D03F);
           -webkit-background-clip: text;
@@ -367,7 +346,7 @@ export default function DisplayResult() {
           filter: drop-shadow(0 0 20px rgba(244, 208, 63, 0.5));
         }
         @media (min-width: 768px) {
-          .nota-final-number { font-size: 7.5rem; }
+          .nota-final-number { font-size: 8.5rem; }
         }
         @keyframes notaFinalShimmer {
           0% { background-position: 0% center; }

@@ -1305,6 +1305,18 @@ function QueueRowAdmin(props) {
                 />
               )}
               {entry.name}
+              {showPresence && (
+                <span
+                  className="text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0 uppercase tracking-wide"
+                  style={{
+                    color: entry.micReady ? '#7ED957' : '#F4D03F',
+                    border: '1px solid ' + (entry.micReady ? 'rgba(126,217,87,0.5)' : 'rgba(244,208,63,0.5)'),
+                    background: entry.micReady ? 'rgba(126,217,87,0.1)' : 'rgba(244,208,63,0.1)'
+                  }}
+                >
+                  {entry.micReady ? '✅ Listo' : '⏳ Preparando'}
+                </span>
+              )}
             </p>
             <p className="text-xs truncate" style={{ color: 'var(--text-secondary)' }}>
               {entry.song}

@@ -324,7 +324,8 @@ export function KaraokeSessionProvider({ children }) {
           status: r.status || 'waiting',
           videoUrl: r.video_url || '',
           videoId: r.video_id || '',
-          lastSeenAt: r.last_seen_at || null
+          lastSeenAt: r.last_seen_at || null,
+          micReady: r.mic_ready || false
         }))
       )
     }
@@ -458,6 +459,14 @@ export function KaraokeSessionProvider({ children }) {
     await supabase
       .from('queue_entries')
       .update({ last_seen_at: new Date().toISOString() })
+      .eq('id', entryId)
+  }, [])
+
+  const setMicReady = useCallback(async (entryId, ready) => {
+    if (!entryId) return
+    await supabase
+      .from('queue_entries')
+      .update({ mic_ready: ready })
       .eq('id', entryId)
   }, [])
 
@@ -697,6 +706,7 @@ export function KaraokeSessionProvider({ children }) {
     loadSessionLeaderboard,
     dismissPodium,
     sendPresenceHeartbeat,
+    setMicReady,
     activeSessionName: activeSession ? activeSession.name : '',
     activeSessionPin: activeSession ? activeSession.pin : '',
     queue,

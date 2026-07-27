@@ -80,6 +80,7 @@ function YourTurnScreen(props) {
   var song = props.song
   var sessionId = props.sessionId
   var entryId = props.entryId
+  var setMicReady = useKaraokeSession().setMicReady
 
   var micState = useState('idle')
   var micStatus = micState[0]
@@ -170,6 +171,7 @@ function YourTurnScreen(props) {
 
   function handleContinue() {
     setMicStatus('ready')
+    if (entryId) setMicReady(entryId, true)
   }
 
   function finalizePerformance() {
@@ -456,6 +458,7 @@ export default function RegisterForm() {
   var workspaceType = session.workspaceType
   var currentSinger = session.currentSinger
   var sendPresenceHeartbeat = session.sendPresenceHeartbeat
+  var setMicReady = session.setMicReady
 
   var nameState = useState('')
   var name = nameState[0]
