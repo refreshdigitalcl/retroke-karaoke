@@ -1012,6 +1012,7 @@ export default function DjPanel() {
                 removeFromQueue={removeFromQueue}
                 setQueueEntryVideo={setQueueEntryVideo}
                 videoPreviewEnabled={hasFeature('video_preview')}
+                showPresence={workspaceType === 'HOME'}
               />
             )
           })}
@@ -1059,6 +1060,17 @@ function QueueRowAdmin(props) {
   var removeFromQueue = props.removeFromQueue
   var setQueueEntryVideo = props.setQueueEntryVideo
   var videoPreviewEnabled = props.videoPreviewEnabled
+  var showPresence = props.showPresence
+
+  var presenceStatus = null
+  if (showPresence) {
+    if (!entry.lastSeenAt) {
+      presenceStatus = 'red'
+    } else {
+      var secondsAgo = (Date.now() - new Date(entry.lastSeenAt).getTime()) / 1000
+      presenceStatus = secondsAgo < 30 ? 'green' : secondsAgo < 90 ? 'yellow' : 'red'
+    }
+  }
 
   var openState = useState(false)
   var open = openState[0]
@@ -1120,7 +1132,17 @@ function QueueRowAdmin(props) {
             )}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm truncate" style={{ color: 'var(--text-primary)' }}>
+            <p className="text-sm truncate flex items-center gap-1.5" style={{ color: 'var(--text-primary)' }}>
+              {showPresence && (
+                <span
+                  className="inline-block w-2 h-2 rounded-full shrink-0"
+                  style={{
+                    background: presenceStatus === 'green' ? '#7ED957' : presenceStatus === 'yellow' ? '#F4D03F' : '#E9544A',
+                    boxShadow: '0 0 6px 1px ' + (presenceStatus === 'green' ? 'rgba(126,217,87,0.7)' : presenceStatus === 'yellow' ? 'rgba(244,208,63,0.7)' : 'rgba(233,84,74,0.7)')
+                  }}
+                  title={presenceStatus === 'green' ? 'Conectado' : presenceStatus === 'yellow' ? 'Reconectando' : 'Desconectado'}
+                />
+              )}
               {entry.name}
             </p>
             <p className="text-xs truncate" style={{ color: 'var(--text-secondary)' }}>

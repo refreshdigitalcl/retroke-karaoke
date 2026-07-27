@@ -323,7 +323,8 @@ export function KaraokeSessionProvider({ children }) {
           photo: r.photo || '',
           status: r.status || 'waiting',
           videoUrl: r.video_url || '',
-          videoId: r.video_id || ''
+          videoId: r.video_id || '',
+          lastSeenAt: r.last_seen_at || null
         }))
       )
     }
@@ -450,6 +451,14 @@ export function KaraokeSessionProvider({ children }) {
       .from('sessions')
       .update({ dismiss_podium_at: new Date().toISOString() })
       .eq('id', targetSessionId)
+  }, [])
+
+  const sendPresenceHeartbeat = useCallback(async (entryId) => {
+    if (!entryId) return
+    await supabase
+      .from('queue_entries')
+      .update({ last_seen_at: new Date().toISOString() })
+      .eq('id', entryId)
   }, [])
 
   const loadPastSessions = useCallback(async () => {
@@ -686,6 +695,7 @@ export function KaraokeSessionProvider({ children }) {
     lastClosedSession,
     loadSessionLeaderboard,
     dismissPodium,
+    sendPresenceHeartbeat,
     activeSessionName: activeSession ? activeSession.name : '',
     activeSessionPin: activeSession ? activeSession.pin : '',
     queue,

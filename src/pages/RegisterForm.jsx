@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useKaraokeSession, parseYoutubeId } from '../contexts/KaraokeSessionContext'
 import ThemeToggle from '../components/ThemeToggle'
 
@@ -29,6 +29,65 @@ function resizeToSquareJpeg(file) {
   })
 }
 
+function YourTurnScreen(props) {
+  var name = props.name
+  var song = props.song
+
+  var micState = useState('idle')
+  var micStatus = micState[0]
+  var setMicStatus = micState[1]
+
+  function handleActivateMic() {
+    setMicStatus('pending')
+    setTimeout(function () {
+      setMicStatus('soon')
+    }, 700)
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center px-6" style={{ background: 'var(--bg-page)' }}>
+      <div
+        className="max-w-sm w-full rounded-3xl border-2 p-8 text-center your-turn-pulse"
+        style={{ background: 'var(--bg-card)', borderColor: '#F4D03F', boxShadow: '0 0 40px -8px rgba(244,208,63,0.6)' }}
+      >
+        <p className="text-6xl mb-3">🎤</p>
+        <p className="text-2xl font-extrabold mb-1" style={{ color: '#F4D03F' }}>
+          ¡ES TU TURNO!
+        </p>
+        <p className="text-sm mb-1" style={{ color: 'var(--text-primary)' }}>{name}</p>
+        <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>{song}</p>
+
+        <p className="text-xs uppercase tracking-wide mb-3" style={{ color: 'var(--text-muted)' }}>
+          🎙️ Prepara tu micrófono
+        </p>
+
+        <button
+          onClick={handleActivateMic}
+          disabled={micStatus !== 'idle'}
+          className="w-full h-14 rounded-2xl font-bold text-white text-lg disabled:opacity-70"
+          style={{ background: 'linear-gradient(90deg, #E91E8C, #8B5CF6)' }}
+        >
+          {micStatus === 'idle' ? 'ACTIVAR MICRÓFONO' : micStatus === 'pending' ? 'Activando...' : '🎧 Preparando esta función'}
+        </button>
+
+        {micStatus === 'soon' && (
+          <p className="text-xs mt-4" style={{ color: 'var(--text-muted)' }}>
+            El micrófono de tu celular como transmisor en vivo llega en la próxima actualización. Por ahora, canta frente a la pantalla principal 🎉
+          </p>
+        )}
+      </div>
+
+      <style>{`
+        .your-turn-pulse { animation: yourTurnPulse 1.6s ease-in-out infinite; }
+        @keyframes yourTurnPulse {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.02); }
+        }
+      `}</style>
+    </div>
+  )
+}
+
 export default function RegisterForm() {
   var session = useKaraokeSession()
   var barName = session.barName
@@ -41,6 +100,9 @@ export default function RegisterForm() {
   var spaceParam = session.spaceParam
   var workspacePlan = session.workspacePlan
   var urlAttempts = session.urlAttempts
+  var workspaceType = session.workspaceType
+  var currentSinger = session.currentSinger
+  var sendPresenceHeartbeat = session.sendPresenceHeartbeat
 
   var nameState = useState('')
   var name = nameState[0]
@@ -114,6 +176,18 @@ export default function RegisterForm() {
   var realIndex = myEntryId ? queue.findIndex(function (q) { return q.id === myEntryId }) : -1
   var position = realIndex !== -1 ? realIndex + 1 : (optimisticPosition || queue.length + 1)
 
+  var isHome = workspaceType === 'HOME'
+  var itsMyTurn = isHome && myEntryId && currentSinger && currentSinger.id === myEntryId
+
+  useEffect(function () {
+    if (!isHome || !myEntryId) return
+    sendPresenceHeartbeat(myEntryId)
+    var intervalId = setInterval(function () {
+      sendPresenceHeartbeat(myEntryId)
+    }, 15000)
+    return function () { clearInterval(intervalId) }
+  }, [isHome, myEntryId, sendPresenceHeartbeat])
+
   if (loadTimedOut) {
     return (
       <div className="min-h-screen flex items-center justify-center px-6" style={{ background: 'var(--bg-page)' }}>
@@ -157,6 +231,10 @@ export default function RegisterForm() {
         </div>
       </div>
     )
+  }
+
+  if (itsMyTurn) {
+    return <YourTurnScreen name={name} song={song} />
   }
 
   if (submitted) {
