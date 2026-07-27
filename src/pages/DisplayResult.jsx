@@ -192,7 +192,7 @@ export default function DisplayResult() {
     return (sum / songRatings.length).toFixed(1)
   }, [songRatings])
 
-  var retrokeAsNota = vocalResult ? (5 + (vocalResult.final_score / 100) * 5) : null
+  var retrokeAsNota = vocalResult ? (1 + (vocalResult.final_score / 100) * 9) : null
 
   var notaFinal = useMemo(function () {
     var parts = []

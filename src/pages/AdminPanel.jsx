@@ -139,9 +139,38 @@ function NewWorkspaceForm(props) {
   var ownerEmailState = useState('')
   var ownerEmail = ownerEmailState[0]
   var setOwnerEmail = ownerEmailState[1]
+  var logoFileState = useState(null)
+  var logoFile = logoFileState[0]
+  var setLogoFile = logoFileState[1]
+  var logoPreviewState = useState(null)
+  var logoPreview = logoPreviewState[0]
+  var setLogoPreview = logoPreviewState[1]
   var errorState = useState('')
   var error = errorState[0]
   var setError = errorState[1]
+
+  function handleLogoChange(e) {
+    var file = e.target.files && e.target.files[0]
+    if (!file) return
+    setLogoFile(file)
+    setLogoPreview(URL.createObjectURL(file))
+  }
+
+  function uploadLogoIfNeeded(workspaceId, barId) {
+    if (!logoFile) return Promise.resolve()
+    var ext = logoFile.name.split('.').pop()
+    var path = 'logo-' + Date.now() + '.' + ext
+    return supabase.storage
+      .from('logos')
+      .upload(path, logoFile, { upsert: true })
+      .then(function (result) {
+        if (result.error) return
+        var publicUrl = supabase.storage.from('logos').getPublicUrl(path).data.publicUrl
+        var updates = [supabase.from('workspaces').update({ logo_url: publicUrl }).eq('id', workspaceId)]
+        if (barId) updates.push(supabase.from('bars').update({ logo_url: publicUrl }).eq('id', barId))
+        return Promise.all(updates)
+      })
+  }
 
   function handleNameChange(e) {
     var v = e.target.value
@@ -183,9 +212,13 @@ function NewWorkspaceForm(props) {
           return
         }
         if (type !== 'BAR') {
-          setName('')
-          setOwnerEmail('')
-          onCreated()
+          uploadLogoIfNeeded(wsResult.data.id, null).then(function () {
+            setName('')
+            setOwnerEmail('')
+            setLogoFile(null)
+            setLogoPreview(null)
+            onCreated()
+          })
           return
         }
         supabase
@@ -197,16 +230,22 @@ function NewWorkspaceForm(props) {
             is_active: true,
             workspace_id: wsResult.data.id
           })
+          .select()
+          .single()
           .then(function (barResult) {
             if (barResult.error) {
               setError('Workspace creado, pero el bar fallo: ' + barResult.error.message)
-            } else {
+              return
+            }
+            uploadLogoIfNeeded(wsResult.data.id, barResult.data.id).then(function () {
               setName('')
               setSlug('')
               setCity('')
               setOwnerEmail('')
+              setLogoFile(null)
+              setLogoPreview(null)
               onCreated()
-            }
+            })
           })
       })
   }
@@ -277,6 +316,20 @@ function NewWorkspaceForm(props) {
           className="h-10 rounded-lg px-3 border outline-none"
           style={{ background: 'var(--bg-card-alt)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
         />
+        <label
+          className="flex items-center gap-3 h-10 rounded-lg px-3 border cursor-pointer"
+          style={{ background: 'var(--bg-card-alt)', borderColor: 'var(--border)' }}
+        >
+          {logoPreview ? (
+            <img src={logoPreview} alt="" className="w-6 h-6 rounded object-cover shrink-0" />
+          ) : (
+            <span className="text-sm" style={{ color: 'var(--text-muted)' }}>📷</span>
+          )}
+          <span className="text-sm truncate" style={{ color: logoFile ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+            {logoFile ? logoFile.name : 'Logo (opcional)'}
+          </span>
+          <input type="file" accept="image/*" onChange={handleLogoChange} className="hidden" />
+        </label>
         <button
           type="submit"
           className="h-10 rounded-lg font-medium text-white"
@@ -503,6 +556,14 @@ function WorkspaceRow(props) {
   var ws = props.ws
   var onChanged = props.onChanged
 
+  var expiresState = useState(ws.expires_at ? ws.expires_at.slice(0, 10) : '')
+  var expiresValue = expiresState[0]
+  var setExpiresValue = expiresState[1]
+
+  var uploadingLogoState = useState(false)
+  var uploadingLogo = uploadingLogoState[0]
+  var setUploadingLogo = uploadingLogoState[1]
+
   function changePlan(newPlan) {
     supabase
       .from('workspaces')
@@ -520,28 +581,90 @@ function WorkspaceRow(props) {
       .then(function () { onChanged() })
   }
 
+  function saveExpiration() {
+    supabase
+      .from('workspaces')
+      .update({ expires_at: expiresValue ? expiresValue : null })
+      .eq('id', ws.id)
+      .then(function () { onChanged() })
+  }
+
+  function handleDelete() {
+    if (!window.confirm('Eliminar "' + ws.name + '" para siempre? Esto no se puede deshacer.')) return
+    supabase
+      .from('bars')
+      .delete()
+      .eq('workspace_id', ws.id)
+      .then(function () {
+        return supabase.from('workspaces').delete().eq('id', ws.id)
+      })
+      .then(function () { onChanged() })
+  }
+
+  function handleLogoChange(e) {
+    var file = e.target.files && e.target.files[0]
+    if (!file) return
+    setUploadingLogo(true)
+    var ext = file.name.split('.').pop()
+    var path = 'logo-' + ws.id + '-' + Date.now() + '.' + ext
+    supabase.storage
+      .from('logos')
+      .upload(path, file, { upsert: true })
+      .then(function (result) {
+        if (result.error) {
+          setUploadingLogo(false)
+          return
+        }
+        var publicUrl = supabase.storage.from('logos').getPublicUrl(path).data.publicUrl
+        var updates = [
+          supabase.from('workspaces').update({ logo_url: publicUrl }).eq('id', ws.id),
+          supabase.from('bars').update({ logo_url: publicUrl }).eq('workspace_id', ws.id)
+        ]
+        return Promise.all(updates)
+      })
+      .then(function () {
+        setUploadingLogo(false)
+        onChanged()
+      })
+  }
+
+  var createdLabel = ws.created_at ? new Date(ws.created_at).toLocaleDateString('es-CL') : '—'
+
   return (
     <div className="rounded-lg py-3 px-3" style={{ background: 'var(--bg-card-alt)' }}>
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <div>
-          <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-            {ws.name}
-          </p>
-          <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-            {ws.type}
-            {' · '}
-            <span style={{ color: ws.status === 'ACTIVE' ? 'var(--accent-green)' : 'var(--accent-magenta)' }}>
-              {ws.status}
-            </span>
-            {!ws.owner_id && ws.settings && ws.settings.pending_owner_email && (
-              <span style={{ color: 'var(--accent-yellow)' }}>
-                {' · dueño pendiente: ' + ws.settings.pending_owner_email}
+        <div className="flex items-center gap-3">
+          <div
+            className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center text-sm shrink-0"
+            style={{ background: 'var(--accent-purple)' }}
+          >
+            {ws.logo_url ? (
+              <img src={ws.logo_url} alt="" className="w-full h-full object-cover" />
+            ) : (
+              '🎤'
+            )}
+          </div>
+          <div>
+            <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+              {ws.name}
+            </p>
+            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+              {ws.type}
+              {' · '}
+              <span style={{ color: ws.status === 'ACTIVE' ? 'var(--accent-green)' : 'var(--accent-magenta)' }}>
+                {ws.status}
               </span>
-            )}
-            {!ws.owner_id && (!ws.settings || !ws.settings.pending_owner_email) && (
-              <span style={{ color: 'var(--text-muted)' }}> · sin dueño asignado</span>
-            )}
-          </p>
+              {' · creado ' + createdLabel}
+              {!ws.owner_id && ws.settings && ws.settings.pending_owner_email && (
+                <span style={{ color: 'var(--accent-yellow)' }}>
+                  {' · dueño pendiente: ' + ws.settings.pending_owner_email}
+                </span>
+              )}
+              {!ws.owner_id && (!ws.settings || !ws.settings.pending_owner_email) && (
+                <span style={{ color: 'var(--text-muted)' }}> · sin dueño asignado</span>
+              )}
+            </p>
+          </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           {PLAN_OPTIONS.map(function (p) {
@@ -568,7 +691,35 @@ function WorkspaceRow(props) {
           >
             {ws.status === 'ACTIVE' ? 'Suspender' : 'Activar'}
           </button>
+          <button
+            onClick={handleDelete}
+            className="text-xs px-2.5 py-1 rounded-full border"
+            style={{ borderColor: 'var(--accent-magenta)', color: 'var(--accent-magenta)' }}
+          >
+            🗑️ Eliminar
+          </button>
         </div>
+      </div>
+
+      <div className="flex items-center gap-3 flex-wrap mt-2.5 pt-2.5" style={{ borderTop: '1px solid var(--border)' }}>
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Vence:</span>
+          <input
+            type="date"
+            value={expiresValue}
+            onChange={function (e) { setExpiresValue(e.target.value) }}
+            onBlur={saveExpiration}
+            className="text-xs px-2 py-1 rounded-lg border outline-none"
+            style={{ background: 'var(--bg-card)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+          />
+        </div>
+        <label
+          className="text-xs cursor-pointer font-medium px-2.5 py-1 rounded-full border"
+          style={{ borderColor: 'var(--border)', color: 'var(--accent-purple)' }}
+        >
+          {uploadingLogo ? 'Subiendo logo...' : ws.logo_url ? 'Cambiar logo' : '📷 Agregar logo'}
+          <input type="file" accept="image/*" onChange={handleLogoChange} disabled={uploadingLogo} className="hidden" />
+        </label>
       </div>
     </div>
   )

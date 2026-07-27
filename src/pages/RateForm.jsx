@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useKaraokeSession } from '../contexts/KaraokeSessionContext'
 import { getBalancedPhrases } from '../lib/ratingPhrases'
 
-var SCORES = [5, 6, 7, 8, 9, 10]
+var SCORES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
 export default function RateForm() {
   var session = useKaraokeSession()
@@ -74,7 +74,7 @@ export default function RateForm() {
 
         {step === 'score' && (
           <>
-            <div className="grid grid-cols-3 gap-2.5 mb-6">
+            <div className="grid grid-cols-5 gap-2 mb-6">
               {SCORES.map(function (score) {
                 var isSelected = selected === score
                 return (

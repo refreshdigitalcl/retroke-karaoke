@@ -44,6 +44,10 @@ function ProfileTab(props) {
   var uploadingAvatar = uploadingState[0]
   var setUploadingAvatar = uploadingState[1]
 
+  var profileErrorState = useState('')
+  var profileError = profileErrorState[0]
+  var setProfileError = profileErrorState[1]
+
   useEffect(function () {
     if (!auth.session) return
     supabase
@@ -67,6 +71,7 @@ function ProfileTab(props) {
     var file = e.target.files && e.target.files[0]
     if (!file) return
     setUploadingAvatar(true)
+    setProfileError('')
     var ext = file.name.split('.').pop()
     var path = auth.session.user.id + '-' + Date.now() + '.' + ext
     supabase.storage
@@ -75,17 +80,31 @@ function ProfileTab(props) {
       .then(function (result) {
         if (result.error) {
           setUploadingAvatar(false)
+          setProfileError('No se pudo subir la foto: ' + result.error.message)
           return
         }
         var publicUrl = supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl
         setAvatarUrl(publicUrl)
+        return supabase
+          .from('profiles')
+          .upsert({ id: auth.session.user.id, avatar_url: publicUrl })
+      })
+      .then(function (saveResult) {
         setUploadingAvatar(false)
+        if (saveResult && saveResult.error) {
+          setProfileError('La foto se subió pero no se pudo guardar: ' + saveResult.error.message)
+        }
+      })
+      .catch(function (err) {
+        setUploadingAvatar(false)
+        setProfileError('Error inesperado: ' + (err && err.message ? err.message : ''))
       })
   }
 
   function handleSave() {
     setSaving(true)
     setSaved(false)
+    setProfileError('')
     supabase
       .from('profiles')
       .upsert({
@@ -97,10 +116,12 @@ function ProfileTab(props) {
       })
       .then(function (result) {
         setSaving(false)
-        if (!result.error) {
-          setSaved(true)
-          setTimeout(function () { setSaved(false) }, 2000)
+        if (result.error) {
+          setProfileError('No se pudo guardar: ' + result.error.message)
+          return
         }
+        setSaved(true)
+        setTimeout(function () { setSaved(false) }, 2000)
       })
   }
 
@@ -134,7 +155,7 @@ function ProfileTab(props) {
             <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Cargando...</p>
           ) : (
             <>
-              <div className="flex items-center gap-4 mb-6">
+              <div className="flex items-center gap-4 mb-2">
                 <div
                   className="w-20 h-20 rounded-full overflow-hidden flex items-center justify-center text-3xl shrink-0"
                   style={{ background: 'var(--accent-purple)' }}
@@ -149,12 +170,16 @@ function ProfileTab(props) {
                   className="text-sm cursor-pointer font-medium px-3 py-2 rounded-lg border"
                   style={{ borderColor: 'var(--border)', color: 'var(--accent-purple)' }}
                 >
-                  {uploadingAvatar ? 'Subiendo...' : avatarUrl ? 'Cambiar foto' : '📷 Subir foto'}
+                  {uploadingAvatar ? 'Guardando foto...' : avatarUrl ? 'Cambiar foto' : '📷 Subir foto'}
                   <input type="file" accept="image/*" onChange={handleAvatarChange} disabled={uploadingAvatar} className="hidden" />
                 </label>
               </div>
 
-              <div className="flex flex-col gap-3">
+              {profileError && (
+                <p className="text-xs mb-4" style={{ color: 'var(--accent-magenta)' }}>{profileError}</p>
+              )}
+
+              <div className="flex flex-col gap-3 mt-4">
                 <input
                   type="text"
                   value={displayName}
