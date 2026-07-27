@@ -210,6 +210,60 @@ function ProfileTab(props) {
 }
 
 
+function VocalScoreBadge(props) {
+  var queueEntryId = props.queueEntryId
+
+  var resultState = useState(null)
+  var result = resultState[0]
+  var setResult = resultState[1]
+
+  useEffect(function () {
+    if (!queueEntryId) return
+    setResult(null)
+    var cancelled = false
+    var attempts = 0
+
+    function tryFetch() {
+      supabase
+        .from('vocal_results')
+        .select('final_score, pitch_score, rhythm_score, stability_score, energy_score, feedback')
+        .eq('queue_entry_id', queueEntryId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+        .then(function (res) {
+          if (cancelled) return
+          if (res.data) {
+            setResult(res.data)
+          } else if (attempts < 15) {
+            attempts++
+            setTimeout(tryFetch, 2000)
+          }
+        })
+    }
+    tryFetch()
+
+    return function () { cancelled = true }
+  }, [queueEntryId])
+
+  if (!result) {
+    return (
+      <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+        🎙️ Esperando puntaje Retroke...
+      </p>
+    )
+  }
+
+  return (
+    <div className="mt-2 inline-flex items-center gap-2 px-3 py-1.5 rounded-xl" style={{ background: 'rgba(244,208,63,0.1)', border: '1px solid rgba(244,208,63,0.35)' }}>
+      <span className="text-sm font-bold" style={{ color: '#F4D03F' }}>⭐ {result.final_score}/100</span>
+      <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+        🎯{result.pitch_score} 🥁{result.rhythm_score} 🎵{result.stability_score} 🔥{result.energy_score}
+      </span>
+    </div>
+  )
+}
+
 function LoginGate() {
   var auth = useAuth()
   var emailState = useState('')
@@ -577,6 +631,29 @@ function DjPanelInner() {
   var djAvatarUrl = djAvatarUrlState[0]
   var setDjAvatarUrl = djAvatarUrlState[1]
 
+  var vocalResultsState = useState([])
+  var vocalResults = vocalResultsState[0]
+  var setVocalResults = vocalResultsState[1]
+
+  useEffect(function () {
+    if (workspaceType !== 'HOME' || !session.sessionId) return
+
+    function loadVocalResults() {
+      supabase
+        .from('vocal_results')
+        .select('*, queue_entries(name, song, avatar, photo)')
+        .eq('session_id', session.sessionId)
+        .order('created_at', { ascending: false })
+        .then(function (result) {
+          if (result.data) setVocalResults(result.data)
+        })
+    }
+
+    loadVocalResults()
+    var intervalId = setInterval(loadVocalResults, 8000)
+    return function () { clearInterval(intervalId) }
+  }, [workspaceType, session.sessionId])
+
   useEffect(function () {
     if (!auth.session) return
     supabase
@@ -918,6 +995,9 @@ function DjPanelInner() {
                     ⚠️ Este video no se puede reproducir aqui. Cancela y cambia el link.
                   </p>
                 )}
+                {workspaceType === 'HOME' && (screenMode === 'rating' || screenMode === 'reactions') && (
+                  <VocalScoreBadge queueEntryId={currentSinger.id} />
+                )}
               </div>
             </div>
 
@@ -1019,6 +1099,61 @@ function DjPanelInner() {
           })}
         </div>
       </section>
+
+      {workspaceType === 'HOME' && vocalResults.length > 0 && (
+        <section
+          className="rounded-2xl border-2 p-5 mt-6 relative overflow-hidden"
+          style={{
+            borderColor: 'rgba(244,208,63,0.5)',
+            background: 'linear-gradient(135deg, rgba(139,92,246,0.10), rgba(233,30,140,0.08))',
+            boxShadow: '0 0 30px -8px rgba(244,208,63,0.5)'
+          }}
+        >
+          <p className="text-xs uppercase tracking-wide mb-3 flex items-center gap-2" style={{ color: '#F4D03F' }}>
+            ⭐ Retroke Scores de esta sesión
+          </p>
+          <div className="flex flex-col gap-2.5">
+            {vocalResults.map(function (r) {
+              var entry = r.queue_entries
+              var scoreColor = r.final_score >= 80 ? '#7ED957' : r.final_score >= 55 ? '#F4D03F' : '#E9544A'
+              return (
+                <div
+                  key={r.id}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl"
+                  style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(139,92,246,0.3)' }}
+                >
+                  <div
+                    className="w-9 h-9 rounded-full flex items-center justify-center text-base overflow-hidden shrink-0"
+                    style={{ background: 'var(--accent-purple)' }}
+                  >
+                    {entry && entry.photo ? (
+                      <img src={entry.photo} alt="" className="w-full h-full object-cover" />
+                    ) : entry ? (
+                      entry.avatar
+                    ) : (
+                      '🎤'
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm truncate" style={{ color: 'var(--text-primary)' }}>
+                      {entry ? entry.name : 'Cantante'}
+                    </p>
+                    <p className="text-[10px] truncate" style={{ color: 'var(--text-muted)' }}>
+                      🎯{r.pitch_score} 🥁{r.rhythm_score} 🎵{r.stability_score} 🔥{r.energy_score}
+                    </p>
+                  </div>
+                  <div
+                    className="shrink-0 text-lg font-extrabold px-3 py-1 rounded-full"
+                    style={{ color: scoreColor, border: '2px solid ' + scoreColor, boxShadow: '0 0 10px -2px ' + scoreColor }}
+                  >
+                    {r.final_score}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </section>
+      )}
 
       {ratings.length > 0 && (
         <section
