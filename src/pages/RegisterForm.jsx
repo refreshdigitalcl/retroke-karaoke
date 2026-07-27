@@ -37,12 +37,84 @@ function YourTurnScreen(props) {
   var micStatus = micState[0]
   var setMicStatus = micState[1]
 
+  var levelState = useState(0)
+  var level = levelState[0]
+  var setLevel = levelState[1]
+
+  var errorState = useState('')
+  var micError = errorState[0]
+  var setMicError = errorState[1]
+
+  var streamRef = useRef(null)
+  var audioCtxRef = useRef(null)
+  var rafRef = useRef(null)
+  var peakSeenRef = useRef(false)
+
+  useEffect(function () {
+    return function () {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current)
+      if (streamRef.current) streamRef.current.getTracks().forEach(function (t) { t.stop() })
+      if (audioCtxRef.current) audioCtxRef.current.close()
+    }
+  }, [])
+
   function handleActivateMic() {
-    setMicStatus('pending')
-    setTimeout(function () {
-      setMicStatus('soon')
-    }, 700)
+    setMicError('')
+    setMicStatus('requesting')
+
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setMicStatus('unsupported')
+      return
+    }
+
+    navigator.mediaDevices
+      .getUserMedia({ audio: true })
+      .then(function (stream) {
+        streamRef.current = stream
+        setMicStatus('testing')
+        peakSeenRef.current = false
+
+        var AudioContextClass = window.AudioContext || window.webkitAudioContext
+        var audioCtx = new AudioContextClass()
+        audioCtxRef.current = audioCtx
+        var source = audioCtx.createMediaStreamSource(stream)
+        var analyser = audioCtx.createAnalyser()
+        analyser.fftSize = 512
+        source.connect(analyser)
+        var data = new Uint8Array(analyser.frequencyBinCount)
+
+        function tick() {
+          analyser.getByteTimeDomainData(data)
+          var sum = 0
+          for (var i = 0; i < data.length; i++) {
+            var v = (data[i] - 128) / 128
+            sum += v * v
+          }
+          var rms = Math.sqrt(sum / data.length)
+          var pct = Math.min(100, Math.round(rms * 350))
+          setLevel(pct)
+          if (pct > 12) peakSeenRef.current = true
+          rafRef.current = requestAnimationFrame(tick)
+        }
+        tick()
+      })
+      .catch(function (err) {
+        if (err && err.name === 'NotAllowedError') {
+          setMicStatus('denied')
+        } else if (err && err.name === 'NotFoundError') {
+          setMicStatus('no-device')
+        } else {
+          setMicStatus('error')
+          setMicError(err ? err.message : '')
+        }
+      })
   }
+
+  function handleContinue() {
+    setMicStatus('ready')
+  }
+
+  var hasSignal = peakSeenRef.current
 
   return (
     <div className="min-h-screen flex items-center justify-center px-6" style={{ background: 'var(--bg-page)' }}>
@@ -57,23 +129,110 @@ function YourTurnScreen(props) {
         <p className="text-sm mb-1" style={{ color: 'var(--text-primary)' }}>{name}</p>
         <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>{song}</p>
 
-        <p className="text-xs uppercase tracking-wide mb-3" style={{ color: 'var(--text-muted)' }}>
-          🎙️ Prepara tu micrófono
-        </p>
+        {micStatus === 'idle' && (
+          <>
+            <p className="text-xs uppercase tracking-wide mb-3" style={{ color: 'var(--text-muted)' }}>
+              🎙️ Prepara tu micrófono
+            </p>
+            <button
+              onClick={handleActivateMic}
+              className="w-full h-14 rounded-2xl font-bold text-white text-lg"
+              style={{ background: 'linear-gradient(90deg, #E91E8C, #8B5CF6)' }}
+            >
+              ACTIVAR MICRÓFONO
+            </button>
+          </>
+        )}
 
-        <button
-          onClick={handleActivateMic}
-          disabled={micStatus !== 'idle'}
-          className="w-full h-14 rounded-2xl font-bold text-white text-lg disabled:opacity-70"
-          style={{ background: 'linear-gradient(90deg, #E91E8C, #8B5CF6)' }}
-        >
-          {micStatus === 'idle' ? 'ACTIVAR MICRÓFONO' : micStatus === 'pending' ? 'Activando...' : '🎧 Preparando esta función'}
-        </button>
-
-        {micStatus === 'soon' && (
-          <p className="text-xs mt-4" style={{ color: 'var(--text-muted)' }}>
-            El micrófono de tu celular como transmisor en vivo llega en la próxima actualización. Por ahora, canta frente a la pantalla principal 🎉
+        {micStatus === 'requesting' && (
+          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+            Solicitando permiso del micrófono...
           </p>
+        )}
+
+        {micStatus === 'denied' && (
+          <div>
+            <p className="text-sm font-semibold mb-2" style={{ color: 'var(--accent-magenta)' }}>
+              🎤 Para usar Retroke Home Mic debes permitir el acceso al micrófono.
+            </p>
+            <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>
+              Revisa el ícono de candado o el menú del navegador junto a la barra de direcciones, activa el permiso de micrófono para este sitio, y vuelve a intentar.
+            </p>
+            <button
+              onClick={handleActivateMic}
+              className="w-full h-12 rounded-xl font-bold text-white"
+              style={{ background: 'var(--accent-purple)' }}
+            >
+              Reintentar
+            </button>
+          </div>
+        )}
+
+        {micStatus === 'no-device' && (
+          <p className="text-sm" style={{ color: 'var(--accent-magenta)' }}>
+            No encontramos un micrófono en este dispositivo. Prueba con otro celular.
+          </p>
+        )}
+
+        {micStatus === 'unsupported' && (
+          <p className="text-sm" style={{ color: 'var(--accent-magenta)' }}>
+            Tu navegador no permite usar el micrófono aquí. Prueba abriendo Retroke en Chrome o Safari actualizado.
+          </p>
+        )}
+
+        {micStatus === 'error' && (
+          <div>
+            <p className="text-sm mb-3" style={{ color: 'var(--accent-magenta)' }}>
+              No pudimos activar el micrófono{micError ? ': ' + micError : '.'}
+            </p>
+            <button
+              onClick={handleActivateMic}
+              className="w-full h-12 rounded-xl font-bold text-white"
+              style={{ background: 'var(--accent-purple)' }}
+            >
+              Reintentar
+            </button>
+          </div>
+        )}
+
+        {micStatus === 'testing' && (
+          <div>
+            <p className="text-xs uppercase tracking-wide mb-3" style={{ color: 'var(--text-muted)' }}>
+              Di algo para probar tu micrófono
+            </p>
+            <div className="h-4 rounded-full overflow-hidden mb-2" style={{ background: 'var(--bg-card-alt)' }}>
+              <div
+                className="h-full rounded-full"
+                style={{
+                  width: level + '%',
+                  background: level > 60 ? '#E9544A' : level > 12 ? '#7ED957' : '#F4D03F',
+                  transition: 'width 0.08s linear'
+                }}
+              />
+            </div>
+            <p className="text-xs mb-4" style={{ color: hasSignal ? '#7ED957' : 'var(--text-muted)' }}>
+              {hasSignal ? '🟢 Micrófono funcionando' : '🟡 No detectamos suficiente audio. Acércate y habla.'}
+            </p>
+            <button
+              onClick={handleContinue}
+              className="w-full h-14 rounded-2xl font-bold text-white text-lg"
+              style={{ background: 'linear-gradient(90deg, #E91E8C, #8B5CF6)' }}
+            >
+              CONTINUAR
+            </button>
+          </div>
+        )}
+
+        {micStatus === 'ready' && (
+          <div>
+            <p className="text-4xl mb-3">🎧</p>
+            <p className="text-sm font-semibold mb-2" style={{ color: '#7ED957' }}>
+              Micrófono listo
+            </p>
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+              La transmisión en vivo hacia la pantalla principal llega en la próxima actualización. Por ahora, canta frente a la pantalla principal 🎉
+            </p>
+          </div>
         )}
       </div>
 
