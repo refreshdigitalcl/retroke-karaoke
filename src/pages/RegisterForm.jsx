@@ -159,10 +159,12 @@ function YourTurnScreen(props) {
 
   useEffect(function () {
     if (micStatus !== 'ready') return
-    if (!props.currentSinger || props.currentSinger.id !== props.entryId) {
+    var stillCurrentSinger = props.currentSinger && props.currentSinger.id === props.entryId
+    var stillSinging = stillCurrentSinger && props.screenMode === 'reactions'
+    if (!stillSinging) {
       finalizePerformance()
     }
-  }, [props.currentSinger, micStatus])
+  }, [props.currentSinger, props.screenMode, micStatus])
 
   var hasSignal = peakSeenRef.current
 
@@ -435,6 +437,14 @@ export default function RegisterForm() {
     return function () { clearInterval(intervalId) }
   }, [isHome, myEntryId, sendPresenceHeartbeat])
 
+  var showPerformanceState = useState(false)
+  var showPerformance = showPerformanceState[0]
+  var setShowPerformance = showPerformanceState[1]
+
+  useEffect(function () {
+    if (itsMyTurn) setShowPerformance(true)
+  }, [itsMyTurn])
+
   if (loadTimedOut) {
     return (
       <div className="min-h-screen flex items-center justify-center px-6" style={{ background: 'var(--bg-page)' }}>
@@ -480,14 +490,6 @@ export default function RegisterForm() {
     )
   }
 
-  var showPerformanceState = useState(false)
-  var showPerformance = showPerformanceState[0]
-  var setShowPerformance = showPerformanceState[1]
-
-  useEffect(function () {
-    if (itsMyTurn) setShowPerformance(true)
-  }, [itsMyTurn])
-
   if (showPerformance) {
     return (
       <YourTurnScreen
@@ -496,6 +498,7 @@ export default function RegisterForm() {
         entryId={myEntryId}
         sessionId={session.sessionId}
         currentSinger={currentSinger}
+        screenMode={session.screenMode}
         onDone={function () { setShowPerformance(false) }}
       />
     )
