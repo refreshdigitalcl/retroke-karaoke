@@ -125,7 +125,7 @@ function ProfileTab(props) {
           ← Volver al panel
         </button>
 
-        <div className="rounded-2xl border p-6 mb-5" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
+        <div className="rounded-2xl border p-6 mb-5" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)', boxShadow: '0 2px 20px -6px rgba(139,92,246,0.25)' }}>
           <p className="text-xs uppercase tracking-wide mb-4" style={{ color: 'var(--accent-yellow)' }}>
             Mi perfil
           </p>
@@ -239,7 +239,7 @@ function LoginGate() {
 
   return (
     <div className="min-h-screen flex items-center justify-center px-6" style={{ background: 'var(--bg-page)' }}>
-      <div className="max-w-sm w-full rounded-3xl border p-8 text-center" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
+      <div className="max-w-sm w-full rounded-3xl border p-8 text-center" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)', boxShadow: '0 2px 20px -6px rgba(139,92,246,0.25)' }}>
         <p className="text-lg font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
           Panel del DJ
         </p>
@@ -304,7 +304,7 @@ function StartSessionGate(props) {
   if (!barIsActive) {
     return (
       <div className="min-h-screen flex items-center justify-center px-6" style={{ background: 'var(--bg-page)' }}>
-        <div className="max-w-sm w-full rounded-3xl border p-8 text-center" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
+        <div className="max-w-sm w-full rounded-3xl border p-8 text-center" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)', boxShadow: '0 2px 20px -6px rgba(139,92,246,0.25)' }}>
           <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{barName}</p>
           <p className="text-lg font-medium mb-2" style={{ color: 'var(--accent-magenta)' }}>
             Servicio desactivado
@@ -336,7 +336,7 @@ function StartSessionGate(props) {
 
   return (
     <div className="min-h-screen flex items-center justify-center px-6" style={{ background: 'var(--bg-page)' }}>
-      <div className="max-w-sm w-full rounded-3xl border p-8 text-center" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
+      <div className="max-w-sm w-full rounded-3xl border p-8 text-center" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)', boxShadow: '0 2px 20px -6px rgba(139,92,246,0.25)' }}>
         <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{barName}</p>
         <p className="text-lg font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
           No existe una sesion activa
@@ -403,7 +403,7 @@ function HistoryPanel(props) {
   return (
     <section
       className="rounded-2xl border p-5 mt-6"
-      style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}
+      style={{ background: 'var(--bg-card)', borderColor: 'var(--border)', boxShadow: '0 2px 20px -6px rgba(139,92,246,0.25)' }}
     >
       <p className="text-xs uppercase tracking-wide mb-3" style={{ color: 'var(--accent-yellow)' }}>
         Historial de sesiones
@@ -451,7 +451,7 @@ function NightEndedPanel(props) {
 
   return (
     <div className="min-h-screen flex items-center justify-center px-6 py-10" style={{ background: 'var(--bg-page)' }}>
-      <div className="max-w-md w-full rounded-3xl border p-8 text-center" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
+      <div className="max-w-md w-full rounded-3xl border p-8 text-center" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)', boxShadow: '0 2px 20px -6px rgba(139,92,246,0.25)' }}>
         <p className="text-4xl mb-2">🏁</p>
         <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{barName}</p>
         <p className="text-xl font-bold mb-1" style={{ color: 'var(--text-primary)' }}>
@@ -728,8 +728,32 @@ export default function DjPanel() {
   }
 
   return (
-    <div className="min-h-screen px-6 py-8" style={{ background: 'var(--bg-page)' }}>
-      <header className="flex flex-col sm:flex-row sm:items-center justify-between mb-2 gap-3">
+    <div className="min-h-screen px-4 sm:px-6 py-6 sm:py-8 relative overflow-hidden" style={{ background: 'var(--bg-page)' }}>
+      <div
+        className="pointer-events-none fixed inset-0 opacity-[0.07]"
+        style={{
+          backgroundImage:
+            'linear-gradient(rgba(139,92,246,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(139,92,246,0.6) 1px, transparent 1px)',
+          backgroundSize: '42px 42px'
+        }}
+      />
+      <div
+        className="pointer-events-none fixed -top-32 -left-32 w-96 h-96 rounded-full opacity-20 blur-3xl"
+        style={{ background: '#E91E8C' }}
+      />
+      <div
+        className="pointer-events-none fixed -bottom-32 -right-32 w-96 h-96 rounded-full opacity-20 blur-3xl"
+        style={{ background: '#8B5CF6' }}
+      />
+      <div className="relative max-w-6xl mx-auto">
+      <header
+        className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-3 rounded-2xl border p-4 sm:p-5"
+        style={{
+          background: 'linear-gradient(135deg, rgba(139,92,246,0.08), rgba(233,30,140,0.06))',
+          borderColor: 'rgba(139,92,246,0.35)',
+          boxShadow: '0 0 24px -8px rgba(139,92,246,0.5)'
+        }}
+      >
         <div className="flex items-center gap-3">
           <div
             className="w-14 h-14 rounded-full overflow-hidden flex items-center justify-center text-2xl shrink-0"
@@ -807,8 +831,13 @@ export default function DjPanel() {
           </button>
           <button
             onClick={function () {
-              auth.signOut().then(function () {
-                window.location.href = '/'
+              var proceed = hasActiveSession
+                ? closeSession()
+                : Promise.resolve()
+              proceed.then(function () {
+                auth.signOut().then(function () {
+                  window.location.href = '/'
+                })
               })
             }}
             className="text-sm px-3 h-9 rounded-lg border whitespace-nowrap"
@@ -839,7 +868,7 @@ export default function DjPanel() {
 
       <section
         className="rounded-2xl border p-5 mb-6 mt-6"
-        style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}
+        style={{ background: 'var(--bg-card)', borderColor: 'var(--border)', boxShadow: '0 2px 20px -6px rgba(139,92,246,0.25)' }}
       >
         <p className="text-xs uppercase tracking-wide mb-3" style={{ color: 'var(--accent-yellow)' }}>
           Estado actual
@@ -958,7 +987,7 @@ export default function DjPanel() {
 
       <section
         className="rounded-2xl border p-5"
-        style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}
+        style={{ background: 'var(--bg-card)', borderColor: 'var(--border)', boxShadow: '0 2px 20px -6px rgba(139,92,246,0.25)' }}
       >
         <div className="flex items-center justify-between mb-4">
           <p className="text-xs uppercase tracking-wide" style={{ color: 'var(--accent-yellow)' }}>
@@ -992,7 +1021,7 @@ export default function DjPanel() {
       {ratings.length > 0 && (
         <section
           className="rounded-2xl border p-5 mt-6"
-          style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}
+          style={{ background: 'var(--bg-card)', borderColor: 'var(--border)', boxShadow: '0 2px 20px -6px rgba(139,92,246,0.25)' }}
         >
           <p className="text-xs uppercase tracking-wide mb-3" style={{ color: 'var(--accent-yellow)' }}>
             Calificaciones de esta sesion
@@ -1011,6 +1040,7 @@ export default function DjPanel() {
           </div>
         </section>
       )}
+      </div>
     </div>
   )
 }
