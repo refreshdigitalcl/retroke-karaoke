@@ -674,6 +674,7 @@ export function KaraokeSessionProvider({ children }) {
   )
 
   const value = {
+    sessionId,
     barSlug,
     barId,
     barName,

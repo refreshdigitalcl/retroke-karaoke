@@ -8,6 +8,7 @@ import QRCode from '../components/QRCode'
 import { fetchArtistFacts } from '../lib/artistFacts'
 import { getSentiment } from '../lib/reactionEmojis'
 import { isMemeReaction, getMemeUrl, getMemeSentiment } from '../lib/memeReactions'
+import { startMicReceiver } from '../lib/webrtcMic'
 
 
 var PHRASES = [
@@ -187,6 +188,8 @@ function useNeedlePosition(reactions) {
 export default function DisplayReactions() {
   var session = useKaraokeSession()
   var currentSinger = session.currentSinger
+  var sessionId = session.sessionId
+  var workspaceType = session.workspaceType
   var reactions = session.reactions
   var spaceParam = session.spaceParam
   var hasFeature = session.hasFeature
@@ -224,6 +227,26 @@ export default function DisplayReactions() {
     }
   }, [hasVideo, currentSinger ? currentSinger.videoId : null])
 
+  var micAudioRef = useRef(null)
+  var micReceiverRef = useRef(null)
+
+  useEffect(function () {
+    if (workspaceType !== 'HOME' || !sessionId || !currentSinger) return
+    var audioEl = micAudioRef.current
+    micReceiverRef.current = startMicReceiver(sessionId, currentSinger.id, function (stream) {
+      if (audioEl) {
+        audioEl.srcObject = stream
+        audioEl.play().catch(function () {})
+      }
+    })
+    return function () {
+      if (micReceiverRef.current) {
+        micReceiverRef.current.close()
+        micReceiverRef.current = null
+      }
+    }
+  }, [workspaceType, sessionId, currentSinger ? currentSinger.id : null])
+
   useEffect(function () {
     if (!hasVideo) return
     var interval = setInterval(function () {
@@ -247,9 +270,18 @@ export default function DisplayReactions() {
 
   var floaters = []
   var i = 0
+  var memeCount = 0
+  var MAX_SIMULTANEOUS_MEMES = 4
   while (i < reactions.length) {
     var r = reactions[i]
     var memeUrl = isMemeReaction(r.emoji) ? getMemeUrl(r.emoji) : null
+    if (memeUrl) {
+      memeCount = memeCount + 1
+      if (memeCount > MAX_SIMULTANEOUS_MEMES) {
+        i = i + 1
+        continue
+      }
+    }
     floaters.push(
       memeUrl ? (
         <img
@@ -280,6 +312,7 @@ export default function DisplayReactions() {
 
   return (
     <div className="min-h-screen relative overflow-hidden" style={{ background: hasVideo ? 'transparent' : '#000' }}>
+      <audio ref={micAudioRef} autoPlay playsInline className="hidden" />
       {needsTap && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 px-8">
           <button
