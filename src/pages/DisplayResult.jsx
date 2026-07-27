@@ -192,6 +192,17 @@ export default function DisplayResult() {
     return (sum / songRatings.length).toFixed(1)
   }, [songRatings])
 
+  var retrokeAsNota = vocalResult ? (5 + (vocalResult.final_score / 100) * 5) : null
+
+  var notaFinal = useMemo(function () {
+    var parts = []
+    if (average) parts.push(parseFloat(average))
+    if (retrokeAsNota !== null) parts.push(retrokeAsNota)
+    if (parts.length === 0) return null
+    var sum = parts.reduce(function (a, b) { return a + b }, 0)
+    return (sum / parts.length).toFixed(1)
+  }, [average, retrokeAsNota])
+
   var burstState = useState(0)
   var burstKey = burstState[0]
   var setBurstKey = burstState[1]
@@ -224,9 +235,28 @@ export default function DisplayResult() {
       <p key={titleInfo.index} className="result-title-glitch relative z-10 text-2xl md:text-4xl font-extrabold text-white mb-2 text-center">
         {titleInfo.title}
       </p>
-      <p className="relative z-10 text-xl md:text-2xl text-purple-300 mb-8 text-center">
+      <p className="relative z-10 text-xl md:text-2xl text-purple-300 mb-6 text-center">
         {currentSinger.name}
       </p>
+
+      {notaFinal && (
+        <div className="relative z-10 mb-6 flex flex-col items-center nota-final-in">
+          <p className="text-[11px] uppercase tracking-[3px]" style={{ color: '#fff', opacity: 0.85 }}>
+            ⭐ Nota Final
+          </p>
+          <p
+            className="text-6xl md:text-8xl font-black leading-none nota-final-glow"
+            style={{ background: 'linear-gradient(90deg, #F4D03F, #E91E8C, #8B5CF6)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}
+          >
+            {notaFinal}
+          </p>
+          {average && retrokeAsNota !== null && (
+            <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted, #999)' }}>
+              Promedio entre público y Retroke Score
+            </p>
+          )}
+        </div>
+      )}
 
       <div className="relative z-10 flex flex-col lg:flex-row gap-5 items-stretch">
         <div className="rounded-3xl border-2 border-yellow-400 bg-neutral-950/85 px-10 md:px-12 py-8 md:py-10 flex flex-col items-center justify-center result-panel-glow-pink">
@@ -289,6 +319,22 @@ export default function DisplayResult() {
           20% { opacity: 1; transform: translate(4px, 0); text-shadow: -3px 0 #8B5CF6, 3px 0 #F4D03F; }
           40% { transform: translate(-2px, 0); text-shadow: 2px 0 #E91E8C, -2px 0 #7ED957; }
           60%, 100% { transform: translate(0,0); text-shadow: none; opacity: 1; }
+        }
+        .nota-final-in {
+          animation: notaFinalIn 0.7s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        @keyframes notaFinalIn {
+          from { opacity: 0; transform: scale(0.7) translateY(-10px); }
+          to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .nota-final-glow {
+          filter: drop-shadow(0 0 18px rgba(244, 208, 63, 0.6)) drop-shadow(0 0 32px rgba(233, 30, 140, 0.4));
+          background-size: 200% auto;
+          animation: notaFinalShimmer 3s linear infinite;
+        }
+        @keyframes notaFinalShimmer {
+          0% { background-position: 0% center; }
+          100% { background-position: 200% center; }
         }
         .result-panel-glow-pink {
           box-shadow: 0 0 40px -8px rgba(244, 208, 63, 0.6);
