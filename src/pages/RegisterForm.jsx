@@ -338,7 +338,16 @@ function YourTurnScreen(props) {
 
         {micStatus === 'singing' && !results && (
           <div>
-            <p className="text-4xl mb-3 singing-pulse">🔴</p>
+            <div className="mx-auto mb-4 relative w-24 h-24 flex items-center justify-center listening-orb">
+              <svg width="48" height="28" viewBox="0 0 48 28">
+                <rect className="listening-bar" x="0" y="10" width="5" rx="2.5" fill="#F4D03F" />
+                <rect className="listening-bar" x="8" y="5" width="5" rx="2.5" fill="#E91E8C" style={{ animationDelay: '0.1s' }} />
+                <rect className="listening-bar" x="16" y="1" width="5" rx="2.5" fill="#8B5CF6" style={{ animationDelay: '0.2s' }} />
+                <rect className="listening-bar" x="24" y="7" width="5" rx="2.5" fill="#F4D03F" style={{ animationDelay: '0.3s' }} />
+                <rect className="listening-bar" x="32" y="3" width="5" rx="2.5" fill="#E91E8C" style={{ animationDelay: '0.15s' }} />
+                <rect className="listening-bar" x="40" y="9" width="5" rx="2.5" fill="#8B5CF6" style={{ animationDelay: '0.25s' }} />
+              </svg>
+            </div>
             <p className="text-sm font-semibold mb-2" style={{ color: '#E91E8C' }}>
               Midiendo tu presentación
             </p>
@@ -389,10 +398,39 @@ function YourTurnScreen(props) {
 
       <style>{`
         .your-turn-pulse { animation: yourTurnPulse 1.6s ease-in-out infinite; }
-        .singing-pulse { animation: singingPulse 1s ease-in-out infinite; }
-        @keyframes singingPulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.35; }
+        .listening-orb {
+          border-radius: 9999px;
+          background: radial-gradient(circle, rgba(139,92,246,0.25), rgba(233,30,140,0.12) 60%, transparent 75%);
+          box-shadow: 0 0 0 2px rgba(244,208,63,0.5), 0 0 30px -4px rgba(139,92,246,0.7), inset 0 0 20px rgba(0,0,0,0.3);
+          animation: listeningOrbGlow 1.8s ease-in-out infinite;
+        }
+        .listening-orb::before, .listening-orb::after {
+          content: '';
+          position: absolute;
+          inset: -6px;
+          border-radius: 9999px;
+          border: 1.5px solid rgba(244,208,63,0.5);
+          animation: listeningRing 1.8s ease-out infinite;
+        }
+        .listening-orb::after {
+          animation-delay: 0.6s;
+        }
+        @keyframes listeningOrbGlow {
+          0%, 100% { box-shadow: 0 0 0 2px rgba(244,208,63,0.5), 0 0 30px -4px rgba(139,92,246,0.7), inset 0 0 20px rgba(0,0,0,0.3); }
+          50% { box-shadow: 0 0 0 2px rgba(244,208,63,0.8), 0 0 42px 0px rgba(233,30,140,0.8), inset 0 0 20px rgba(0,0,0,0.3); }
+        }
+        @keyframes listeningRing {
+          0% { transform: scale(1); opacity: 0.8; }
+          100% { transform: scale(1.5); opacity: 0; }
+        }
+        .listening-bar {
+          transform-origin: center;
+          animation: listeningBarBounce 0.9s ease-in-out infinite;
+          filter: drop-shadow(0 0 4px currentColor);
+        }
+        @keyframes listeningBarBounce {
+          0%, 100% { transform: scaleY(0.4); }
+          50% { transform: scaleY(1.7); }
         }
         @keyframes yourTurnPulse {
           0%, 100% { transform: scale(1); }
