@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useKaraokeSession } from '../contexts/KaraokeSessionContext'
+import { supabase } from '../lib/supabase'
 import RetroEqualizer from '../components/RetroEqualizer'
 import FallingParty from '../components/FallingParty'
 
@@ -141,6 +142,39 @@ export default function DisplayResult() {
   var session = useKaraokeSession()
   var currentSinger = session.currentSinger
   var ratings = session.ratings
+  var workspaceType = session.workspaceType
+  var sessionId = session.sessionId
+
+  var vocalResultState = useState(null)
+  var vocalResult = vocalResultState[0]
+  var setVocalResult = vocalResultState[1]
+
+  useEffect(function () {
+    if (workspaceType !== 'HOME' || !sessionId || !currentSinger) {
+      setVocalResult(null)
+      return
+    }
+    var cancelled = false
+    function load() {
+      supabase
+        .from('vocal_results')
+        .select('*')
+        .eq('session_id', sessionId)
+        .eq('queue_entry_id', currentSinger.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .then(function (result) {
+          if (cancelled) return
+          if (result.data && result.data[0]) setVocalResult(result.data[0])
+        })
+    }
+    load()
+    var intervalId = setInterval(load, 3000)
+    return function () {
+      cancelled = true
+      clearInterval(intervalId)
+    }
+  }, [workspaceType, sessionId, currentSinger ? currentSinger.id : null])
 
   var songRatings = useMemo(function () {
     if (!currentSinger) return []
@@ -190,26 +224,59 @@ export default function DisplayResult() {
       <p key={titleInfo.index} className="result-title-glitch relative z-10 text-2xl md:text-4xl font-extrabold text-white mb-2 text-center">
         {titleInfo.title}
       </p>
-      <p className="relative z-10 text-xl md:text-2xl text-purple-300 mb-10 text-center">
+      <p className="relative z-10 text-xl md:text-2xl text-purple-300 mb-8 text-center">
         {currentSinger.name}
       </p>
 
-      <div className="relative z-10 rounded-3xl border-2 border-yellow-400 bg-neutral-950/85 px-12 py-10 flex flex-col items-center">
-        {bursting && <ConfettiBurst burstKey={burstKey} />}
-        {average ? (
-          <>
-            <p className="text-8xl md:text-9xl font-extrabold text-yellow-400 leading-none">
-              {average}
+      <div className="relative z-10 flex flex-col lg:flex-row gap-5 items-stretch">
+        <div className="rounded-3xl border-2 border-yellow-400 bg-neutral-950/85 px-10 md:px-12 py-8 md:py-10 flex flex-col items-center justify-center result-panel-glow-pink">
+          {bursting && <ConfettiBurst burstKey={burstKey} />}
+          <p className="text-[11px] uppercase tracking-widest text-neutral-400 mb-1">👥 Público</p>
+          {average ? (
+            <>
+              <p className="text-7xl md:text-8xl font-extrabold text-yellow-400 leading-none">
+                {average}
+              </p>
+              <p className="text-base md:text-xl font-bold text-white mt-4 text-center max-w-xs">
+                {phrase}
+              </p>
+              <p className="text-sm text-neutral-400 mt-3">
+                {songRatings.length} {songRatings.length === 1 ? 'voto' : 'votos'}
+              </p>
+            </>
+          ) : (
+            <p className="text-xl text-neutral-400 mt-3">Sin votos suficientes</p>
+          )}
+        </div>
+
+        {vocalResult && (
+          <div className="rounded-3xl border-2 px-10 md:px-12 py-8 md:py-10 flex flex-col items-center justify-center result-panel-glow-gold" style={{ borderColor: '#8B5CF6', background: 'rgba(10,8,20,0.9)' }}>
+            <p className="text-[11px] uppercase tracking-widest mb-1" style={{ color: '#F4D03F' }}>🎤 Retroke Score</p>
+            <p className="text-7xl md:text-8xl font-extrabold leading-none" style={{ color: '#F4D03F', textShadow: '0 0 24px rgba(244,208,63,0.7)' }}>
+              {vocalResult.final_score}
             </p>
-            <p className="text-lg md:text-2xl font-bold text-white mt-5 text-center">
-              {phrase}
-            </p>
-            <p className="text-sm text-neutral-400 mt-4">
-              {songRatings.length} {songRatings.length === 1 ? 'voto' : 'votos'}
-            </p>
-          </>
-        ) : (
-          <p className="text-xl text-neutral-400">Sin votos suficientes</p>
+            <div className="grid grid-cols-2 gap-2 mt-5 w-full">
+              {[
+                { label: '🎯 Afinación', value: vocalResult.pitch_score, color: '#F4D03F' },
+                { label: '🥁 Ritmo', value: vocalResult.rhythm_score, color: '#8B5CF6' },
+                { label: '🎵 Estabilidad', value: vocalResult.stability_score, color: '#E91E8C' },
+                { label: '🔥 Energía', value: vocalResult.energy_score, color: '#7ED957' }
+              ].map(function (m) {
+                return (
+                  <div key={m.label} className="rounded-xl px-3 py-2" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                    <p className="text-[10px] uppercase text-neutral-400">{m.label}</p>
+                    <div className="h-1.5 rounded-full overflow-hidden mt-1 mb-1" style={{ background: 'rgba(255,255,255,0.1)' }}>
+                      <div className="h-full rounded-full" style={{ width: m.value + '%', background: m.color, boxShadow: '0 0 6px ' + m.color }} />
+                    </div>
+                    <p className="text-sm font-bold" style={{ color: m.color }}>{m.value}</p>
+                  </div>
+                )
+              })}
+            </div>
+            {vocalResult.feedback && (
+              <p className="text-xs text-neutral-300 mt-4 text-center max-w-xs">{vocalResult.feedback}</p>
+            )}
+          </div>
         )}
       </div>
 
@@ -222,6 +289,21 @@ export default function DisplayResult() {
           20% { opacity: 1; transform: translate(4px, 0); text-shadow: -3px 0 #8B5CF6, 3px 0 #F4D03F; }
           40% { transform: translate(-2px, 0); text-shadow: 2px 0 #E91E8C, -2px 0 #7ED957; }
           60%, 100% { transform: translate(0,0); text-shadow: none; opacity: 1; }
+        }
+        .result-panel-glow-pink {
+          box-shadow: 0 0 40px -8px rgba(244, 208, 63, 0.6);
+          animation: panelGlowPink 2.6s ease-in-out infinite;
+        }
+        @keyframes panelGlowPink {
+          0%, 100% { box-shadow: 0 0 40px -8px rgba(244, 208, 63, 0.55); }
+          50% { box-shadow: 0 0 55px -4px rgba(244, 208, 63, 0.85); }
+        }
+        .result-panel-glow-gold {
+          animation: panelGlowGold 2.6s ease-in-out infinite;
+        }
+        @keyframes panelGlowGold {
+          0%, 100% { box-shadow: 0 0 40px -8px rgba(139, 92, 246, 0.55); }
+          50% { box-shadow: 0 0 55px -4px rgba(233, 30, 140, 0.75); }
         }
         .stage-light-flicker {
           animation: stageFlicker 3.2s ease-in-out infinite;
