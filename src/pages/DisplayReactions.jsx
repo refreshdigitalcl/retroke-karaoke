@@ -227,23 +227,37 @@ export default function DisplayReactions() {
     }
   }, [hasVideo, currentSinger ? currentSinger.videoId : null])
 
-  var micAudioRef = useRef(null)
+  var micAudioCtxRef = useRef(null)
+  var micAnalyserRef = useRef(null)
   var micReceiverRef = useRef(null)
 
   useEffect(function () {
     if (workspaceType !== 'HOME' || !sessionId || !currentSinger) return
-    var audioEl = micAudioRef.current
+
     micReceiverRef.current = startMicReceiver(sessionId, currentSinger.id, function (stream) {
-      if (audioEl) {
-        audioEl.srcObject = stream
-        audioEl.play().catch(function () {})
-      }
+      // No reproducimos el audio por los parlantes (evita eco con la voz en vivo).
+      // Lo conectamos a un analizador silencioso, listo para el analisis vocal (Fase D).
+      var AudioContextClass = window.AudioContext || window.webkitAudioContext
+      var audioCtx = new AudioContextClass()
+      micAudioCtxRef.current = audioCtx
+      var source = audioCtx.createMediaStreamSource(stream)
+      var analyser = audioCtx.createAnalyser()
+      analyser.fftSize = 2048
+      source.connect(analyser)
+      // Intencionalmente NO conectamos analyser -> audioCtx.destination: no debe sonar.
+      micAnalyserRef.current = analyser
     })
+
     return function () {
       if (micReceiverRef.current) {
         micReceiverRef.current.close()
         micReceiverRef.current = null
       }
+      if (micAudioCtxRef.current) {
+        micAudioCtxRef.current.close()
+        micAudioCtxRef.current = null
+      }
+      micAnalyserRef.current = null
     }
   }, [workspaceType, sessionId, currentSinger ? currentSinger.id : null])
 
@@ -312,7 +326,6 @@ export default function DisplayReactions() {
 
   return (
     <div className="min-h-screen relative overflow-hidden" style={{ background: hasVideo ? 'transparent' : '#000' }}>
-      <audio ref={micAudioRef} autoPlay playsInline className="hidden" />
       {needsTap && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 px-8">
           <button
