@@ -564,6 +564,14 @@ function WorkspaceRow(props) {
   var uploadingLogo = uploadingLogoState[0]
   var setUploadingLogo = uploadingLogoState[1]
 
+  var deletingState = useState(false)
+  var deleting = deletingState[0]
+  var setDeleting = deletingState[1]
+
+  var deleteErrorState = useState('')
+  var deleteError = deleteErrorState[0]
+  var setDeleteError = deleteErrorState[1]
+
   function changePlan(newPlan) {
     supabase
       .from('workspaces')
@@ -591,14 +599,69 @@ function WorkspaceRow(props) {
 
   function handleDelete() {
     if (!window.confirm('Eliminar "' + ws.name + '" para siempre? Esto no se puede deshacer.')) return
+    setDeleteError('')
+    setDeleting(true)
+
     supabase
       .from('bars')
-      .delete()
+      .select('id')
       .eq('workspace_id', ws.id)
-      .then(function () {
+      .then(function (barResult) {
+        var barId = barResult.data && barResult.data[0] ? barResult.data[0].id : null
+        var sessionQuery = barId
+          ? supabase.from('sessions').select('id').eq('bar_id', barId)
+          : supabase.from('sessions').select('id').eq('workspace_id', ws.id)
+
+        return sessionQuery.then(function (sessionResult) {
+          var sessionIds = (sessionResult.data || []).map(function (s) { return s.id })
+          if (sessionIds.length === 0) return { barId: barId, error: null }
+
+          return supabase.from('queue_entries').select('id').in('session_id', sessionIds).then(function (qeResult) {
+            var entryIds = (qeResult.data || []).map(function (q) { return q.id })
+            var cleanup = [
+              supabase.from('ratings').delete().in('session_id', sessionIds),
+              supabase.from('reactions').delete().in('session_id', sessionIds)
+            ]
+            if (entryIds.length > 0) {
+              cleanup.push(supabase.from('vocal_results').delete().in('queue_entry_id', entryIds))
+            }
+            return Promise.all(cleanup)
+              .then(function () {
+                return supabase.from('queue_entries').delete().in('session_id', sessionIds)
+              })
+              .then(function () {
+                return supabase.from('sessions').delete().in('id', sessionIds)
+              })
+              .then(function () {
+                return { barId: barId, error: null }
+              })
+          })
+        })
+      })
+      .then(function (info) {
+        if (info.barId) {
+          return supabase.from('bars').delete().eq('id', info.barId)
+        }
+        return { error: null }
+      })
+      .then(function (barDeleteResult) {
+        if (barDeleteResult && barDeleteResult.error) {
+          throw barDeleteResult.error
+        }
         return supabase.from('workspaces').delete().eq('id', ws.id)
       })
-      .then(function () { onChanged() })
+      .then(function (wsDeleteResult) {
+        setDeleting(false)
+        if (wsDeleteResult && wsDeleteResult.error) {
+          setDeleteError('No se pudo eliminar: ' + wsDeleteResult.error.message)
+          return
+        }
+        onChanged()
+      })
+      .catch(function (err) {
+        setDeleting(false)
+        setDeleteError('No se pudo eliminar: ' + (err && err.message ? err.message : 'error desconocido'))
+      })
   }
 
   function handleLogoChange(e) {
@@ -630,6 +693,40 @@ function WorkspaceRow(props) {
 
   var createdLabel = ws.created_at ? new Date(ws.created_at).toLocaleDateString('es-CL') : '—'
 
+  var showDetailState = useState(false)
+  var showDetail = showDetailState[0]
+  var setShowDetail = showDetailState[1]
+
+  var nameValueState = useState(ws.name)
+  var nameValue = nameValueState[0]
+  var setNameValue = nameValueState[1]
+
+  var ownerEmailValueState = useState(ws.settings && ws.settings.pending_owner_email ? ws.settings.pending_owner_email : '')
+  var ownerEmailValue = ownerEmailValueState[0]
+  var setOwnerEmailValue = ownerEmailValueState[1]
+
+  var savingDetailState = useState(false)
+  var savingDetail = savingDetailState[0]
+  var setSavingDetail = savingDetailState[1]
+
+  function saveDetails() {
+    setSavingDetail(true)
+    var newSettings = Object.assign({}, ws.settings || {})
+    if (ownerEmailValue.trim()) {
+      newSettings.pending_owner_email = ownerEmailValue.trim()
+    } else {
+      delete newSettings.pending_owner_email
+    }
+    supabase
+      .from('workspaces')
+      .update({ name: nameValue.trim() || ws.name, settings: newSettings })
+      .eq('id', ws.id)
+      .then(function () {
+        setSavingDetail(false)
+        onChanged()
+      })
+  }
+
   return (
     <div className="rounded-lg py-3 px-3" style={{ background: 'var(--bg-card-alt)' }}>
       <div className="flex items-center justify-between flex-wrap gap-2">
@@ -645,9 +742,13 @@ function WorkspaceRow(props) {
             )}
           </div>
           <div>
-            <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+            <button
+              onClick={function () { setShowDetail(!showDetail) }}
+              className="text-sm font-medium underline decoration-dotted"
+              style={{ color: 'var(--text-primary)' }}
+            >
               {ws.name}
-            </p>
+            </button>
             <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
               {ws.type}
               {' · '}
@@ -693,13 +794,18 @@ function WorkspaceRow(props) {
           </button>
           <button
             onClick={handleDelete}
-            className="text-xs px-2.5 py-1 rounded-full border"
+            disabled={deleting}
+            className="text-xs px-2.5 py-1 rounded-full border disabled:opacity-50"
             style={{ borderColor: 'var(--accent-magenta)', color: 'var(--accent-magenta)' }}
           >
-            🗑️ Eliminar
+            {deleting ? 'Eliminando...' : '🗑️ Eliminar'}
           </button>
         </div>
       </div>
+
+      {deleteError && (
+        <p className="text-xs mt-2" style={{ color: 'var(--accent-magenta)' }}>{deleteError}</p>
+      )}
 
       <div className="flex items-center gap-3 flex-wrap mt-2.5 pt-2.5" style={{ borderTop: '1px solid var(--border)' }}>
         <div className="flex items-center gap-1.5">
@@ -721,6 +827,51 @@ function WorkspaceRow(props) {
           <input type="file" accept="image/*" onChange={handleLogoChange} disabled={uploadingLogo} className="hidden" />
         </label>
       </div>
+
+      {showDetail && (
+        <div className="flex flex-col gap-2.5 mt-2.5 pt-2.5" style={{ borderTop: '1px solid var(--border)' }}>
+          <p className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--accent-yellow)' }}>
+            Detalle del cliente
+          </p>
+          <div>
+            <label className="text-xs block mb-1" style={{ color: 'var(--text-muted)' }}>Nombre</label>
+            <input
+              type="text"
+              value={nameValue}
+              onChange={function (e) { setNameValue(e.target.value) }}
+              className="w-full h-9 rounded-lg px-3 border outline-none text-sm"
+              style={{ background: 'var(--bg-card)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+            />
+          </div>
+          <div>
+            <label className="text-xs block mb-1" style={{ color: 'var(--text-muted)' }}>
+              {ws.owner_id ? 'Dueño vinculado (ID de usuario)' : 'Correo del dueño (pendiente de vincular)'}
+            </label>
+            {ws.owner_id ? (
+              <p className="text-xs px-3 py-2 rounded-lg" style={{ background: 'var(--bg-card)', color: 'var(--text-secondary)' }}>
+                {ws.owner_id}
+              </p>
+            ) : (
+              <input
+                type="email"
+                value={ownerEmailValue}
+                onChange={function (e) { setOwnerEmailValue(e.target.value) }}
+                placeholder="correo@ejemplo.com"
+                className="w-full h-9 rounded-lg px-3 border outline-none text-sm"
+                style={{ background: 'var(--bg-card)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+              />
+            )}
+          </div>
+          <button
+            onClick={saveDetails}
+            disabled={savingDetail}
+            className="h-9 rounded-lg text-sm font-medium text-white disabled:opacity-50"
+            style={{ background: 'var(--accent-purple)' }}
+          >
+            {savingDetail ? 'Guardando...' : 'Guardar cambios'}
+          </button>
+        </div>
+      )}
     </div>
   )
 }
