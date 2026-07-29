@@ -880,17 +880,36 @@ function WorkspacesList(props) {
   var workspaces = props.workspaces
   var onChanged = props.onChanged
 
+  var groups = [
+    { type: 'BAR', label: '🍹 Bares' },
+    { type: 'DJ', label: '🎧 DJ Pro' },
+    { type: 'HOME', label: '🏠 Home' }
+  ]
+
   return (
     <Card>
       <p className="text-xs uppercase mb-3" style={{ color: 'var(--accent-yellow)' }}>
         Workspaces ({workspaces.length})
       </p>
-      <div className="flex flex-col gap-2">
-        {workspaces.length === 0 && (
-          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Aun no hay workspaces.</p>
-        )}
-        {workspaces.map(function (ws) {
-          return <WorkspaceRow key={ws.id} ws={ws} onChanged={onChanged} />
+      {workspaces.length === 0 && (
+        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Aun no hay workspaces.</p>
+      )}
+      <div className="flex flex-col gap-6">
+        {groups.map(function (g) {
+          var items = workspaces.filter(function (ws) { return ws.type === g.type })
+          if (items.length === 0) return null
+          return (
+            <div key={g.type}>
+              <p className="text-xs font-bold mb-2" style={{ color: 'var(--text-secondary)' }}>
+                {g.label} ({items.length})
+              </p>
+              <div className="flex flex-col gap-2">
+                {items.map(function (ws) {
+                  return <WorkspaceRow key={ws.id} ws={ws} onChanged={onChanged} />
+                })}
+              </div>
+            </div>
+          )
         })}
       </div>
     </Card>
@@ -1013,7 +1032,6 @@ export default function AdminPanel() {
           <Dashboard stats={stats} />
           <WorkspacesList workspaces={workspaces} onChanged={loadEverything} />
           <NewWorkspaceForm onCreated={loadEverything} />
-          <BarsList bars={bars} onToggleActive={toggleActive} onSelect={setSelectedBar} />
         </div>
       )}
     </div>

@@ -227,20 +227,21 @@ export default function DisplayResult() {
   var phrase = pickFromList(RESULT_PHRASES, String(currentSinger.id) + 'x')
 
   return (
-    <div className="min-h-screen relative overflow-hidden flex flex-col items-center justify-center px-10 py-10 bg-black">
-      <RetroEqualizer />
-      <ResultStageLights />
-      <FallingParty />
+    <div className="min-h-screen w-screen relative overflow-hidden bg-black flex items-center justify-center">
+      <Stage16x9>
+        <RetroEqualizer />
+        <ResultStageLights />
+        <FallingParty />
 
-      <p key={titleInfo.index} className="result-title-glitch relative z-10 text-3xl md:text-5xl font-extrabold text-white mb-2 text-center">
-        {titleInfo.title}
-      </p>
-      <p className="relative z-10 text-xl md:text-2xl text-purple-300 mb-10 text-center tracking-wide">
-        {currentSinger.name}
-      </p>
+        <p key={titleInfo.index} className="result-title-glitch relative z-10 text-3xl md:text-5xl font-extrabold text-white mb-2 text-center">
+          {titleInfo.title}
+        </p>
+        <p className="relative z-10 text-xl md:text-2xl text-purple-300 mb-10 text-center tracking-wide">
+          {currentSinger.name}
+        </p>
 
-      <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-6xl items-stretch">
-        <div className="rounded-3xl border-2 px-8 py-8 flex flex-col items-center justify-center text-center result-panel-glow-pink" style={{ borderColor: 'rgba(244,208,63,0.55)', background: 'rgba(15,10,20,0.88)' }}>
+        <div className="relative z-10 flex flex-col md:flex-row flex-wrap justify-center gap-6 w-full max-w-6xl items-stretch">
+        <div className="w-full md:w-80 shrink-0 rounded-3xl border-2 px-8 py-8 flex flex-col items-center justify-center text-center result-panel-glow-pink" style={{ borderColor: 'rgba(244,208,63,0.55)', background: 'rgba(15,10,20,0.88)' }}>
           <p className="text-sm md:text-base uppercase tracking-[3px] text-neutral-400 mb-3 font-bold">👥 Público</p>
           {average ? (
             <>
@@ -260,7 +261,7 @@ export default function DisplayResult() {
         </div>
 
         {notaFinal && (
-          <div className="rounded-3xl border-2 px-8 py-8 flex flex-col items-center justify-center text-center nota-final-panel">
+          <div className="w-full md:w-80 shrink-0 rounded-3xl border-2 px-8 py-8 flex flex-col items-center justify-center text-center nota-final-panel">
             {bursting && <ConfettiBurst burstKey={burstKey} />}
             <p className="text-sm md:text-base uppercase tracking-[3px] font-bold mb-3" style={{ color: '#F4D03F', textShadow: '0 0 10px rgba(244,208,63,0.8)' }}>
               ⭐ Nota Final
@@ -277,7 +278,7 @@ export default function DisplayResult() {
         )}
 
         {vocalResult && (
-          <div className="rounded-3xl border-2 px-8 py-8 flex flex-col items-center justify-center text-center result-panel-glow-gold" style={{ borderColor: 'rgba(139,92,246,0.55)', background: 'rgba(10,8,20,0.92)' }}>
+          <div className="w-full md:w-80 shrink-0 rounded-3xl border-2 px-8 py-8 flex flex-col items-center justify-center text-center result-panel-glow-gold" style={{ borderColor: 'rgba(139,92,246,0.55)', background: 'rgba(10,8,20,0.92)' }}>
             <p className="text-sm md:text-base uppercase tracking-[3px] mb-3 font-bold" style={{ color: '#F4D03F' }}>🎤 Retroke Score</p>
             <p className="text-7xl md:text-8xl font-extrabold leading-none" style={{ color: '#F4D03F', textShadow: '0 0 20px rgba(244,208,63,0.6)' }}>
               {vocalResult.final_score}
@@ -386,6 +387,43 @@ export default function DisplayResult() {
           100% { transform: translate(var(--dx), var(--dy)) scale(0.3); opacity: 0; }
         }
       `}</style>
+      </Stage16x9>
+    </div>
+  )
+}
+
+function Stage16x9(props) {
+  var scaleState = useState(1)
+  var scale = scaleState[0]
+  var setScale = scaleState[1]
+
+  useEffect(function () {
+    function computeScale() {
+      var scaleX = window.innerWidth / 1920
+      var scaleY = window.innerHeight / 1080
+      setScale(Math.min(scaleX, scaleY))
+    }
+    computeScale()
+    window.addEventListener('resize', computeScale)
+    return function () { window.removeEventListener('resize', computeScale) }
+  }, [])
+
+  return (
+    <div
+      style={{
+        width: '1920px',
+        height: '1080px',
+        transform: 'scale(' + scale + ')',
+        transformOrigin: 'center center',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        position: 'relative',
+        flexShrink: 0
+      }}
+    >
+      {props.children}
     </div>
   )
 }

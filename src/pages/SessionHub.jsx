@@ -3,6 +3,12 @@ import { supabase } from '../lib/supabase'
 import RetroEqualizer from '../components/RetroEqualizer'
 import FloatingDecor from '../components/FloatingDecor'
 
+function saveRoom(href) {
+  try {
+    localStorage.setItem('retroke_last_room', href)
+  } catch (e) {}
+}
+
 function useActiveSessions() {
   var listState = useState(null)
   var list = listState[0]
@@ -83,6 +89,7 @@ function PinGate(props) {
 
   function checkPin(fullPin, digitsUsed) {
     if (fullPin === session.pin) {
+      saveRoom(session.href)
       window.location.href = session.href
     } else {
       setError(true)
@@ -184,6 +191,7 @@ export default function SessionHub() {
     if (s.pin) {
       setSelected(s)
     } else {
+      saveRoom(s.href)
       window.location.href = s.href
     }
   }

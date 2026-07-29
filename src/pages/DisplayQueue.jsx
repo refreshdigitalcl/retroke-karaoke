@@ -192,6 +192,17 @@ export default function DisplayQueue(props) {
         </button>
       )}
 
+      <button
+        onClick={function () {
+          try { localStorage.removeItem('retroke_last_room') } catch (e) {}
+          window.location.href = '/'
+        }}
+        className="fixed top-3 right-3 z-30 text-[10px] px-2.5 py-1 rounded-full opacity-30 hover:opacity-80 transition-opacity"
+        style={{ background: 'rgba(0,0,0,0.4)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}
+      >
+        🏠 Cambiar sala
+      </button>
+
       <header className="flex items-center justify-center gap-3 relative z-10 pt-8 pb-4">
         {logoUrl && (
           <img
