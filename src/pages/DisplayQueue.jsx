@@ -219,7 +219,7 @@ export default function DisplayQueue(props) {
   var viewport = useViewportSize()
   // QR proporcional a la altura real de la ventana, con piso y techo
   // razonables para que nunca quede minusculo ni gigante.
-  var qrSize = Math.round(Math.max(150, Math.min(290, viewport.h * 0.26)))
+  var qrSize = Math.round(Math.max(140, Math.min(230, viewport.h * 0.21)))
 
   var heroPhraseState = useState(nextHeroPhrase)
   var heroPhrase = heroPhraseState[0]
@@ -312,7 +312,7 @@ export default function DisplayQueue(props) {
           </p>
           <h1
             className="hero-title font-extrabold leading-tight mb-1.5"
-            style={{ fontSize: 'clamp(1.5rem, 5.5vh, 3rem)' }}
+            style={{ fontSize: 'clamp(1.4rem, 5vh, 2.6rem)' }}
           >
             {heroPhrase}
           </h1>
@@ -341,17 +341,20 @@ export default function DisplayQueue(props) {
           </div>
 
           {currentSung && (
-            <div className="mt-2 w-full max-w-[300px] rounded-2xl px-5 py-2" style={{ background: 'rgba(15,10,20,0.75)', border: '1.5px solid rgba(139,92,246,0.4)' }}>
-              <p className="text-[10px] tracking-widest uppercase font-bold mb-1 text-center" style={{ color: '#8B5CF6' }}>
+            <div className="mt-3 w-full max-w-[340px] rounded-2xl px-5 py-3" style={{ background: 'rgba(15,10,20,0.8)', border: '1.5px solid rgba(139,92,246,0.5)' }}>
+              <p
+                className="tracking-widest uppercase font-bold mb-1.5 text-center"
+                style={{ color: '#8B5CF6', fontSize: 'clamp(10px, 1.5vh, 13px)' }}
+              >
                 Ya cantaron esta noche
               </p>
-              <div className="h-7 flex items-center justify-center overflow-hidden">
+              <div style={{ height: 'clamp(28px, 4vh, 40px)' }} className="flex items-center justify-center overflow-hidden">
                 <div
                   key={currentSung.id + '-' + sungIndex}
                   className="glitch-row flex items-center gap-3"
                 >
-                  <span className="text-white font-bold text-sm">{currentSung.name}</span>
-                  <span className="font-extrabold text-sm" style={{ color: '#F4D03F' }}>{currentSung.average}</span>
+                  <span className="text-white font-bold" style={{ fontSize: 'clamp(16px, 2.6vh, 22px)' }}>{currentSung.name}</span>
+                  <span className="font-extrabold" style={{ color: '#F4D03F', fontSize: 'clamp(16px, 2.6vh, 22px)' }}>{currentSung.average}</span>
                 </div>
               </div>
             </div>
