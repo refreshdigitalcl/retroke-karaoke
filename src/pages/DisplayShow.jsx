@@ -338,7 +338,7 @@ export default function DisplayShow() {
               ¡Reacciona a esta presentacion!
             </p>
             <div className="rounded-2xl border-2 border-yellow-400 bg-neutral-950/90 p-3">
-              <QRCode url={reactUrl} size={130} />
+              <QRCode url={reactUrl} size={160} />
             </div>
           </div>
         )}

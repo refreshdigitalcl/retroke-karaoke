@@ -263,7 +263,7 @@ export default function DisplayRating() {
               />
             </svg>
             <div className="absolute inset-6 rounded-full border-2 border-yellow-400 bg-neutral-950/90 flex flex-col items-center justify-center qr-glow">
-              <QRCode url={rateUrl} size={170} />
+              <QRCode url={rateUrl} size={205} />
             </div>
             <div
               className="absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-full px-4 py-1 text-lg font-extrabold border-2"

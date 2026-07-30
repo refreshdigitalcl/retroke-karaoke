@@ -417,25 +417,25 @@ export default function DisplayReactions() {
               {qrCycle.which === 'reaction' ? (
                 <>
                   <p
-                    className="text-sm font-bold text-yellow-400 mb-2 text-center leading-tight w-[137px]"
+                    className="text-sm font-bold text-yellow-400 mb-2 text-center leading-tight w-[165px]"
                     style={{ textShadow: '0 1px 4px rgba(0,0,0,0.9)' }}
                   >
                     ¡Reacciona a esta presentacion!
                   </p>
                   <div className="rounded-2xl border-2 border-yellow-400 bg-neutral-950/90 p-3">
-                    <QRCode url={reactUrl} size={126} />
+                    <QRCode url={reactUrl} size={155} />
                   </div>
                 </>
               ) : (
                 <>
                   <p
-                    className="text-sm font-bold text-purple-300 mb-2 text-center leading-tight w-[137px]"
+                    className="text-sm font-bold text-purple-300 mb-2 text-center leading-tight w-[165px]"
                     style={{ textShadow: '0 1px 4px rgba(0,0,0,0.9)' }}
                   >
                     ¿Aun no te anotas? ¡Escanea aqui!
                   </p>
                   <div className="rounded-2xl border-2 border-purple-400 bg-neutral-950/90 p-3" style={{ boxShadow: '0 0 24px 4px rgba(139, 92, 246, 0.35)' }}>
-                    <QRCode url={registerUrl} size={126} />
+                    <QRCode url={registerUrl} size={155} />
                   </div>
                 </>
               )}
@@ -467,7 +467,7 @@ export default function DisplayReactions() {
           </p>
 
           <div className="flex flex-col items-center gap-1.5">
-            <QRCode url={reactUrl} size={130} />
+            <QRCode url={reactUrl} size={160} />
             <p className="text-sm text-purple-300">Escanea para reaccionar</p>
           </div>
         </div>
