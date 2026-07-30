@@ -59,7 +59,6 @@ export default async function handler(req, res) {
             currency_id: 'CLP'
           }
         ],
-        payer: payerEmail ? { email: payerEmail } : undefined,
         back_urls: {
           success: siteUrl + '/bienvenido?sub=' + sub.id,
           failure: siteUrl + '/comenzar?error=pago_fallido',
