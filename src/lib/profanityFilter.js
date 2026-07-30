@@ -1,74 +1,90 @@
 // Filtro de lenguaje ofensivo para nombres en el formulario de registro.
-// Cubre garabatos y expresiones vulgares comunes en español (Chile,
-// Argentina y Latinoamerica en general) e ingles, incluyendo variantes
-// con numeros/simbolos que se usan para evadir filtros (leetspeak).
+// Cubre garabatos chilenos, argentinos y latinoamericanos en general, mas
+// ingles basico. Detecta variantes con numeros/simbolos (leetspeak), letras
+// repetidas, espacios entre letras, y combinaciones/frases compuestas
+// (ej: "Saco De Weas", "CarePico", "El Culiaooo").
 
 var BLOCKED_WORDS = [
-  // Español - vulgaridades comunes / sexuales
-  'puta', 'puto', 'putas', 'putos', 'putazo',
-  'concha', 'conchatumadre', 'conchetumare', 'ctm',
-  'culiao', 'culiado', 'culia', 'culear', 'culon', 'culona',
-  'pendejo', 'pendeja',
-  'verga', 'pinga', 'pico', 'poronga', 'chota',
-  'pelotudo', 'pelotuda', 'boludo de mierda',
-  'forro', 'forra',
-  'cagon', 'cagona',
-  'mierda', 'mierdero',
-  'chucha', 'chuchatumadre',
-  'maricon', 'marico',
-  'zorra', 'perra',
-  'cabron', 'cabrona',
-  'gilipollas',
-  'coño',
-  'joder',
-  'follar',
-  'pajero', 'paja',
-  'chingar', 'chingada', 'chingadamadre',
-  'hijueputa', 'hijodeputa', 'hdp',
-  'malparido', 'malparida',
-  'guevon culiado',
-  'weon culiao',
-  // Español - discriminatorio
-  'negro de mierda', 'indio de mierda', 'sudaca de mierda',
-  'muerete', 'ojala te mueras',
+  // Chile - palabras sueltas
+  'aweonao', 'weon', 'hueon', 'weona', 'hueona', 'wn', 'wna', 'weones', 'hueones',
+  'aweona', 'aweonada', 'aweonamiento',
+  'pendejo', 'pendeja', 'pelmazo', 'pajaron', 'pajarona', 'pajero', 'pajera',
+  'gil', 'gila', 'gilipollas', 'idiota', 'imbecil', 'estupido', 'estupida',
+  'tarado', 'tarada', 'baboso', 'babosa', 'maricon', 'maricona', 'maraca', 'maraco',
+  'conchetumare', 'conchetumadre', 'concha', 'ctm', 'csm', 'conchesumare',
+  'puta', 'puto', 'putas', 'putos', 'culiao', 'culiada', 'culiaos', 'culia',
+  'ql', 'qlo', 'culero', 'culera', 'pico', 'pichula', 'pichulita', 'pichulon',
+  'chucha', 'chuchada', 'chuchesumare', 'chupapico', 'chupapija', 'chupamedias',
+  'soplapico', 'soplapollas', 'paja', 'pajear', 'masturbar',
+  'mariconazo', 'mariconada', 'perkin', 'perkinazo', 'sapo', 'sapa', 'soplon', 'soplona',
+  'cagao', 'cagada', 'cagado', 'cagar', 'cagarse', 'mierda', 'mierdoso', 'mierdosa',
+  'mierdero', 'culo', 'rajado', 'raja', 'zorra', 'zorro', 'cabron', 'cabrona', 'coño',
+  'forro', 'forra', 'pelotudo', 'pelotuda', 'pelotudez', 'pelotear',
+  'barsa', 'barsudo', 'barsuda', 'sinverguenza', 'carepalo', 'carewea', 'carepoto',
+  'careculo', 'careraja', 'carechucha', 'cara de raja', 'cara de pico', 'cara de culo',
+  'hijo de puta', 'hijo de perra', 'malparido', 'malparida', 'bastardo', 'bastarda',
+  'cabeza de pico', 'cabeza de chorlito', 'cara de nalga', 'cara de palo', 'cara de weon',
+  'cara de hueon', 'cara de poto', 'carepichula', 'carepico', 'caremalo', 'carecagao',
+  'careconcha', 'caremaraca', 'careloco', 'careweon', 'carehueon',
+  'wea', 'weas', 'huea', 'hueas', 'wevear', 'huevear', 'webeo', 'hueveo',
+  'weon culiao', 'hueon culiao', 'weona culia', 'hueona culia', 'weonazo', 'hueonazo',
+  'weonera', 'hueonera', 'weonaje', 'hueonaje', 'wea mala', 'huea mala', 'pura wea',
+  'pura huea', 'que wea', 'que chucha', 'que mierda', 'la cago', 'la cagaste', 'cagaste',
+  'cagon', 'cagona', 'cagonazo', 'cagonear', 'caguento', 'caguentero', 'caguentera',
+  'penca', 'penca culiao', 'pencazo', 'pencon', 'pencona', 'chantado', 'chantao',
+  'chanta', 'barson', 'patudo', 'patuda', 'sinverguenza', 'caradura', 'desgraciado',
+  'desgraciada', 'maldito', 'maldita', 'condenado', 'condenada', 'infeliz',
+  'saco de weas', 'saco de hueas', 'saco de mierda', 'pedazo de mierda', 'pura mierda',
+  'mierda humana',
+  // Latinoamerica en general
+  'cojudo', 'cojuda', 'cojones', 'conchudo', 'conchuda', 'conchesumadre',
+  'marica', 'maricas', 'mamon', 'mamona', 'mamada', 'mamar',
+  'chinga', 'chingada', 'chingado', 'chingon', 'chingona', 'chingar', 'chingue',
+  'chinga tu madre', 'hijueputa', 'hijuepucha', 'gonorrea', 'gonorreas',
+  'carechimba', 'chimba', 'chimbada', 'chimbazo', 'caremonda', 'monda', 'monda',
+  'mondazo', 'verga', 'vergazo', 'vergona', 'pito', 'pija', 'pijazo', 'pajazo',
+  'putero', 'puteria', 'putear', 'perra', 'perro', 'perra malparida',
+  'ojete', 'ojeteado', 'pinche', 'pinche cabron', 'pinche pendejo', 'no mames',
+  'mames', 'mamadas', 'mamador', 'mamadora', 'chupapijas', 'chupapitos',
+  'chupaverga', 'soplapijas', 'soplapitos', 'soplavergas',
+  'boludo', 'boluda', 'boludo de mierda', 'gilipolla', 'imbécil', 'pajarraco',
+  'mamerto', 'mamerta', 'lambon', 'lambona', 'lameculos', 'lameculo', 'chupamedia',
   // Ingles - comunes
-  'fuck', 'fucker', 'fucking', 'fuk', 'fck',
-  'shit', 'shitty',
-  'bitch', 'biatch',
-  'asshole', 'ass hole',
-  'bastard',
-  'cunt',
-  'dick', 'dickhead',
-  'pussy',
-  'whore', 'slut',
-  'nigger', 'nigga',
-  'faggot', 'fag',
-  'retard', 'retarded'
+  'fuck', 'fucker', 'fucking', 'fuk', 'fck', 'shit', 'shitty', 'bitch', 'biatch',
+  'asshole', 'bastard', 'cunt', 'dick', 'dickhead', 'pussy', 'whore', 'slut',
+  'nigger', 'nigga', 'faggot', 'fag', 'retard', 'retarded'
 ]
 
 function normalize(text) {
   var t = text.toLowerCase()
   t = t.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
   t = t
-    .replace(/[@4]/g, 'a')
-    .replace(/[03]/g, 'o')
+    .replace(/4/g, 'a')
+    .replace(/3/g, 'e')
+    .replace(/0/g, 'o')
     .replace(/1/g, 'i')
-    .replace(/\$5/g, 's')
     .replace(/\$/g, 's')
+    .replace(/5/g, 's')
     .replace(/7/g, 't')
-  t = t.replace(/(.)\1{2,}/g, '$1$1')
+  // colapsar cualquier letra repetida seguidas a una sola (culiaooooo -> culiao)
+  t = t.replace(/(.)\1+/g, '$1')
   return t
 }
 
 export function containsProfanity(rawText) {
   if (!rawText) return false
   var normalized = normalize(rawText)
-  var collapsed = normalized.replace(/[^a-z0-9]/g, '')
+  // version con espacios reales (para frases) sin puntuacion
+  var withSpaces = normalized.replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim()
+  // version totalmente aplastada, sin espacios ni puntuacion (para
+  // detectar evasiones tipo "W E O N", "CarePico", "Saco De Weas")
+  var squashed = normalized.replace(/[^a-z0-9]/g, '')
+
   var i = 0
   while (i < BLOCKED_WORDS.length) {
     var word = BLOCKED_WORDS[i]
-    var wordCollapsed = word.replace(/[^a-z0-9]/g, '')
-    if (normalized.indexOf(word) !== -1 || collapsed.indexOf(wordCollapsed) !== -1) {
+    var wordSquashed = word.replace(/[^a-z0-9]/g, '')
+    if (withSpaces.indexOf(word) !== -1 || squashed.indexOf(wordSquashed) !== -1) {
       return true
     }
     i = i + 1
