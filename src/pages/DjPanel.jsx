@@ -609,11 +609,19 @@ function DjPanelInner() {
   var subExpiry = subExpiryState[0]
   var setSubExpiry = subExpiryState[1]
 
-  useEffect(function () {
+  var startingTrialState = useState(false)
+  var startingTrial = startingTrialState[0]
+  var setStartingTrial = startingTrialState[1]
+
+  var trialJustEndedState = useState(false)
+  var trialJustEnded = trialJustEndedState[0]
+  var setTrialJustEnded = trialJustEndedState[1]
+
+  function loadSubscription() {
     if (!workspaceId) return
     supabase
       .from('subscriptions')
-      .select('expires_at, status')
+      .select('id, expires_at, status, trial_used, plan_id')
       .eq('workspace_id', workspaceId)
       .order('created_at', { ascending: false })
       .limit(1)
@@ -621,7 +629,69 @@ function DjPanelInner() {
       .then(function (result) {
         setSubExpiry(result.data || null)
       })
+  }
+
+  useEffect(function () {
+    loadSubscription()
   }, [workspaceId])
+
+  function startProTrial() {
+    if (!subExpiry || !workspaceId || !workspaceType) return
+    setStartingTrial(true)
+    supabase
+      .from('plans')
+      .select('id')
+      .eq('workspace_type', workspaceType)
+      .eq('code', 'PRO')
+      .maybeSingle()
+      .then(function (planResult) {
+        var proPlan = planResult.data
+        if (!proPlan) throw new Error('No se encontro el plan PRO para este tipo')
+        var expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+        return supabase
+          .from('subscriptions')
+          .update({
+            plan_id: proPlan.id,
+            status: 'trial',
+            expires_at: expiresAt,
+            trial_used: true,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', subExpiry.id)
+          .then(function () {
+            return supabase.from('workspaces').update({ plan: 'PRO' }).eq('id', workspaceId)
+          })
+      })
+      .then(function () {
+        setStartingTrial(false)
+        loadSubscription()
+        window.location.reload()
+      })
+      .catch(function () {
+        setStartingTrial(false)
+      })
+  }
+
+  function upgradeToRealPro() {
+    if (!subExpiry) return
+    setStartingTrial(true)
+    fetch('/api/create-preference', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subscription_id: subExpiry.id })
+    })
+      .then(function (res) { return res.json() })
+      .then(function (data) {
+        if (data.init_point) {
+          window.location.href = data.init_point
+        } else {
+          setStartingTrial(false)
+        }
+      })
+      .catch(function () {
+        setStartingTrial(false)
+      })
+  }
   var barIsActive = session.barIsActive
   var barLoading = session.barLoading
   var sessionCode = session.sessionCode
@@ -987,6 +1057,54 @@ function DjPanelInner() {
           <ThemeToggle />
         </div>
       </header>
+
+      {workspacePlan === 'FREE' && subExpiry && subExpiry.status === 'active' && !subExpiry.trial_used && (
+        <div
+          className="relative z-10 rounded-2xl p-5 mb-6 flex items-center justify-between flex-wrap gap-3"
+          style={{ background: 'linear-gradient(90deg, rgba(233,30,140,0.14), rgba(139,92,246,0.14))', border: '1.5px solid rgba(244,208,63,0.5)' }}
+        >
+          <div>
+            <p className="text-base font-bold" style={{ color: '#F4D03F' }}>🎁 Prueba PRO gratis por 1 día</p>
+            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+              Desbloquea todas las funciones PRO por 24 horas, sin costo. Puedes hacerlo una sola vez.
+            </p>
+          </div>
+          <button
+            onClick={startProTrial}
+            disabled={startingTrial}
+            className="h-11 px-6 rounded-xl font-bold text-white disabled:opacity-60"
+            style={{ background: 'linear-gradient(90deg, #E91E8C, #8B5CF6)' }}
+          >
+            {startingTrial ? 'Activando...' : 'Probar PRO ahora'}
+          </button>
+        </div>
+      )}
+
+      {subExpiry && subExpiry.status === 'trial' && (function () {
+        var days = Math.ceil((new Date(subExpiry.expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+        var hoursLeft = Math.max(0, Math.ceil((new Date(subExpiry.expires_at).getTime() - Date.now()) / (1000 * 60 * 60)))
+        return (
+          <div
+            className="relative z-10 rounded-2xl p-5 mb-6 flex items-center justify-between flex-wrap gap-3"
+            style={{ background: 'rgba(126,217,87,0.1)', border: '1.5px solid rgba(126,217,87,0.5)' }}
+          >
+            <div>
+              <p className="text-base font-bold" style={{ color: 'var(--accent-green)' }}>✨ Estás probando PRO</p>
+              <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                Te quedan {hoursLeft} {hoursLeft === 1 ? 'hora' : 'horas'}. Cuando termine, vuelves a FREE automáticamente.
+              </p>
+            </div>
+            <button
+              onClick={upgradeToRealPro}
+              disabled={startingTrial}
+              className="h-11 px-6 rounded-xl font-bold text-white disabled:opacity-60"
+              style={{ background: 'linear-gradient(90deg, #E91E8C, #8B5CF6)' }}
+            >
+              {startingTrial ? 'Cargando...' : 'Quedarme en PRO'}
+            </button>
+          </div>
+        )
+      })()}
 
       <button
         onClick={handleToggleHistory}

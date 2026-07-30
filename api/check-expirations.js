@@ -1,8 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
 
 // Esta funcion la llama un Cron Job de Vercel una vez al dia.
-// Revisa suscripciones vencidas y las corta automaticamente,
-// bajando el workspace a su plan gratuito equivalente.
+// Revisa suscripciones vencidas (pagadas Y pruebas de 24 horas) y las corta
+// automaticamente, bajando el workspace a su plan gratuito equivalente.
 // Nunca se borra informacion, solo se desactivan funciones premium.
 export default async function handler(req, res) {
   var supabaseUrl = process.env.SUPABASE_URL || 'https://koaayhnqgcyemnzkzffq.supabase.co'
@@ -18,8 +18,8 @@ export default async function handler(req, res) {
 
   var expiredResult = await supabaseAdmin
     .from('subscriptions')
-    .select('id, workspace_id, workspaces(type)')
-    .eq('status', 'active')
+    .select('id, workspace_id, status, workspaces(type)')
+    .in('status', ['active', 'trial'])
     .lt('expires_at', nowIso)
 
   if (expiredResult.error) {
@@ -33,6 +33,7 @@ export default async function handler(req, res) {
   for (var i = 0; i < expired.length; i++) {
     var sub = expired[i]
     var workspaceType = sub.workspaces ? sub.workspaces.type : null
+    var wasTrial = sub.status === 'trial'
 
     var freePlanResult = await supabaseAdmin
       .from('plans')
@@ -45,7 +46,12 @@ export default async function handler(req, res) {
 
     await supabaseAdmin
       .from('subscriptions')
-      .update({ status: 'expired', plan_id: freePlan ? freePlan.id : sub.plan_id, updated_at: nowIso })
+      .update({
+        status: wasTrial ? 'trial_expired' : 'expired',
+        plan_id: freePlan ? freePlan.id : sub.plan_id,
+        expires_at: null,
+        updated_at: nowIso
+      })
       .eq('id', sub.id)
 
     if (freePlan) {
@@ -57,7 +63,7 @@ export default async function handler(req, res) {
 
     await supabaseAdmin.from('billing_events').insert({
       subscription_id: sub.id,
-      event_type: 'subscription_expired_auto',
+      event_type: wasTrial ? 'trial_ended_auto' : 'subscription_expired_auto',
       payload: { workspace_id: sub.workspace_id, downgraded_to: freePlan ? freePlan.code : null }
     })
 

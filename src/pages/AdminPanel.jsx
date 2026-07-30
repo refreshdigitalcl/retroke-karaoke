@@ -275,7 +275,6 @@ function NewWorkspaceForm(props) {
           >
             <option value="FREE">FREE</option>
             <option value="PRO">PRO</option>
-            <option value="PREMIUM">PREMIUM</option>
           </select>
         </div>
         <input
@@ -550,7 +549,7 @@ function BarDetail(props) {
   )
 }
 
-var PLAN_OPTIONS = ['FREE', 'PRO', 'PREMIUM']
+var PLAN_OPTIONS = ['FREE', 'PRO']
 
 function daysUntil(dateStr) {
   if (!dateStr) return null
