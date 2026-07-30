@@ -36,7 +36,7 @@ export default function FullscreenButton() {
     <button
       onClick={toggleFullscreen}
       aria-label="Pantalla completa"
-      className="absolute top-5 right-5 z-20 w-11 h-11 rounded-full flex items-center justify-center border-2 border-yellow-400 bg-neutral-900/80 hover:bg-neutral-800 transition-colors"
+      className="w-11 h-11 rounded-full flex items-center justify-center border-2 border-yellow-400 bg-neutral-900/85 hover:bg-neutral-800 transition-colors fullscreen-neon-btn"
     >
       {!isFull && (
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F4D03F" strokeWidth="2">
@@ -56,6 +56,16 @@ export default function FullscreenButton() {
           />
         </svg>
       )}
+      <style>{`
+        .fullscreen-neon-btn {
+          box-shadow: 0 0 16px -2px rgba(244, 208, 63, 0.55);
+          animation: fullscreenBtnGlow 2.6s ease-in-out infinite;
+        }
+        @keyframes fullscreenBtnGlow {
+          0%, 100% { box-shadow: 0 0 16px -2px rgba(244, 208, 63, 0.5); }
+          50% { box-shadow: 0 0 22px 0px rgba(244, 208, 63, 0.85); }
+        }
+      `}</style>
     </button>
   )
 }

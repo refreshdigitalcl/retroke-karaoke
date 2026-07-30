@@ -48,9 +48,24 @@ function QueueRow(props) {
     }
   }, [entry.song])
 
+  var accentColor = isNext ? '#7ED957' : position === 2 ? '#F4D03F' : '#8B5CF6'
+
   return (
-    <div className="relative rounded-xl p-3.5 bg-neutral-900/80 border border-neutral-800 flex items-center gap-3.5">
-      <div className="w-14 h-14 rounded-lg overflow-hidden shrink-0 bg-pink-600 flex items-center justify-center text-2xl">
+    <div
+      className="relative rounded-2xl p-3.5 flex items-center gap-3.5 queue-row-in"
+      style={{
+        background: isNext ? 'linear-gradient(90deg, rgba(126,217,87,0.14), rgba(20,15,30,0.85))' : 'rgba(20,15,30,0.75)',
+        border: '1.5px solid ' + (isNext ? 'rgba(126,217,87,0.6)' : 'rgba(139,92,246,0.28)'),
+        boxShadow: isNext ? '0 0 20px -4px rgba(126,217,87,0.5)' : 'none'
+      }}
+    >
+      <div
+        className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-extrabold shrink-0"
+        style={{ background: 'rgba(0,0,0,0.4)', border: '2px solid ' + accentColor, color: accentColor }}
+      >
+        {position}
+      </div>
+      <div className="w-14 h-14 rounded-xl overflow-hidden shrink-0 flex items-center justify-center text-2xl" style={{ background: 'linear-gradient(135deg, #8B5CF6, #E91E8C)' }}>
         {artwork ? (
           <img src={artwork} alt={entry.song} className="w-full h-full object-cover" />
         ) : (
@@ -58,22 +73,19 @@ function QueueRow(props) {
         )}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-lg font-semibold text-white truncate">{entry.name}</p>
-        <p className="text-sm text-purple-300 truncate">
+        <p className="text-lg font-bold text-white truncate">{entry.name}</p>
+        <p className="text-sm truncate" style={{ color: accentColor }}>
           {status === 'loading' && 'Buscando artista...'}
           {status === 'found' && artist}
-          {status === 'none' && 'Artista no encontrado'}
+          {status === 'none' && entry.song}
         </p>
         <p className="text-sm text-neutral-400 truncate">{entry.song}</p>
       </div>
-      <div className="flex flex-col items-end gap-1.5 shrink-0">
-        <span className="text-sm text-neutral-500">#{position}</span>
-        {isNext && (
-          <span className="ready-pulse text-xs font-bold px-2.5 py-1 rounded-full bg-lime-400 text-black tracking-wide">
-            READY
-          </span>
-        )}
-      </div>
+      {isNext && (
+        <span className="ready-pulse text-xs font-extrabold px-3 py-1.5 rounded-full shrink-0 tracking-wide" style={{ background: '#7ED957', color: '#0a0a0a' }}>
+          🎤 LISTO
+        </span>
+      )}
     </div>
   )
 }
@@ -88,25 +100,39 @@ function Backstage(props) {
   }
 
   return (
-    <div className="w-full h-full flex flex-col rounded-3xl border-2 border-purple-500 bg-neutral-950/80 px-6 py-6">
-      <p className="text-sm tracking-[4px] uppercase text-purple-400 mb-1">
-        Lista de espera
-      </p>
-      <h2 className="text-2xl font-extrabold text-white mb-5">Backstage</h2>
+    <div
+      className="w-full h-full flex flex-col rounded-3xl px-6 py-6 md:px-7 md:py-7 backstage-glow"
+      style={{ background: 'rgba(10,8,18,0.82)', border: '2px solid rgba(139,92,246,0.5)' }}
+    >
+      <div className="flex items-center gap-2.5 mb-5">
+        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: '#7ED957', boxShadow: '0 0 8px 2px rgba(126,217,87,0.8)' }} />
+        <p className="text-xs md:text-sm tracking-[4px] uppercase font-bold" style={{ color: '#F4D03F' }}>
+          Lista de espera
+        </p>
+      </div>
       {rows.length === 0 && (
-        <p className="text-base text-neutral-500">
+        <p className="text-base text-neutral-400">
           Aún no hay nadie anotado. Escanea el QR y sé el primero en subir al escenario.
         </p>
       )}
-      <div className="flex flex-col gap-3 overflow-y-auto pr-1 max-h-[520px]">{rows}</div>
+      <div className="flex flex-col gap-3 overflow-y-auto pr-1 max-h-[560px]">{rows}</div>
       <style>{`
         .ready-pulse {
-          animation: readyPulse 1.6s ease-in-out infinite;
-          box-shadow: 0 0 12px 3px rgba(163, 230, 53, 0.65);
+          animation: readyPulse 1.4s ease-in-out infinite;
         }
         @keyframes readyPulse {
-          0%, 100% { transform: translateY(0) scale(1); box-shadow: 0 0 10px 2px rgba(163, 230, 53, 0.55); }
-          50% { transform: translateY(-2px) scale(1.05); box-shadow: 0 0 16px 5px rgba(163, 230, 53, 0.85); }
+          0%, 100% { transform: scale(1); box-shadow: 0 0 10px 2px rgba(126,217,87,0.6); }
+          50% { transform: scale(1.08); box-shadow: 0 0 18px 6px rgba(126,217,87,0.95); }
+        }
+        .queue-row-in {
+          animation: queueRowIn 0.4s ease-out both;
+        }
+        @keyframes queueRowIn {
+          from { opacity: 0; transform: translateX(12px); }
+          to { opacity: 1; transform: translateX(0); }
+        }
+        .backstage-glow {
+          box-shadow: 0 0 40px -10px rgba(139,92,246,0.4), inset 0 0 30px rgba(0,0,0,0.4);
         }
       `}</style>
     </div>
@@ -178,72 +204,96 @@ export default function DisplayQueue(props) {
 
   return (
     <div className="min-h-screen relative overflow-hidden flex flex-col bg-black">
+      <div
+        className="pointer-events-none fixed inset-0 opacity-[0.06]"
+        style={{
+          backgroundImage: 'linear-gradient(rgba(139,92,246,0.7) 1px, transparent 1px), linear-gradient(90deg, rgba(139,92,246,0.7) 1px, transparent 1px)',
+          backgroundSize: '48px 48px'
+        }}
+      />
+      <div className="pointer-events-none fixed -top-40 -left-40 w-[32rem] h-[32rem] rounded-full opacity-25 blur-3xl" style={{ background: '#E91E8C' }} />
+      <div className="pointer-events-none fixed -bottom-40 -right-40 w-[32rem] h-[32rem] rounded-full opacity-25 blur-3xl" style={{ background: '#8B5CF6' }} />
+
       <RetroEqualizer />
       <FloatingDecor />
       <FallingParty />
-      <FullscreenButton />
-      {musicEnabled && (
-        <button
-          onClick={toggleMute}
-          className="fixed top-4 right-16 z-30 w-9 h-9 rounded-full flex items-center justify-center text-sm bg-black/40 border border-white/20 text-white"
-          title={muted ? 'Activar musica de fondo' : 'Silenciar musica de fondo'}
-        >
-          {muted ? '🔇' : '🔊'}
-        </button>
-      )}
+
+      <div className="fixed top-5 right-5 z-30 flex flex-col gap-3">
+        <FullscreenButton />
+        {musicEnabled && (
+          <button
+            onClick={toggleMute}
+            className="w-11 h-11 rounded-full flex items-center justify-center border-2 transition-colors sound-neon-btn"
+            style={{ borderColor: '#F4D03F', background: 'rgba(15,10,20,0.85)' }}
+            title={muted ? 'Activar musica de fondo' : 'Silenciar musica de fondo'}
+          >
+            <span className="text-lg">{muted ? '🔇' : '🔊'}</span>
+          </button>
+        )}
+      </div>
 
       <button
         onClick={function () {
           try { localStorage.removeItem('retroke_last_room') } catch (e) {}
           window.location.href = '/'
         }}
-        className="fixed top-3 right-3 z-30 text-[10px] px-2.5 py-1 rounded-full opacity-30 hover:opacity-80 transition-opacity"
-        style={{ background: 'rgba(0,0,0,0.4)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}
+        className="fixed bottom-4 left-4 z-30 text-[11px] px-3 py-1.5 rounded-full opacity-25 hover:opacity-80 transition-opacity"
+        style={{ background: 'rgba(0,0,0,0.5)', color: '#fff', border: '1px solid rgba(255,255,255,0.25)' }}
       >
         🏠 Cambiar sala
       </button>
 
-      <header className="flex items-center justify-center gap-3 relative z-10 pt-8 pb-4">
-        {logoUrl && (
+      <header className="flex items-center justify-center gap-3 relative z-10 pt-8 pb-2">
+        {logoUrl ? (
           <img
             src={logoUrl}
             alt={barName}
-            className="h-11 w-11 rounded-full object-cover border-2 border-yellow-400"
-            style={{ boxShadow: '0 0 14px 2px rgba(244, 208, 63, 0.4)' }}
+            className="h-12 w-12 rounded-full object-cover border-2"
+            style={{ borderColor: '#F4D03F', boxShadow: '0 0 16px 3px rgba(244, 208, 63, 0.5)' }}
           />
+        ) : (
+          <span className="text-2xl">🎤</span>
         )}
-        <div className="px-5 py-2 -skew-x-6 bg-pink-600">
-          <span className="inline-block skew-x-6 text-base font-bold text-white tracking-wide">
+        <div
+          className="px-6 py-2.5 rounded-full"
+          style={{ background: 'linear-gradient(90deg, #E91E8C, #8B5CF6)', boxShadow: '0 0 22px -4px rgba(233,30,140,0.7)' }}
+        >
+          <span className="text-base md:text-lg font-extrabold text-white tracking-wide">
             {barName}
           </span>
         </div>
       </header>
 
-      <main className="relative z-10 flex-1 grid grid-cols-1 md:grid-cols-2 gap-8 max-w-6xl w-full mx-auto px-8 pb-10">
+      <main className="relative z-10 flex-1 grid grid-cols-1 md:grid-cols-2 gap-8 max-w-6xl w-full mx-auto px-6 md:px-8 pb-10 pt-4">
         <div className="flex flex-col items-center justify-center text-center">
-          <p className="text-xs tracking-[6px] uppercase text-yellow-400 mb-3">
-            Karaoke en vivo
+          <p className="text-xs md:text-sm tracking-[6px] uppercase font-bold mb-3" style={{ color: '#F4D03F' }}>
+            ✨ Karaoke en vivo
           </p>
-          <h1 className="hero-title text-2xl md:text-4xl font-extrabold leading-tight mb-2">
+          <h1 className="hero-title text-3xl md:text-5xl font-extrabold leading-tight mb-3">
             El karaoke nunca volvió a ser igual.
           </h1>
-          <p className="text-lg md:text-2xl font-bold text-pink-500 mb-4 hero-subtitle">
+          <p className="text-lg md:text-2xl font-bold mb-4 hero-subtitle" style={{ color: '#E91E8C' }}>
             Somos el sistema operativo del karaoke moderno.
           </p>
           <p className="text-base md:text-lg text-neutral-300 mb-8 max-w-md">
             Escanea el código QR, anota tu nombre y tu canción, y prepárate
             para vivir el verdadero espectáculo interactivo.
           </p>
-          <div className="rounded-3xl border-2 border-yellow-400 bg-neutral-900/90 px-8 py-7 flex flex-col items-center gap-3 shadow-2xl">
+
+          <div className="relative qr-card-glow rounded-[2rem] px-9 py-8 flex flex-col items-center gap-4" style={{ background: 'rgba(12,8,20,0.9)', border: '2.5px solid #F4D03F' }}>
+            <span className="qr-corner qr-corner-tl" />
+            <span className="qr-corner qr-corner-tr" />
+            <span className="qr-corner qr-corner-bl" />
+            <span className="qr-corner qr-corner-br" />
             <QRCode url={registerUrl} size={220} />
-            <p className="text-sm font-semibold text-purple-300 tracking-wide">
+            <p className="text-sm md:text-base font-bold tracking-wide" style={{ color: '#8B5CF6' }}>
               karaoke.cl/{sessionCode}
             </p>
           </div>
 
           {currentSung && (
-            <div className="mt-6 w-full max-w-[280px] rounded-2xl border border-neutral-800 bg-neutral-950/70 px-5 py-4">
-              <p className="text-sm tracking-widest uppercase text-purple-400 mb-2 text-center">
+            <div className="mt-6 w-full max-w-[300px] rounded-2xl px-5 py-4" style={{ background: 'rgba(15,10,20,0.75)', border: '1.5px solid rgba(139,92,246,0.4)' }}>
+              <p className="text-xs md:text-sm tracking-widest uppercase font-bold mb-2 text-center" style={{ color: '#8B5CF6' }}>
                 Ya cantaron esta noche
               </p>
               <div className="h-9 flex items-center justify-center overflow-hidden">
@@ -251,8 +301,8 @@ export default function DisplayQueue(props) {
                   key={currentSung.id + '-' + sungIndex}
                   className="glitch-row flex items-center gap-3"
                 >
-                  <span className="text-white font-medium text-lg">{currentSung.name}</span>
-                  <span className="text-yellow-400 font-bold text-lg">{currentSung.average}</span>
+                  <span className="text-white font-bold text-lg">{currentSung.name}</span>
+                  <span className="font-extrabold text-lg" style={{ color: '#F4D03F' }}>{currentSung.average}</span>
                 </div>
               </div>
             </div>
@@ -295,6 +345,33 @@ export default function DisplayQueue(props) {
               0%, 100% { text-shadow: 0 0 6px rgba(233, 30, 140, 0.4); }
               50% { text-shadow: 0 0 18px rgba(233, 30, 140, 0.9); }
             }
+            .sound-neon-btn {
+              box-shadow: 0 0 16px -2px rgba(244, 208, 63, 0.55);
+              animation: soundBtnGlow 2.6s ease-in-out infinite;
+            }
+            @keyframes soundBtnGlow {
+              0%, 100% { box-shadow: 0 0 16px -2px rgba(244, 208, 63, 0.5); }
+              50% { box-shadow: 0 0 22px 0px rgba(244, 208, 63, 0.85); }
+            }
+            .qr-card-glow {
+              box-shadow: 0 0 44px -6px rgba(244, 208, 63, 0.6), 0 0 70px -20px rgba(233, 30, 140, 0.6);
+              animation: qrGlow 2.8s ease-in-out infinite;
+            }
+            @keyframes qrGlow {
+              0%, 100% { box-shadow: 0 0 44px -6px rgba(244, 208, 63, 0.55), 0 0 70px -20px rgba(233, 30, 140, 0.55); }
+              50% { box-shadow: 0 0 56px -4px rgba(244, 208, 63, 0.85), 0 0 90px -14px rgba(139, 92, 246, 0.75); }
+            }
+            .qr-corner {
+              position: absolute;
+              width: 22px;
+              height: 22px;
+              border-color: #8B5CF6;
+              border-style: solid;
+            }
+            .qr-corner-tl { top: -3px; left: -3px; border-width: 3px 0 0 3px; border-top-left-radius: 12px; }
+            .qr-corner-tr { top: -3px; right: -3px; border-width: 3px 3px 0 0; border-top-right-radius: 12px; }
+            .qr-corner-bl { bottom: -3px; left: -3px; border-width: 0 0 3px 3px; border-bottom-left-radius: 12px; }
+            .qr-corner-br { bottom: -3px; right: -3px; border-width: 0 3px 3px 0; border-bottom-right-radius: 12px; }
           `}</style>
         </div>
 
