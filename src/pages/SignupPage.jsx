@@ -96,6 +96,8 @@ export default function SignupPage() {
               workspace_id: workspace.id,
               user_id: userId,
               role: 'owner'
+            }).then(function (memberResult) {
+              if (memberResult.error) throw new Error('No se pudo vincular tu cuenta al workspace: ' + memberResult.error.message)
             })
 
             if (plan.workspace_type === 'BAR') {
@@ -105,6 +107,8 @@ export default function SignupPage() {
                   slug: slug,
                   workspace_id: workspace.id,
                   is_active: true
+                }).then(function (barResult) {
+                  if (barResult.error) throw new Error('No se pudo crear el bar: ' + barResult.error.message)
                 })
               })
             }
