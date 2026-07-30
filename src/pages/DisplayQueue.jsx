@@ -1,6 +1,27 @@
 import { useEffect, useState } from 'react'
 import { useKaraokeSession } from '../contexts/KaraokeSessionContext'
 import RetroEqualizer from '../components/RetroEqualizer'
+
+var HERO_PHRASES = [
+  'UNA NUEVA FORMA DE VIVIR EL KARAOKE.',
+  'EL ESCENARIO TE ESPERA. LA EXPERIENCIA ES TUYA.',
+  'EL KARAOKE COMO NUNCA LO HAS VIVIDO.',
+  'EL SHOW LO HACEMOS ENTRE TODOS.',
+  'CANTAR ES SOLO EL COMIENZO, VIVIRLO ES DE TODOS.',
+  'LA CANCIÓN ES TUYA. LA EXPERIENCIA ES DE TODOS.'
+]
+
+function nextHeroPhrase() {
+  var idx = 0
+  try {
+    var stored = parseInt(localStorage.getItem('retroke_phrase_idx') || '0', 10)
+    if (!isNaN(stored)) idx = stored
+  } catch (e) {}
+  try {
+    localStorage.setItem('retroke_phrase_idx', String(idx + 1))
+  } catch (e) {}
+  return HERO_PHRASES[idx % HERO_PHRASES.length]
+}
 import QRCode from '../components/QRCode'
 import FloatingDecor from '../components/FloatingDecor'
 import FullscreenButton from '../components/FullscreenButton'
@@ -52,7 +73,7 @@ function QueueRow(props) {
 
   return (
     <div
-      className="relative rounded-2xl p-3.5 flex items-center gap-3.5 queue-row-in"
+      className="relative rounded-2xl p-4 flex items-center gap-4 queue-row-in"
       style={{
         background: isNext ? 'linear-gradient(90deg, rgba(126,217,87,0.14), rgba(20,15,30,0.85))' : 'rgba(20,15,30,0.75)',
         border: '1.5px solid ' + (isNext ? 'rgba(126,217,87,0.6)' : 'rgba(139,92,246,0.28)'),
@@ -60,12 +81,12 @@ function QueueRow(props) {
       }}
     >
       <div
-        className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-extrabold shrink-0"
+        className="w-10 h-10 rounded-full flex items-center justify-center text-base font-extrabold shrink-0"
         style={{ background: 'rgba(0,0,0,0.4)', border: '2px solid ' + accentColor, color: accentColor }}
       >
         {position}
       </div>
-      <div className="w-14 h-14 rounded-xl overflow-hidden shrink-0 flex items-center justify-center text-2xl" style={{ background: 'linear-gradient(135deg, #8B5CF6, #E91E8C)' }}>
+      <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0 flex items-center justify-center text-2xl" style={{ background: 'linear-gradient(135deg, #8B5CF6, #E91E8C)' }}>
         {artwork ? (
           <img src={artwork} alt={entry.song} className="w-full h-full object-cover" />
         ) : (
@@ -73,16 +94,16 @@ function QueueRow(props) {
         )}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-lg font-bold text-white truncate">{entry.name}</p>
-        <p className="text-sm truncate" style={{ color: accentColor }}>
+        <p className="text-2xl font-bold text-white truncate">{entry.name}</p>
+        <p className="text-base truncate" style={{ color: accentColor }}>
           {status === 'loading' && 'Buscando artista...'}
           {status === 'found' && artist}
           {status === 'none' && entry.song}
         </p>
-        <p className="text-sm text-neutral-400 truncate">{entry.song}</p>
+        <p className="text-base text-neutral-400 truncate">{entry.song}</p>
       </div>
       {isNext && (
-        <span className="ready-pulse text-xs font-extrabold px-3 py-1.5 rounded-full shrink-0 tracking-wide" style={{ background: '#7ED957', color: '#0a0a0a' }}>
+        <span className="ready-pulse text-sm font-extrabold px-3 py-1.5 rounded-full shrink-0 tracking-wide" style={{ background: '#7ED957', color: '#0a0a0a' }}>
           🎤 LISTO
         </span>
       )}
@@ -176,6 +197,9 @@ export default function DisplayQueue(props) {
   var queue = session.queue
   var ratings = session.ratings
 
+  var heroPhraseState = useState(nextHeroPhrase)
+  var heroPhrase = heroPhraseState[0]
+
   var sungTonight = groupRatings(ratings)
 
   var sungIndexState = useState(0)
@@ -220,18 +244,18 @@ export default function DisplayQueue(props) {
             <span className="text-lg">{muted ? '🔇' : '🔊'}</span>
           </button>
         )}
+        <button
+          onClick={function () {
+            try { localStorage.removeItem('retroke_last_room') } catch (e) {}
+            window.location.href = '/'
+          }}
+          className="w-11 h-11 rounded-full flex items-center justify-center border-2 transition-colors sound-neon-btn"
+          style={{ borderColor: '#F4D03F', background: 'rgba(15,10,20,0.85)' }}
+          title="Cambiar sala"
+        >
+          <span className="text-lg">🏠</span>
+        </button>
       </div>
-
-      <button
-        onClick={function () {
-          try { localStorage.removeItem('retroke_last_room') } catch (e) {}
-          window.location.href = '/'
-        }}
-        className="fixed bottom-4 left-4 z-30 text-[11px] px-3 py-1.5 rounded-full opacity-25 hover:opacity-80 transition-opacity"
-        style={{ background: 'rgba(0,0,0,0.5)', color: '#fff', border: '1px solid rgba(255,255,255,0.25)' }}
-      >
-        🏠 Cambiar sala
-      </button>
 
       <header className="flex items-center justify-center gap-3 relative z-10 pt-8 pb-2">
         {logoUrl ? (
@@ -260,7 +284,7 @@ export default function DisplayQueue(props) {
             ✨ Karaoke en vivo
           </p>
           <h1 className="hero-title text-3xl md:text-5xl font-extrabold leading-tight mb-3">
-            El karaoke nunca volvió a ser igual.
+            {heroPhrase}
           </h1>
           <p className="text-lg md:text-2xl font-bold mb-4 hero-subtitle" style={{ color: '#E91E8C' }}>
             Somos el sistema operativo del karaoke moderno.
@@ -309,12 +333,10 @@ export default function DisplayQueue(props) {
               60%, 100% { transform: translate(0,0); text-shadow: none; opacity: 1; }
             }
             .hero-title {
-              background: linear-gradient(90deg, #F4D03F, #E91E8C, #8B5CF6, #7ED957);
-              -webkit-background-clip: text;
-              background-clip: text;
-              color: transparent;
+              color: #ffffff;
+              letter-spacing: 0.5px;
               animation: heroEntrance 0.7s steps(4) both;
-              text-shadow: 0 0 24px rgba(233, 30, 140, 0.35);
+              text-shadow: 0 2px 18px rgba(0, 0, 0, 0.55), 0 0 30px rgba(139, 92, 246, 0.35);
             }
             @keyframes heroEntrance {
               0% { opacity: 0; transform: translate(-10px, 4px) scale(0.96); }

@@ -66,7 +66,6 @@ function LoginGate() {
 }
 
 function NotAuthorized(props) {
-  var debugInfo = props.debugInfo
   return (
     <div className="min-h-screen flex items-center justify-center px-6" style={{ background: 'var(--bg-page)' }}>
       <div className="max-w-lg w-full rounded-3xl border p-8 text-center" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
@@ -74,14 +73,6 @@ function NotAuthorized(props) {
         <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
           Tu cuenta no tiene permisos de administrador de la plataforma.
         </p>
-        {debugInfo && (
-          <div className="text-left text-xs rounded-lg p-3 mt-4 break-all" style={{ background: 'var(--bg-card-alt)', color: 'var(--text-muted)' }}>
-            <p>userId: {debugInfo.userId}</p>
-            <p>userEmail: {debugInfo.userEmail}</p>
-            <p>rawData: {debugInfo.rawData}</p>
-            <p>rawError: {debugInfo.rawError}</p>
-          </div>
-        )}
       </div>
     </div>
   )
@@ -1277,7 +1268,7 @@ export default function AdminPanel() {
   }
 
   if (!auth.isGlobalAdmin) {
-    return <NotAuthorized debugInfo={auth.debugInfo} />
+    return <NotAuthorized />
   }
 
   var TABS = [
