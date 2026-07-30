@@ -342,12 +342,10 @@ export default function DisplayReactions() {
           <div className="absolute left-5 top-1/2 -translate-y-1/2 z-20 w-8 h-[60vh]">
             <div className="absolute inset-0 rounded-full overflow-hidden progress-track-neon">
               <div
-                className="absolute bottom-0 left-0 w-full rounded-full progress-fill progress-shimmer"
+                className="absolute bottom-0 left-0 w-full rounded-full progress-fill"
                 style={{
                   height: progress + '%',
-                  background: 'linear-gradient(0deg, #E91E8C, #8B5CF6 50%, #F4D03F)',
-                  backgroundSize: '100% 220%',
-                  boxShadow: '0 0 24px 6px rgba(233, 30, 140, 0.75)'
+                  background: 'linear-gradient(0deg, #E91E8C, #8B5CF6 50%, #F4D03F)'
                 }}
               />
             </div>
@@ -486,7 +484,6 @@ export default function DisplayReactions() {
         .progress-track-neon {
           background: rgba(10, 6, 20, 0.55);
           border: 2px solid rgba(244, 208, 63, 0.55);
-          box-shadow: inset 0 0 14px rgba(0,0,0,0.6), 0 0 24px -2px rgba(139, 92, 246, 0.6);
         }
         .progress-needle {
           transition: bottom 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -495,7 +492,6 @@ export default function DisplayReactions() {
           height: 6px;
           border-radius: 999px;
           background: #fff;
-          box-shadow: 0 0 4px 1px #fff, 0 0 16px 4px rgba(244, 208, 63, 0.95), 0 0 28px 8px rgba(233, 30, 140, 0.7);
         }
         .progress-needle-knob {
           position: absolute;
@@ -507,12 +503,6 @@ export default function DisplayReactions() {
           border-radius: 999px;
           background: #F4D03F;
           border: 3px solid #fff;
-          box-shadow: 0 0 10px 3px rgba(244, 208, 63, 1);
-          animation: needleKnobPulse 1s ease-in-out infinite;
-        }
-        @keyframes needleKnobPulse {
-          0%, 100% { transform: translate(-50%, -50%) scale(1); }
-          50% { transform: translate(-50%, -50%) scale(1.25); }
         }
         .neon-wave-shell {
           background: linear-gradient(135deg, rgba(139,92,246,0.22), rgba(233,30,140,0.18), rgba(10,8,20,0.65));
@@ -546,13 +536,6 @@ export default function DisplayReactions() {
         @keyframes neonWaveBounce {
           0%, 100% { transform: scaleY(0.4); }
           50% { transform: scaleY(1.6); }
-        }
-        .progress-shimmer {
-          animation: shimmerMove 2.4s linear infinite;
-        }
-        @keyframes shimmerMove {
-          0% { background-position: 0% 0%; }
-          100% { background-position: 0% 100%; }
         }
         .fact-clamp {
           display: -webkit-box;

@@ -204,16 +204,6 @@ export default function DisplayQueue(props) {
 
   return (
     <div className="min-h-screen relative overflow-hidden flex flex-col bg-black">
-      <div
-        className="pointer-events-none fixed inset-0 opacity-[0.06]"
-        style={{
-          backgroundImage: 'linear-gradient(rgba(139,92,246,0.7) 1px, transparent 1px), linear-gradient(90deg, rgba(139,92,246,0.7) 1px, transparent 1px)',
-          backgroundSize: '48px 48px'
-        }}
-      />
-      <div className="pointer-events-none fixed -top-40 -left-40 w-[32rem] h-[32rem] rounded-full opacity-25 blur-3xl" style={{ background: '#E91E8C' }} />
-      <div className="pointer-events-none fixed -bottom-40 -right-40 w-[32rem] h-[32rem] rounded-full opacity-25 blur-3xl" style={{ background: '#8B5CF6' }} />
-
       <RetroEqualizer />
       <FloatingDecor />
       <FallingParty />
@@ -280,7 +270,7 @@ export default function DisplayQueue(props) {
             para vivir el verdadero espectáculo interactivo.
           </p>
 
-          <div className="relative qr-card-glow rounded-[2rem] px-9 py-8 flex flex-col items-center gap-4" style={{ background: 'rgba(12,8,20,0.9)', border: '2.5px solid #F4D03F' }}>
+          <div className="relative rounded-[2rem] px-9 py-8 flex flex-col items-center gap-4" style={{ background: 'rgba(12,8,20,0.9)', border: '2.5px solid #F4D03F', boxShadow: '0 0 24px -6px rgba(244,208,63,0.4)' }}>
             <span className="qr-corner qr-corner-tl" />
             <span className="qr-corner qr-corner-tr" />
             <span className="qr-corner qr-corner-bl" />
@@ -319,17 +309,12 @@ export default function DisplayQueue(props) {
               60%, 100% { transform: translate(0,0); text-shadow: none; opacity: 1; }
             }
             .hero-title {
-              background: linear-gradient(90deg, #F4D03F, #E91E8C, #8B5CF6, #7ED957, #F4D03F);
-              background-size: 300% 100%;
+              background: linear-gradient(90deg, #F4D03F, #E91E8C, #8B5CF6, #7ED957);
               -webkit-background-clip: text;
               background-clip: text;
               color: transparent;
-              animation: heroGradient 6s linear infinite, heroEntrance 0.7s steps(4) both;
+              animation: heroEntrance 0.7s steps(4) both;
               text-shadow: 0 0 24px rgba(233, 30, 140, 0.35);
-            }
-            @keyframes heroGradient {
-              0% { background-position: 0% 50%; }
-              100% { background-position: 300% 50%; }
             }
             @keyframes heroEntrance {
               0% { opacity: 0; transform: translate(-10px, 4px) scale(0.96); }
@@ -339,27 +324,10 @@ export default function DisplayQueue(props) {
               100% { opacity: 1; transform: translate(0,0) scale(1); }
             }
             .hero-subtitle {
-              animation: subtitlePulse 3.2s ease-in-out infinite;
-            }
-            @keyframes subtitlePulse {
-              0%, 100% { text-shadow: 0 0 6px rgba(233, 30, 140, 0.4); }
-              50% { text-shadow: 0 0 18px rgba(233, 30, 140, 0.9); }
+              text-shadow: 0 0 10px rgba(233, 30, 140, 0.55);
             }
             .sound-neon-btn {
-              box-shadow: 0 0 16px -2px rgba(244, 208, 63, 0.55);
-              animation: soundBtnGlow 2.6s ease-in-out infinite;
-            }
-            @keyframes soundBtnGlow {
-              0%, 100% { box-shadow: 0 0 16px -2px rgba(244, 208, 63, 0.5); }
-              50% { box-shadow: 0 0 22px 0px rgba(244, 208, 63, 0.85); }
-            }
-            .qr-card-glow {
-              box-shadow: 0 0 44px -6px rgba(244, 208, 63, 0.6), 0 0 70px -20px rgba(233, 30, 140, 0.6);
-              animation: qrGlow 2.8s ease-in-out infinite;
-            }
-            @keyframes qrGlow {
-              0%, 100% { box-shadow: 0 0 44px -6px rgba(244, 208, 63, 0.55), 0 0 70px -20px rgba(233, 30, 140, 0.55); }
-              50% { box-shadow: 0 0 56px -4px rgba(244, 208, 63, 0.85), 0 0 90px -14px rgba(139, 92, 246, 0.75); }
+              box-shadow: 0 0 14px -2px rgba(244, 208, 63, 0.5);
             }
             .qr-corner {
               position: absolute;

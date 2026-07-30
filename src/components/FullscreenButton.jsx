@@ -58,12 +58,7 @@ export default function FullscreenButton() {
       )}
       <style>{`
         .fullscreen-neon-btn {
-          box-shadow: 0 0 16px -2px rgba(244, 208, 63, 0.55);
-          animation: fullscreenBtnGlow 2.6s ease-in-out infinite;
-        }
-        @keyframes fullscreenBtnGlow {
-          0%, 100% { box-shadow: 0 0 16px -2px rgba(244, 208, 63, 0.5); }
-          50% { box-shadow: 0 0 22px 0px rgba(244, 208, 63, 0.85); }
+          box-shadow: 0 0 14px -2px rgba(244, 208, 63, 0.5);
         }
       `}</style>
     </button>
