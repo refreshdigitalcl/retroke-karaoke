@@ -278,45 +278,44 @@ export default function DisplayQueue(props) {
         </div>
       </header>
 
-      <main className="relative z-10 flex-1 min-h-0 grid grid-cols-1 md:grid-cols-2 gap-6 max-w-6xl w-full mx-auto px-6 md:px-8 pb-4 pt-2">
-        <div className="flex flex-col items-center justify-center text-center min-h-0">
+      <main className="relative z-10 flex-1 min-h-0 grid grid-cols-1 md:grid-cols-2 gap-6 max-w-6xl w-full mx-auto px-6 md:px-8 pb-3 pt-1">
+        <div className="flex flex-col items-center justify-start text-center min-h-0 pt-1">
           <p className="text-xs tracking-[5px] uppercase font-bold mb-2" style={{ color: '#F4D03F' }}>
             ✨ Karaoke en vivo
           </p>
-          <h1 className="hero-title text-2xl md:text-4xl font-extrabold leading-tight mb-2">
+          <h1 className="hero-title text-3xl md:text-5xl font-extrabold leading-tight mb-2">
             {heroPhrase}
           </h1>
-          <p className="text-base md:text-xl font-bold mb-2 hero-subtitle" style={{ color: '#E91E8C' }}>
+          <p className="text-lg md:text-2xl font-bold mb-2 hero-subtitle" style={{ color: '#E91E8C' }}>
             Somos el sistema operativo del karaoke moderno.
           </p>
-          <p className="text-sm md:text-base text-neutral-300 mb-4 max-w-md">
-            Escanea el código QR, anota tu nombre y tu canción, y prepárate
-            para vivir el verdadero espectáculo interactivo.
+          <p className="text-sm text-neutral-300 mb-3 max-w-sm">
+            Escanea el código QR, anota tu nombre y canción, y prepárate para el show.
           </p>
 
-          <div className="relative rounded-[1.75rem] px-7 py-5 flex flex-col items-center gap-3" style={{ background: 'rgba(12,8,20,0.9)', border: '2.5px solid #F4D03F', boxShadow: '0 0 24px -6px rgba(244,208,63,0.4)' }}>
+          <div className="relative rounded-[1.75rem] px-6 py-5 flex flex-col items-center gap-3" style={{ background: 'rgba(12,8,20,0.9)', border: '2.5px solid #F4D03F', boxShadow: '0 0 24px -6px rgba(244,208,63,0.4)' }}>
             <span className="qr-corner qr-corner-tl" />
             <span className="qr-corner qr-corner-tr" />
             <span className="qr-corner qr-corner-bl" />
             <span className="qr-corner qr-corner-br" />
-            <QRCode url={registerUrl} size={175} />
+            <QRCode url={registerUrl} size={240} />
             <p className="text-sm font-bold tracking-wide" style={{ color: '#8B5CF6' }}>
               karaoke.cl/{sessionCode}
             </p>
           </div>
 
           {currentSung && (
-            <div className="mt-4 w-full max-w-[300px] rounded-2xl px-5 py-3" style={{ background: 'rgba(15,10,20,0.75)', border: '1.5px solid rgba(139,92,246,0.4)' }}>
-              <p className="text-xs tracking-widest uppercase font-bold mb-1.5 text-center" style={{ color: '#8B5CF6' }}>
+            <div className="mt-3 w-full max-w-[300px] rounded-2xl px-5 py-2.5" style={{ background: 'rgba(15,10,20,0.75)', border: '1.5px solid rgba(139,92,246,0.4)' }}>
+              <p className="text-[10px] tracking-widest uppercase font-bold mb-1 text-center" style={{ color: '#8B5CF6' }}>
                 Ya cantaron esta noche
               </p>
-              <div className="h-8 flex items-center justify-center overflow-hidden">
+              <div className="h-7 flex items-center justify-center overflow-hidden">
                 <div
                   key={currentSung.id + '-' + sungIndex}
                   className="glitch-row flex items-center gap-3"
                 >
-                  <span className="text-white font-bold text-base">{currentSung.name}</span>
-                  <span className="font-extrabold text-base" style={{ color: '#F4D03F' }}>{currentSung.average}</span>
+                  <span className="text-white font-bold text-sm">{currentSung.name}</span>
+                  <span className="font-extrabold text-sm" style={{ color: '#F4D03F' }}>{currentSung.average}</span>
                 </div>
               </div>
             </div>
