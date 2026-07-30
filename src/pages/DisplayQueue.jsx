@@ -219,7 +219,7 @@ export default function DisplayQueue(props) {
   var viewport = useViewportSize()
   // QR proporcional a la altura real de la ventana, con piso y techo
   // razonables para que nunca quede minusculo ni gigante.
-  var qrSize = Math.round(Math.max(140, Math.min(230, viewport.h * 0.21)))
+  var qrSize = Math.round(Math.max(196, Math.min(322, viewport.h * 0.294)))
 
   var heroPhraseState = useState(nextHeroPhrase)
   var heroPhrase = heroPhraseState[0]
@@ -305,31 +305,31 @@ export default function DisplayQueue(props) {
       <main className="relative z-10 flex-1 min-h-0 grid grid-cols-1 md:grid-cols-2 gap-6 max-w-6xl w-full mx-auto px-6 md:px-8 pb-2 pt-1">
         <div className="flex flex-col items-center justify-start text-center min-h-0">
           <p
-            className="tracking-[5px] uppercase font-bold mb-1.5"
-            style={{ color: '#F4D03F', fontSize: 'clamp(9px, 1.6vh, 13px)' }}
+            className="tracking-[4px] uppercase font-bold mb-1"
+            style={{ color: '#F4D03F', fontSize: 'clamp(8px, 1.3vh, 12px)' }}
           >
             ✨ Karaoke en vivo
           </p>
           <h1
-            className="hero-title font-extrabold leading-tight mb-1.5"
-            style={{ fontSize: 'clamp(1.4rem, 5vh, 2.6rem)' }}
+            className="hero-title font-extrabold leading-tight mb-1"
+            style={{ fontSize: 'clamp(1.25rem, 4.2vh, 2.2rem)' }}
           >
             {heroPhrase}
           </h1>
           <p
-            className="font-bold mb-1.5 hero-subtitle"
-            style={{ color: '#E91E8C', fontSize: 'clamp(1rem, 2.8vh, 1.5rem)' }}
+            className="font-bold mb-1 hero-subtitle"
+            style={{ color: '#E91E8C', fontSize: 'clamp(0.9rem, 2.2vh, 1.25rem)' }}
           >
             Somos el sistema operativo del karaoke moderno.
           </p>
           <p
-            className="text-neutral-300 mb-2 max-w-sm"
-            style={{ fontSize: 'clamp(11px, 1.9vh, 15px)' }}
+            className="text-neutral-300 mb-1.5 max-w-sm"
+            style={{ fontSize: 'clamp(10px, 1.5vh, 13px)' }}
           >
             Escanea el código QR, anota tu nombre y canción, y prepárate para el show.
           </p>
 
-          <div className="relative rounded-[1.75rem] px-6 py-4 flex flex-col items-center gap-2.5" style={{ background: 'rgba(12,8,20,0.9)', border: '2.5px solid #F4D03F', boxShadow: '0 0 24px -6px rgba(244,208,63,0.4)' }}>
+          <div className="relative rounded-[1.75rem] px-5 py-3 flex flex-col items-center gap-2" style={{ background: 'rgba(12,8,20,0.9)', border: '2.5px solid #F4D03F', boxShadow: '0 0 24px -6px rgba(244,208,63,0.4)' }}>
             <span className="qr-corner qr-corner-tl" />
             <span className="qr-corner qr-corner-tr" />
             <span className="qr-corner qr-corner-bl" />
@@ -341,20 +341,20 @@ export default function DisplayQueue(props) {
           </div>
 
           {currentSung && (
-            <div className="mt-3 w-full max-w-[340px] rounded-2xl px-5 py-3" style={{ background: 'rgba(15,10,20,0.8)', border: '1.5px solid rgba(139,92,246,0.5)' }}>
+            <div className="mt-1.5 w-full max-w-[340px] rounded-2xl px-5 py-2" style={{ background: 'rgba(15,10,20,0.8)', border: '1.5px solid rgba(139,92,246,0.5)' }}>
               <p
-                className="tracking-widest uppercase font-bold mb-1.5 text-center"
-                style={{ color: '#8B5CF6', fontSize: 'clamp(10px, 1.5vh, 13px)' }}
+                className="tracking-widest uppercase font-bold mb-1 text-center"
+                style={{ color: '#8B5CF6', fontSize: 'clamp(9px, 1.3vh, 12px)' }}
               >
                 Ya cantaron esta noche
               </p>
-              <div style={{ height: 'clamp(28px, 4vh, 40px)' }} className="flex items-center justify-center overflow-hidden">
+              <div style={{ height: 'clamp(24px, 3.2vh, 34px)' }} className="flex items-center justify-center overflow-hidden">
                 <div
                   key={currentSung.id + '-' + sungIndex}
                   className="glitch-row flex items-center gap-3"
                 >
-                  <span className="text-white font-bold" style={{ fontSize: 'clamp(16px, 2.6vh, 22px)' }}>{currentSung.name}</span>
-                  <span className="font-extrabold" style={{ color: '#F4D03F', fontSize: 'clamp(16px, 2.6vh, 22px)' }}>{currentSung.average}</span>
+                  <span className="text-white font-bold" style={{ fontSize: 'clamp(14px, 2.2vh, 19px)' }}>{currentSung.name}</span>
+                  <span className="font-extrabold" style={{ color: '#F4D03F', fontSize: 'clamp(14px, 2.2vh, 19px)' }}>{currentSung.average}</span>
                 </div>
               </div>
             </div>
