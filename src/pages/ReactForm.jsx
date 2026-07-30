@@ -19,6 +19,13 @@ export default function ReactForm() {
 
   var touchStartX = useRef(null)
 
+  var lastReactAtRef = useRef(0)
+  var cooldownState = useState(false)
+  var onCooldown = cooldownState[0]
+  var setOnCooldown = cooldownState[1]
+
+  var REACT_COOLDOWN_MS = 1200
+
   if (screenMode !== 'reactions' || !currentSinger) {
     return (
       <div
@@ -41,13 +48,6 @@ export default function ReactForm() {
       setFloaters(function (prev) { return prev.filter(function (f) { return f.id !== id } ) })
     }, 1800)
   }
-
-  var lastReactAtRef = useRef(0)
-  var cooldownState = useState(false)
-  var onCooldown = cooldownState[0]
-  var setOnCooldown = cooldownState[1]
-
-  var REACT_COOLDOWN_MS = 1200
 
   function triggerCooldown() {
     setOnCooldown(true)
