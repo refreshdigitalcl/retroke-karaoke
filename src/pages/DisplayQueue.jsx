@@ -306,25 +306,25 @@ export default function DisplayQueue(props) {
         <div className="flex flex-col items-center justify-start text-center min-h-0">
           <p
             className="tracking-[4px] uppercase font-bold mb-1"
-            style={{ color: '#F4D03F', fontSize: 'clamp(8px, 1.3vh, 12px)' }}
+            style={{ color: '#F4D03F', fontSize: 'clamp(9px, 1.4vh, 13px)' }}
           >
             ✨ Karaoke en vivo
           </p>
           <h1
             className="hero-title font-extrabold leading-tight mb-1"
-            style={{ fontSize: 'clamp(1.25rem, 4.2vh, 2.2rem)' }}
+            style={{ fontSize: 'clamp(1.15rem, 3.8vh, 2rem)' }}
           >
             {heroPhrase}
           </h1>
           <p
-            className="font-bold mb-1 hero-subtitle"
-            style={{ color: '#E91E8C', fontSize: 'clamp(0.9rem, 2.2vh, 1.25rem)' }}
+            className="font-bold mb-1.5 hero-subtitle"
+            style={{ color: '#E91E8C', fontSize: 'clamp(1rem, 2.3vh, 1.35rem)' }}
           >
             Somos el sistema operativo del karaoke moderno.
           </p>
           <p
-            className="text-neutral-300 mb-1.5 max-w-sm"
-            style={{ fontSize: 'clamp(10px, 1.5vh, 13px)' }}
+            className="text-neutral-200 font-medium mb-2 max-w-md"
+            style={{ fontSize: 'clamp(15px, 2.3vh, 19px)' }}
           >
             Escanea el código QR, anota tu nombre y canción, y prepárate para el show.
           </p>
@@ -341,20 +341,20 @@ export default function DisplayQueue(props) {
           </div>
 
           {currentSung && (
-            <div className="mt-1.5 w-full max-w-[340px] rounded-2xl px-5 py-2" style={{ background: 'rgba(15,10,20,0.8)', border: '1.5px solid rgba(139,92,246,0.5)' }}>
+            <div className="mt-1.5 w-full max-w-[340px] rounded-2xl px-5 py-1.5" style={{ background: 'rgba(15,10,20,0.8)', border: '1.5px solid rgba(139,92,246,0.5)' }}>
               <p
-                className="tracking-widest uppercase font-bold mb-1 text-center"
-                style={{ color: '#8B5CF6', fontSize: 'clamp(9px, 1.3vh, 12px)' }}
+                className="tracking-widest uppercase font-bold mb-0.5 text-center"
+                style={{ color: '#8B5CF6', fontSize: 'clamp(8px, 1.1vh, 11px)' }}
               >
                 Ya cantaron esta noche
               </p>
-              <div style={{ height: 'clamp(24px, 3.2vh, 34px)' }} className="flex items-center justify-center overflow-hidden">
+              <div style={{ height: 'clamp(22px, 2.8vh, 30px)' }} className="flex items-center justify-center overflow-hidden">
                 <div
                   key={currentSung.id + '-' + sungIndex}
                   className="glitch-row flex items-center gap-3"
                 >
-                  <span className="text-white font-bold" style={{ fontSize: 'clamp(14px, 2.2vh, 19px)' }}>{currentSung.name}</span>
-                  <span className="font-extrabold" style={{ color: '#F4D03F', fontSize: 'clamp(14px, 2.2vh, 19px)' }}>{currentSung.average}</span>
+                  <span className="text-white font-bold" style={{ fontSize: 'clamp(13px, 2vh, 17px)' }}>{currentSung.name}</span>
+                  <span className="font-extrabold" style={{ color: '#F4D03F', fontSize: 'clamp(13px, 2vh, 17px)' }}>{currentSung.average}</span>
                 </div>
               </div>
             </div>
