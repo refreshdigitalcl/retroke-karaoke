@@ -254,8 +254,7 @@ export default function DisplayResult() {
   var phrase = pickFromList(RESULT_PHRASES, String(currentSinger.id) + 'x')
 
   return (
-    <div className="min-h-screen w-screen relative overflow-hidden bg-black flex items-center justify-center">
-      <Stage16x9>
+    <div className="min-h-screen w-screen relative overflow-hidden bg-black flex flex-col items-center justify-center px-6 py-8 md:px-12 md:py-10">
         <RetroEqualizer />
         <ResultStageLights />
         <FallingParty />
@@ -437,43 +436,6 @@ export default function DisplayResult() {
           100% { transform: translate(var(--dx), var(--dy)) scale(0.3); opacity: 0; }
         }
       `}</style>
-      </Stage16x9>
-    </div>
-  )
-}
-
-function Stage16x9(props) {
-  var scaleState = useState(1)
-  var scale = scaleState[0]
-  var setScale = scaleState[1]
-
-  useEffect(function () {
-    function computeScale() {
-      var scaleX = window.innerWidth / 1920
-      var scaleY = window.innerHeight / 1080
-      setScale(Math.min(scaleX, scaleY))
-    }
-    computeScale()
-    window.addEventListener('resize', computeScale)
-    return function () { window.removeEventListener('resize', computeScale) }
-  }, [])
-
-  return (
-    <div
-      style={{
-        width: '1920px',
-        height: '1080px',
-        transform: 'scale(' + scale + ')',
-        transformOrigin: 'center center',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        position: 'relative',
-        flexShrink: 0
-      }}
-    >
-      {props.children}
     </div>
   )
 }
