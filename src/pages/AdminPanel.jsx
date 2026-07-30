@@ -560,6 +560,27 @@ function daysUntil(dateStr) {
 function WorkspaceRow(props) {
   var ws = props.ws
   var onChanged = props.onChanged
+  var auth = useAuth()
+
+  var ownerEmailRealState = useState(null)
+  var ownerEmailReal = ownerEmailRealState[0]
+  var setOwnerEmailReal = ownerEmailRealState[1]
+
+  function callAdminUsersApi(action, userId) {
+    var token = auth.session ? auth.session.access_token : ''
+    return fetch('/api/admin-users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ action: action, user_id: userId })
+    }).then(function (res) { return res.json() })
+  }
+
+  useEffect(function () {
+    if (!ws.owner_id) return
+    callAdminUsersApi('get_email', ws.owner_id).then(function (data) {
+      setOwnerEmailReal(data && data.email ? data.email : null)
+    })
+  }, [ws.owner_id])
 
   var subscriptionState = useState(undefined)
   var subscription = subscriptionState[0]
@@ -723,11 +744,18 @@ function WorkspaceRow(props) {
           setDeleting(false)
           return
         }
-        setDeleting(false)
         if (wsDeleteResult.error) {
+          setDeleting(false)
           setDeleteError('No se pudo eliminar: ' + wsDeleteResult.error.message)
           return
         }
+        if (ws.owner_id) {
+          return callAdminUsersApi('delete_user', ws.owner_id).then(function () {
+            setDeleting(false)
+            onChanged()
+          })
+        }
+        setDeleting(false)
         onChanged()
       })
       .catch(function (err) {
@@ -949,11 +977,11 @@ function WorkspaceRow(props) {
           </div>
           <div>
             <label className="text-xs block mb-1" style={{ color: 'var(--text-muted)' }}>
-              {ws.owner_id ? 'Dueño vinculado (ID de usuario)' : 'Correo del dueño (pendiente de vincular)'}
+              {ws.owner_id ? 'Correo del dueño' : 'Correo del dueño (pendiente de vincular)'}
             </label>
             {ws.owner_id ? (
-              <p className="text-xs px-3 py-2 rounded-lg" style={{ background: 'var(--bg-card)', color: 'var(--text-secondary)' }}>
-                {ws.owner_id}
+              <p className="text-sm px-3 py-2 rounded-lg font-medium" style={{ background: 'var(--bg-card)', color: 'var(--text-primary)' }}>
+                {ownerEmailReal === null ? 'Cargando...' : ownerEmailReal || 'No se pudo obtener el correo'}
               </p>
             ) : (
               <input
