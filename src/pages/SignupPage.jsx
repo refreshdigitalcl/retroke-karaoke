@@ -95,7 +95,7 @@ export default function SignupPage() {
             var chain = supabase.from('workspace_members').insert({
               workspace_id: workspace.id,
               user_id: userId,
-              role: 'owner'
+              role: 'OWNER'
             }).then(function (memberResult) {
               if (memberResult.error) throw new Error('No se pudo vincular tu cuenta al workspace: ' + memberResult.error.message)
             })
