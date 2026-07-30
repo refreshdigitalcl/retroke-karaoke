@@ -146,7 +146,7 @@ export default function SignupPage() {
         return fetch('/api/create-preference', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ subscription_id: subscription.id })
+          body: JSON.stringify({ subscription_id: subscription.id, email: email })
         })
           .then(function (res) { return res.json() })
           .then(function (data) {
