@@ -876,6 +876,141 @@ function WorkspaceRow(props) {
   )
 }
 
+function PlanRow(props) {
+  var plan = props.plan
+  var onChanged = props.onChanged
+
+  var priceState = useState(plan.price_monthly)
+  var price = priceState[0]
+  var setPrice = priceState[1]
+
+  var trialState = useState(plan.trial_days)
+  var trial = trialState[0]
+  var setTrial = trialState[1]
+
+  var savingState = useState(false)
+  var saving = savingState[0]
+  var setSaving = savingState[1]
+
+  function save() {
+    setSaving(true)
+    supabase
+      .from('plans')
+      .update({ price_monthly: Number(price) || 0, trial_days: Number(trial) || 0 })
+      .eq('id', plan.id)
+      .then(function () {
+        setSaving(false)
+        onChanged()
+      })
+  }
+
+  function toggleActive() {
+    supabase
+      .from('plans')
+      .update({ is_active: !plan.is_active })
+      .eq('id', plan.id)
+      .then(function () { onChanged() })
+  }
+
+  return (
+    <div className="rounded-lg py-2.5 px-3 flex items-center gap-3 flex-wrap" style={{ background: 'var(--bg-card-alt)' }}>
+      <p className="text-sm font-medium w-28 shrink-0" style={{ color: 'var(--text-primary)' }}>
+        {plan.name}
+      </p>
+      <div className="flex items-center gap-1.5">
+        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>$</span>
+        <input
+          type="number"
+          value={price}
+          onChange={function (e) { setPrice(e.target.value) }}
+          className="w-24 h-8 rounded-lg px-2 text-xs border outline-none"
+          style={{ background: 'var(--bg-card)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+        />
+        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>/mes</span>
+      </div>
+      <div className="flex items-center gap-1.5">
+        <input
+          type="number"
+          value={trial}
+          onChange={function (e) { setTrial(e.target.value) }}
+          className="w-14 h-8 rounded-lg px-2 text-xs border outline-none"
+          style={{ background: 'var(--bg-card)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+        />
+        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>dias prueba</span>
+      </div>
+      <button
+        onClick={save}
+        disabled={saving}
+        className="text-xs px-3 py-1.5 rounded-full font-medium text-white disabled:opacity-50"
+        style={{ background: 'var(--accent-purple)' }}
+      >
+        {saving ? 'Guardando...' : 'Guardar'}
+      </button>
+      <button
+        onClick={toggleActive}
+        className="text-xs px-3 py-1.5 rounded-full border"
+        style={{ borderColor: 'var(--border)', color: plan.is_active ? 'var(--accent-green)' : 'var(--text-muted)' }}
+      >
+        {plan.is_active ? '✓ Visible en precios' : 'Oculto'}
+      </button>
+    </div>
+  )
+}
+
+function PlansManager() {
+  var plansState = useState(null)
+  var plans = plansState[0]
+  var setPlans = plansState[1]
+
+  function load() {
+    supabase
+      .from('plans')
+      .select('*')
+      .order('workspace_type')
+      .order('sort_order')
+      .then(function (result) {
+        setPlans(result.data || [])
+      })
+  }
+
+  useEffect(function () {
+    load()
+  }, [])
+
+  var groups = ['HOME', 'BAR', 'DJ']
+
+  return (
+    <Card>
+      <p className="text-xs uppercase mb-3" style={{ color: 'var(--accent-yellow)' }}>
+        💳 Planes y precios
+      </p>
+      {plans === null && (
+        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Cargando...</p>
+      )}
+      {plans !== null && (
+        <div className="flex flex-col gap-5">
+          {groups.map(function (type) {
+            var items = plans.filter(function (p) { return p.workspace_type === type })
+            if (items.length === 0) return null
+            return (
+              <div key={type}>
+                <p className="text-xs font-bold mb-2" style={{ color: 'var(--text-secondary)' }}>
+                  {type === 'HOME' ? '🏠 Home' : type === 'BAR' ? '🍹 Bar' : '🎧 DJ Pro'}
+                </p>
+                <div className="flex flex-col gap-2">
+                  {items.map(function (p) {
+                    return <PlanRow key={p.id} plan={p} onChanged={load} />
+                  })}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </Card>
+  )
+}
+
 function WorkspacesList(props) {
   var workspaces = props.workspaces
   var onChanged = props.onChanged
@@ -1030,6 +1165,7 @@ export default function AdminPanel() {
       ) : (
         <div className="flex flex-col gap-6">
           <Dashboard stats={stats} />
+          <PlansManager />
           <WorkspacesList workspaces={workspaces} onChanged={loadEverything} />
           <NewWorkspaceForm onCreated={loadEverything} />
         </div>
