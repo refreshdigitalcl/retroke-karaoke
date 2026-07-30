@@ -1349,6 +1349,41 @@ function DjPanelInner() {
           </div>
         </section>
       )}
+
+      {subExpiry && (function () {
+        var isFree = workspacePlan === 'FREE'
+        var hasExpiry = subExpiry.expires_at
+        var days = hasExpiry ? Math.ceil((new Date(subExpiry.expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : null
+        var color = !hasExpiry ? 'var(--accent-green)' : days < 0 ? 'var(--accent-magenta)' : days <= 5 ? '#F4D03F' : 'var(--accent-green)'
+        var planWord = subExpiry.status === 'trial' ? 'prueba PRO' : workspacePlan
+        return (
+          <section
+            className="rounded-2xl border p-5 mt-6 flex items-center justify-between flex-wrap gap-3"
+            style={{ background: 'var(--bg-card)', borderColor: color, boxShadow: '0 2px 20px -6px rgba(139,92,246,0.25)' }}
+          >
+            <div>
+              <p className="text-xs uppercase tracking-wide mb-1" style={{ color: 'var(--text-muted)' }}>
+                Estado de tu suscripcion
+              </p>
+              <p className="text-base font-bold" style={{ color: 'var(--text-primary)' }}>
+                Plan {planWord}
+              </p>
+            </div>
+            <div className="text-right">
+              {!hasExpiry ? (
+                <p className="text-sm font-semibold" style={{ color: color }}>✓ Sin vencimiento</p>
+              ) : (
+                <p className="text-2xl font-extrabold" style={{ color: color }}>
+                  {days < 0 ? 'Vencido' : days === 0 ? 'Vence hoy' : days + (days === 1 ? ' dia' : ' dias')}
+                </p>
+              )}
+              {hasExpiry && days >= 0 && (
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>restantes</p>
+              )}
+            </div>
+          </section>
+        )
+      })()}
       </div>
     </div>
   )

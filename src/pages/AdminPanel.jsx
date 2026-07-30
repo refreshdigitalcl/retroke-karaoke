@@ -622,15 +622,57 @@ function WorkspaceRow(props) {
   }
 
   function handleDelete() {
-    if (!window.confirm('Eliminar "' + ws.name + '" para siempre? Esto no se puede deshacer.')) return
     setDeleteError('')
-    setDeleting(true)
 
     supabase
-      .from('bars')
-      .select('id')
+      .from('subscriptions')
+      .select('id, status')
       .eq('workspace_id', ws.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(function (subResult) {
+        var currentSub = subResult.data
+        var hasLiveSub = currentSub && (currentSub.status === 'active' || currentSub.status === 'trial')
+        var message = hasLiveSub
+          ? 'Este cliente tiene una suscripcion ' + (currentSub.status === 'trial' ? 'de prueba' : 'ACTIVA') + ' en "' + ws.name + '". Si lo eliminas, pierde el acceso de inmediato y no se puede deshacer. Quieres eliminarlo de todas formas?'
+          : 'Eliminar "' + ws.name + '" para siempre? Esto no se puede deshacer.'
+
+        if (!window.confirm(message)) return null
+
+        setDeleting(true)
+
+        return supabase
+          .from('subscriptions')
+          .select('id')
+          .eq('workspace_id', ws.id)
+          .then(function (allSubsResult) {
+            var subIds = (allSubsResult.data || []).map(function (s) { return s.id })
+            var subCleanup = []
+            if (subIds.length > 0) {
+              subCleanup.push(supabase.from('payment_transactions').delete().in('subscription_id', subIds))
+              subCleanup.push(supabase.from('billing_events').delete().in('subscription_id', subIds))
+            }
+            return Promise.all(subCleanup)
+          })
+          .then(function () {
+            return supabase.from('licenses').delete().eq('workspace_id', ws.id)
+          })
+          .then(function () {
+            return supabase.from('subscriptions').delete().eq('workspace_id', ws.id)
+          })
+          .then(function () {
+            return supabase.from('workspace_members').delete().eq('workspace_id', ws.id)
+          })
+          .then(function () {
+            return supabase
+              .from('bars')
+              .select('id')
+              .eq('workspace_id', ws.id)
+          })
+      })
       .then(function (barResult) {
+        if (!barResult) return null
         var barId = barResult.data && barResult.data[0] ? barResult.data[0].id : null
         var sessionQuery = barId
           ? supabase.from('sessions').select('id').eq('bar_id', barId)
@@ -663,24 +705,34 @@ function WorkspaceRow(props) {
         })
       })
       .then(function (info) {
+        if (!info) return null
         if (info.barId) {
           return supabase.from('bars').delete().eq('id', info.barId)
         }
         return { error: null }
       })
       .then(function (barDeleteResult) {
-        if (barDeleteResult && barDeleteResult.error) {
+        if (!barDeleteResult) return null
+        if (barDeleteResult.error) {
           throw barDeleteResult.error
         }
         return supabase.from('workspaces').delete().eq('id', ws.id)
       })
       .then(function (wsDeleteResult) {
+        if (!wsDeleteResult) {
+          setDeleting(false)
+          return
+        }
         setDeleting(false)
-        if (wsDeleteResult && wsDeleteResult.error) {
+        if (wsDeleteResult.error) {
           setDeleteError('No se pudo eliminar: ' + wsDeleteResult.error.message)
           return
         }
         onChanged()
+      })
+      .catch(function (err) {
+        setDeleting(false)
+        setDeleteError('No se pudo eliminar: ' + (err && err.message ? err.message : 'error desconocido'))
       })
       .catch(function (err) {
         setDeleting(false)
