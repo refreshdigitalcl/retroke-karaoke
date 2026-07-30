@@ -136,7 +136,7 @@ function Backstage(props) {
           Aún no hay nadie anotado. Escanea el QR y sé el primero en subir al escenario.
         </p>
       )}
-      <div className="flex flex-col gap-3 overflow-y-auto pr-1 max-h-[320px]">{rows}</div>
+      <div className="flex flex-col gap-3 overflow-y-auto pr-1" style={{ maxHeight: '45vh' }}>{rows}</div>
       <style>{`
         .ready-pulse {
           animation: readyPulse 1.4s ease-in-out infinite;
@@ -185,6 +185,25 @@ function groupRatings(ratings) {
   return result
 }
 
+function useViewportSize() {
+  var sizeState = useState(function () {
+    if (typeof window === 'undefined') return { w: 1920, h: 1080 }
+    return { w: window.innerWidth, h: window.innerHeight }
+  })
+  var size = sizeState[0]
+  var setSize = sizeState[1]
+
+  useEffect(function () {
+    function onResize() {
+      setSize({ w: window.innerWidth, h: window.innerHeight })
+    }
+    window.addEventListener('resize', onResize)
+    return function () { window.removeEventListener('resize', onResize) }
+  }, [])
+
+  return size
+}
+
 export default function DisplayQueue(props) {
   var muted = props.muted
   var toggleMute = props.toggleMute
@@ -196,6 +215,11 @@ export default function DisplayQueue(props) {
   var sessionCode = session.sessionCode
   var queue = session.queue
   var ratings = session.ratings
+
+  var viewport = useViewportSize()
+  // QR proporcional a la altura real de la ventana, con piso y techo
+  // razonables para que nunca quede minusculo ni gigante.
+  var qrSize = Math.round(Math.max(150, Math.min(290, viewport.h * 0.26)))
 
   var heroPhraseState = useState(nextHeroPhrase)
   var heroPhrase = heroPhraseState[0]
@@ -280,16 +304,28 @@ export default function DisplayQueue(props) {
 
       <main className="relative z-10 flex-1 min-h-0 grid grid-cols-1 md:grid-cols-2 gap-6 max-w-6xl w-full mx-auto px-6 md:px-8 pb-2 pt-1">
         <div className="flex flex-col items-center justify-start text-center min-h-0">
-          <p className="text-xs tracking-[5px] uppercase font-bold mb-1.5" style={{ color: '#F4D03F' }}>
+          <p
+            className="tracking-[5px] uppercase font-bold mb-1.5"
+            style={{ color: '#F4D03F', fontSize: 'clamp(9px, 1.6vh, 13px)' }}
+          >
             ✨ Karaoke en vivo
           </p>
-          <h1 className="hero-title text-3xl md:text-5xl font-extrabold leading-tight mb-1.5">
+          <h1
+            className="hero-title font-extrabold leading-tight mb-1.5"
+            style={{ fontSize: 'clamp(1.5rem, 5.5vh, 3rem)' }}
+          >
             {heroPhrase}
           </h1>
-          <p className="text-lg md:text-2xl font-bold mb-1.5 hero-subtitle" style={{ color: '#E91E8C' }}>
+          <p
+            className="font-bold mb-1.5 hero-subtitle"
+            style={{ color: '#E91E8C', fontSize: 'clamp(1rem, 2.8vh, 1.5rem)' }}
+          >
             Somos el sistema operativo del karaoke moderno.
           </p>
-          <p className="text-sm text-neutral-300 mb-2 max-w-sm">
+          <p
+            className="text-neutral-300 mb-2 max-w-sm"
+            style={{ fontSize: 'clamp(11px, 1.9vh, 15px)' }}
+          >
             Escanea el código QR, anota tu nombre y canción, y prepárate para el show.
           </p>
 
@@ -298,7 +334,7 @@ export default function DisplayQueue(props) {
             <span className="qr-corner qr-corner-tr" />
             <span className="qr-corner qr-corner-bl" />
             <span className="qr-corner qr-corner-br" />
-            <QRCode url={registerUrl} size={290} />
+            <QRCode url={registerUrl} size={qrSize} />
             <p className="text-sm font-bold tracking-wide" style={{ color: '#8B5CF6' }}>
               karaoke.cl/{sessionCode}
             </p>
