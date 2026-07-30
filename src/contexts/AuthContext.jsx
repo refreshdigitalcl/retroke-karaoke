@@ -126,6 +126,14 @@ export function AuthProvider({ children }) {
     })
   }
 
+  function signUpWithPassword(email, password) {
+    return supabase.auth.signUp({ email: email, password: password })
+  }
+
+  function signInWithPassword(email, password) {
+    return supabase.auth.signInWithPassword({ email: email, password: password })
+  }
+
   function signOut() {
     return supabase.auth.signOut()
   }
@@ -136,6 +144,8 @@ export function AuthProvider({ children }) {
     isGlobalAdmin: isGlobalAdmin,
     debugInfo: debugInfo,
     signInWithEmail: signInWithEmail,
+    signUpWithPassword: signUpWithPassword,
+    signInWithPassword: signInWithPassword,
     signOut: signOut
   }
 

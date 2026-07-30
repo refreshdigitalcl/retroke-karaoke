@@ -190,15 +190,16 @@ export default function PricingPage() {
                       )
                     })}
                   </div>
-                  <button
-                    className="h-12 rounded-xl font-bold text-white"
+                  <a
+                    href={'/comenzar?plan=' + plan.id}
+                    className="h-12 rounded-xl font-bold text-white flex items-center justify-center"
                     style={{
                       background: isPro ? 'linear-gradient(90deg, #E91E8C, #8B5CF6)' : 'rgba(139,92,246,0.2)',
                       border: isPro ? 'none' : '2px solid rgba(139,92,246,0.5)'
                     }}
                   >
                     {plan.price_monthly > 0 ? 'Comenzar prueba gratis' : 'Empezar gratis'}
-                  </button>
+                  </a>
                 </div>
               )
             })}
