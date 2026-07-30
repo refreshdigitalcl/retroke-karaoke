@@ -68,8 +68,12 @@ export default function SignupPage() {
       .signUpWithPassword(email, password)
       .then(function (signUpResult) {
         if (signUpResult.error) throw signUpResult.error
-        var userId = signUpResult.data.user && signUpResult.data.user.id
-        if (!userId) throw new Error('No se pudo crear el usuario')
+        var user = signUpResult.data.user
+        var userId = user && user.id
+        var isNewUser = user && user.identities && user.identities.length > 0
+        if (!userId || !isNewUser) {
+          throw new Error('Ese correo ya tiene una cuenta en Retroke. Inicia sesion en vez de registrarte de nuevo.')
+        }
 
         var slug = slugify(name) + '-' + Math.random().toString(36).slice(2, 6)
 
