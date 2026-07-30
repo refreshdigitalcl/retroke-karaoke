@@ -552,13 +552,37 @@ function BarDetail(props) {
 
 var PLAN_OPTIONS = ['FREE', 'PRO', 'PREMIUM']
 
+function daysUntil(dateStr) {
+  if (!dateStr) return null
+  var diffMs = new Date(dateStr).getTime() - Date.now()
+  return Math.ceil(diffMs / (1000 * 60 * 60 * 24))
+}
+
 function WorkspaceRow(props) {
   var ws = props.ws
   var onChanged = props.onChanged
 
-  var expiresState = useState(ws.expires_at ? ws.expires_at.slice(0, 10) : '')
+  var subscriptionState = useState(undefined)
+  var subscription = subscriptionState[0]
+  var setSubscription = subscriptionState[1]
+
+  var expiresState = useState('')
   var expiresValue = expiresState[0]
   var setExpiresValue = expiresState[1]
+
+  useEffect(function () {
+    supabase
+      .from('subscriptions')
+      .select('id, status, expires_at, renews_at, provider')
+      .eq('workspace_id', ws.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(function (result) {
+        setSubscription(result.data || null)
+        setExpiresValue(result.data && result.data.expires_at ? result.data.expires_at.slice(0, 10) : '')
+      })
+  }, [ws.id])
 
   var uploadingLogoState = useState(false)
   var uploadingLogo = uploadingLogoState[0]
@@ -590,10 +614,11 @@ function WorkspaceRow(props) {
   }
 
   function saveExpiration() {
+    if (!subscription) return
     supabase
-      .from('workspaces')
+      .from('subscriptions')
       .update({ expires_at: expiresValue ? expiresValue : null })
-      .eq('id', ws.id)
+      .eq('id', subscription.id)
       .then(function () { onChanged() })
   }
 
@@ -808,17 +833,45 @@ function WorkspaceRow(props) {
       )}
 
       <div className="flex items-center gap-3 flex-wrap mt-2.5 pt-2.5" style={{ borderTop: '1px solid var(--border)' }}>
-        <div className="flex items-center gap-1.5">
-          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Vence:</span>
-          <input
-            type="date"
-            value={expiresValue}
-            onChange={function (e) { setExpiresValue(e.target.value) }}
-            onBlur={saveExpiration}
-            className="text-xs px-2 py-1 rounded-lg border outline-none"
-            style={{ background: 'var(--bg-card)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
-          />
-        </div>
+        {subscription === undefined && (
+          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Cargando suscripción...</span>
+        )}
+
+        {subscription === null && (
+          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Sin suscripción registrada</span>
+        )}
+
+        {subscription && !subscription.expires_at && (
+          <span className="text-xs px-2.5 py-1 rounded-full" style={{ background: 'rgba(126,217,87,0.12)', color: 'var(--accent-green)' }}>
+            ✓ Plan gratis, sin vencimiento
+          </span>
+        )}
+
+        {subscription && subscription.expires_at && (function () {
+          var days = daysUntil(subscription.expires_at)
+          var color = days === null ? 'var(--text-muted)' : days < 0 ? 'var(--accent-magenta)' : days <= 5 ? '#F4D03F' : 'var(--accent-green)'
+          var label = days === null ? '' : days < 0 ? 'Vencida hace ' + Math.abs(days) + ' días' : days === 0 ? 'Vence hoy' : 'Vence en ' + days + ' días'
+          return (
+            <span className="text-xs px-2.5 py-1 rounded-full font-semibold" style={{ background: 'rgba(255,255,255,0.06)', color: color, border: '1px solid ' + color }}>
+              {new Date(subscription.expires_at).toLocaleDateString('es-CL')} · {label}
+            </span>
+          )
+        })()}
+
+        {subscription && (
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Ajustar:</span>
+            <input
+              type="date"
+              value={expiresValue}
+              onChange={function (e) { setExpiresValue(e.target.value) }}
+              onBlur={saveExpiration}
+              className="text-xs px-2 py-1 rounded-lg border outline-none"
+              style={{ background: 'var(--bg-card)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+            />
+          </div>
+        )}
+
         <label
           className="text-xs cursor-pointer font-medium px-2.5 py-1 rounded-full border"
           style={{ borderColor: 'var(--border)', color: 'var(--accent-purple)' }}
@@ -1070,6 +1123,10 @@ export default function AdminPanel() {
   var workspaces = workspacesState[0]
   var setWorkspaces = workspacesState[1]
 
+  var activeTabState = useState('resumen')
+  var activeTab = activeTabState[0]
+  var setActiveTab = activeTabState[1]
+
   function loadEverything() {
     supabase
       .from('bars')
@@ -1144,6 +1201,13 @@ export default function AdminPanel() {
     return <NotAuthorized debugInfo={auth.debugInfo} />
   }
 
+  var TABS = [
+    { id: 'resumen', label: '📊 Resumen' },
+    { id: 'clientes', label: '👥 Clientes (' + workspaces.length + ')' },
+    { id: 'planes', label: '💳 Planes' },
+    { id: 'nuevo', label: '➕ Nuevo' }
+  ]
+
   return (
     <div className="min-h-screen px-6 py-8" style={{ background: 'var(--bg-page)' }}>
       <header className="flex items-center justify-between mb-6">
@@ -1163,11 +1227,31 @@ export default function AdminPanel() {
       {selectedBar ? (
         <BarDetail bar={selectedBar} onBack={function () { setSelectedBar(null); loadEverything() }} />
       ) : (
-        <div className="flex flex-col gap-6">
-          <Dashboard stats={stats} />
-          <PlansManager />
-          <WorkspacesList workspaces={workspaces} onChanged={loadEverything} />
-          <NewWorkspaceForm onCreated={loadEverything} />
+        <div>
+          <div className="flex items-center gap-2 mb-6 flex-wrap">
+            {TABS.map(function (t) {
+              var isActive = activeTab === t.id
+              return (
+                <button
+                  key={t.id}
+                  onClick={function () { setActiveTab(t.id) }}
+                  className="text-sm px-4 h-10 rounded-full font-medium transition-colors"
+                  style={{
+                    background: isActive ? 'var(--accent-purple)' : 'var(--bg-card)',
+                    color: isActive ? '#fff' : 'var(--text-secondary)',
+                    border: '1px solid ' + (isActive ? 'var(--accent-purple)' : 'var(--border)')
+                  }}
+                >
+                  {t.label}
+                </button>
+              )
+            })}
+          </div>
+
+          {activeTab === 'resumen' && <Dashboard stats={stats} />}
+          {activeTab === 'clientes' && <WorkspacesList workspaces={workspaces} onChanged={loadEverything} />}
+          {activeTab === 'planes' && <PlansManager />}
+          {activeTab === 'nuevo' && <NewWorkspaceForm onCreated={function () { loadEverything(); setActiveTab('clientes') }} />}
         </div>
       )}
     </div>

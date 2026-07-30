@@ -603,6 +603,25 @@ function DjPanelInner() {
   var barName = session.barName
   var workspacePlan = session.workspacePlan
   var workspaceType = session.workspaceType
+  var workspaceId = session.workspaceId
+
+  var subExpiryState = useState(null)
+  var subExpiry = subExpiryState[0]
+  var setSubExpiry = subExpiryState[1]
+
+  useEffect(function () {
+    if (!workspaceId) return
+    supabase
+      .from('subscriptions')
+      .select('expires_at, status')
+      .eq('workspace_id', workspaceId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(function (result) {
+        setSubExpiry(result.data || null)
+      })
+  }, [workspaceId])
   var barIsActive = session.barIsActive
   var barLoading = session.barLoading
   var sessionCode = session.sessionCode
@@ -898,6 +917,16 @@ function DjPanelInner() {
                 {workspacePlan === 'PREMIUM' ? '👑 PREMIUM' : workspacePlan === 'PRO' ? '⭐ PRO' : 'FREE'}
               </span>
             )}
+            {subExpiry && subExpiry.expires_at && (function () {
+              var days = Math.ceil((new Date(subExpiry.expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+              var color = days < 0 ? 'var(--accent-magenta)' : days <= 5 ? '#F4D03F' : 'var(--text-muted)'
+              var label = days < 0 ? 'Suscripción vencida' : days === 0 ? 'Vence hoy' : 'Vence en ' + days + ' días'
+              return (
+                <span className="text-xs px-2.5 h-9 rounded-lg flex items-center" style={{ color: color, border: '1px solid ' + color }}>
+                  ⏳ {label}
+                </span>
+              )
+            })()}
           </div>
           <p className="text-xl font-medium" style={{ color: 'var(--text-primary)' }}>
             Panel del DJ
