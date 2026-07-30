@@ -37,7 +37,7 @@ function splitFacts(text) {
   var i = 0
   while (i < parts.length && facts.length < 4) {
     var p = parts[i].trim()
-    if (p.length > 25 && p.length < 200 && !/^\d/.test(p)) {
+    if (p.length > 25 && p.length <= 155 && !/^\d/.test(p)) {
       facts.push(p)
     }
     i = i + 1

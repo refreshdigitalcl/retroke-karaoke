@@ -3,6 +3,7 @@ import { useKaraokeSession, parseYoutubeId } from '../contexts/KaraokeSessionCon
 import ThemeToggle from '../components/ThemeToggle'
 import { supabase } from '../lib/supabase'
 import { createVocalAnalyzer, getFeedback } from '../lib/vocalAnalysis'
+import { containsProfanity } from '../lib/profanityFilter'
 
 const AVATARS = ['🔥', '🦄', '👽', '🐸', '🎤', '🐙', '⭐', '👑', '🍄', '🌊', '🎸', '🦋']
 
@@ -515,6 +516,7 @@ export default function RegisterForm() {
   function handleSubmit(e) {
     e.preventDefault()
     if (!name.trim() || !song.trim()) return
+    if (containsProfanity(name)) return
     setOptimisticPosition(queue.length + 1)
     addToQueue({
       name: name.trim(),
@@ -685,9 +687,19 @@ export default function RegisterForm() {
           onChange={function (e) { setName(e.target.value) }}
           placeholder="Como quieres que te vean"
           required
-          className="w-full mb-4 h-11 rounded-lg px-3 border outline-none"
-          style={{ background: 'var(--bg-card-alt)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+          className="w-full h-11 rounded-lg px-3 border outline-none"
+          style={{
+            background: 'var(--bg-card-alt)',
+            borderColor: containsProfanity(name) ? 'var(--accent-magenta)' : 'var(--border)',
+            color: 'var(--text-primary)'
+          }}
         />
+        {containsProfanity(name) && (
+          <p className="text-xs mt-1.5 mb-2.5" style={{ color: 'var(--accent-magenta)' }}>
+            Ese nombre no se puede usar. Recuerda que hay público presente — elige otro, por favor 🙏
+          </p>
+        )}
+        <div className="mb-4" />
 
         <label className="text-sm block mb-2" style={{ color: 'var(--text-secondary)' }}>
           Toma una selfie (opcional)
@@ -789,7 +801,8 @@ export default function RegisterForm() {
 
         <button
           type="submit"
-          className="w-full h-11 rounded-lg font-medium text-white"
+          disabled={containsProfanity(name)}
+          className="w-full h-11 rounded-lg font-medium text-white disabled:opacity-40"
           style={{ background: 'var(--accent-magenta)' }}
         >
           Sumarme a la cola

@@ -191,7 +191,7 @@ export default function DisplayQueue(props) {
   var musicEnabled = props.musicEnabled
   var session = useKaraokeSession()
   var barName = session.barName
-  var logoUrl = session.logoUrl
+  var logoUrl = session.hasFeature('custom_branding') ? session.logoUrl : null
   var spaceParam = session.spaceParam
   var sessionCode = session.sessionCode
   var queue = session.queue

@@ -37,7 +37,7 @@ function pickPhrase(seed) {
   return PHRASES[index % PHRASES.length]
 }
 
-function useSongInfo(song, active, factsEnabled) {
+function useSongInfo(song, active, factsEnabled, confirmedArtist) {
   var infoState = useState(null)
   var info = infoState[0]
   var setInfo = infoState[1]
@@ -57,6 +57,18 @@ function useSongInfo(song, active, factsEnabled) {
     setFacts([])
     setFactIndex(0)
 
+    var trimmedArtist = confirmedArtist && confirmedArtist.trim()
+
+    if (trimmedArtist) {
+      setInfo({ artist: trimmedArtist, year: '' })
+      if (factsEnabled) {
+        fetchArtistFacts(trimmedArtist).then(function (f) {
+          if (!cancelled) setFacts(f)
+        })
+      }
+      return function () { cancelled = true }
+    }
+
     fetch('https://itunes.apple.com/search?term=' + encodeURIComponent(song) + '&entity=song&limit=1')
       .then(function (res) { return res.json() })
       .then(function (data) {
@@ -75,7 +87,7 @@ function useSongInfo(song, active, factsEnabled) {
       .catch(function () {})
 
     return function () { cancelled = true }
-  }, [song])
+  }, [song, confirmedArtist])
 
   useEffect(function () {
     if (!active) return
@@ -200,7 +212,7 @@ export default function DisplayReactions() {
   }, [currentSinger])
 
   var hasVideo = !!(currentSinger && currentSinger.videoId)
-  var songInfo = useSongInfo(currentSinger ? currentSinger.song : '', hasVideo, hasFeature('artist_facts'))
+  var songInfo = useSongInfo(currentSinger ? currentSinger.song : '', hasVideo, hasFeature('artist_facts'), currentSinger ? currentSinger.artistName : '')
   var qrCycle = useAlternatingQrCycle(hasVideo)
   var needlePosition = useNeedlePosition(reactions)
 
@@ -321,25 +333,20 @@ export default function DisplayReactions() {
 
       {hasVideo ? (
         <div className="relative w-full h-screen">
-          <div className="absolute top-5 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-1.5 px-6 py-3 rounded-2xl listening-badge-v2">
-            <div className="flex items-center gap-2.5">
-              <div className="relative w-7 h-7 rounded-full flex items-center justify-center shrink-0 neon-mic-orb">
-                <span className="text-xs relative z-10">🎙️</span>
-              </div>
-              <svg width="46" height="20" viewBox="0 0 52 24" className="shrink-0">
-                <rect className="neon-wave-bar" x="0" y="8" width="5" rx="2.5" fill="#F4D03F" />
-                <rect className="neon-wave-bar" x="8" y="4" width="5" rx="2.5" fill="#E91E8C" style={{ animationDelay: '0.1s' }} />
-                <rect className="neon-wave-bar" x="16" y="1" width="5" rx="2.5" fill="#8B5CF6" style={{ animationDelay: '0.2s' }} />
-                <rect className="neon-wave-bar" x="24" y="6" width="5" rx="2.5" fill="#F4D03F" style={{ animationDelay: '0.3s' }} />
-                <rect className="neon-wave-bar" x="32" y="2" width="5" rx="2.5" fill="#E91E8C" style={{ animationDelay: '0.15s' }} />
-                <rect className="neon-wave-bar" x="40" y="7" width="5" rx="2.5" fill="#8B5CF6" style={{ animationDelay: '0.25s' }} />
-                <rect className="neon-wave-bar" x="47" y="8" width="5" rx="2.5" fill="#F4D03F" style={{ animationDelay: '0.05s' }} />
-              </svg>
-              <div className="relative w-7 h-7 rounded-full flex items-center justify-center shrink-0 neon-mic-orb">
-                <span className="text-xs relative z-10">🎤</span>
-              </div>
+          <div className="absolute top-4 left-4 z-20 flex items-center gap-3 px-5 py-2.5 rounded-full listening-badge-v3">
+            <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0" style={{ background: 'rgba(244,208,63,0.15)' }}>
+              <span className="text-xs">🎙️</span>
             </div>
-            <span className="text-xs uppercase tracking-[4px] font-extrabold text-center listening-label-v2">
+            <svg width="40" height="16" viewBox="0 0 52 24" className="shrink-0">
+              <rect x="0" y="8" width="5" rx="2.5" height="8" fill="#F4D03F" />
+              <rect x="8" y="4" width="5" rx="2.5" height="16" fill="#E91E8C" />
+              <rect x="16" y="1" width="5" rx="2.5" height="22" fill="#8B5CF6" />
+              <rect x="24" y="6" width="5" rx="2.5" height="12" fill="#F4D03F" />
+              <rect x="32" y="2" width="5" rx="2.5" height="20" fill="#E91E8C" />
+              <rect x="40" y="7" width="5" rx="2.5" height="10" fill="#8B5CF6" />
+              <rect x="47" y="8" width="5" rx="2.5" height="8" fill="#F4D03F" />
+            </svg>
+            <span className="text-xs uppercase tracking-[3px] font-extrabold shrink-0" style={{ color: '#fff' }}>
               Escuchando
             </span>
           </div>
@@ -508,19 +515,9 @@ export default function DisplayReactions() {
           background: #F4D03F;
           border: 3px solid #fff;
         }
-        .listening-badge-v2 {
-          background: linear-gradient(135deg, rgba(20,14,32,0.92), rgba(35,20,45,0.92));
-          border: 1.5px solid transparent;
-          background-image: linear-gradient(135deg, rgba(20,14,32,0.92), rgba(35,20,45,0.92)), linear-gradient(90deg, #F4D03F, #E91E8C, #8B5CF6);
-          background-origin: border-box;
-          background-clip: padding-box, border-box;
-          box-shadow: 0 4px 20px -4px rgba(0,0,0,0.6);
-        }
-        .listening-label-v2 {
-          background: linear-gradient(90deg, #F4D03F, #E91E8C, #8B5CF6);
-          -webkit-background-clip: text;
-          background-clip: text;
-          color: transparent;
+        .listening-badge-v3 {
+          background: rgba(15, 10, 22, 0.85);
+          border: 1.5px solid rgba(244, 208, 63, 0.5);
         }
         .neon-wave-shell {
           background: linear-gradient(135deg, rgba(139,92,246,0.22), rgba(233,30,140,0.18), rgba(10,8,20,0.65));
@@ -557,7 +554,7 @@ export default function DisplayReactions() {
         }
         .fact-clamp {
           display: -webkit-box;
-          -webkit-line-clamp: 2;
+          -webkit-line-clamp: 3;
           -webkit-box-orient: vertical;
           overflow: hidden;
         }
