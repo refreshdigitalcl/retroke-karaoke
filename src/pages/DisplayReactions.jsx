@@ -339,58 +339,24 @@ export default function DisplayReactions() {
             </span>
           </div>
 
-          <div className="absolute left-4 top-1/2 -translate-y-1/2 z-20 w-5 h-[58vh]">
-            <div className="absolute inset-0 rounded-full overflow-hidden track-shell" style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(139, 92, 246, 0.45)' }}>
+          <div className="absolute left-5 top-1/2 -translate-y-1/2 z-20 w-8 h-[60vh]">
+            <div className="absolute inset-0 rounded-full overflow-hidden progress-track-neon">
               <div
                 className="absolute bottom-0 left-0 w-full rounded-full progress-fill progress-shimmer"
                 style={{
                   height: progress + '%',
-                  background: 'linear-gradient(0deg, #E91E8C, #8B5CF6 45%, #F4D03F)',
+                  background: 'linear-gradient(0deg, #E91E8C, #8B5CF6 50%, #F4D03F)',
                   backgroundSize: '100% 220%',
-                  boxShadow: '0 0 16px 4px rgba(233, 30, 140, 0.65)'
+                  boxShadow: '0 0 24px 6px rgba(233, 30, 140, 0.75)'
                 }}
               />
             </div>
             <div
-              className="absolute needle-arrow needle-pulse needle-trail"
-              style={{ bottom: 'calc(' + progress + '% - 15px)', right: '100%', marginRight: '8px' }}
+              className="absolute progress-needle"
+              style={{ bottom: 'calc(' + progress + '% - 4px)', left: '-14px', right: '-14px' }}
             >
-              <svg width="46" height="30" viewBox="0 0 34 22">
-                <polygon
-                  points="34,11 14,0 14,7 0,7 0,15 14,15 14,22"
-                  fill="#F4D03F"
-                  stroke="#E91E8C"
-                  strokeWidth="1.5"
-                  style={{ filter: 'drop-shadow(0 0 10px rgba(244, 208, 63, 1))' }}
-                />
-              </svg>
-            </div>
-          </div>
-
-          <div
-            className="absolute right-4 top-1/2 -translate-y-1/2 z-20 w-5 h-[58vh]"
-          >
-            <div
-              className="absolute inset-0 rounded-full overflow-hidden track-shell reaction-glow"
-              style={{
-                background: 'linear-gradient(0deg, #E9544A 0%, #F4A93F 50%, #7ED957 100%)',
-                backgroundSize: '100% 180%',
-                border: '1px solid rgba(255,255,255,0.3)'
-              }}
-            />
-            <div
-              className="absolute needle-arrow needle-pulse needle-trail"
-              style={{ bottom: 'calc(' + needlePosition + '% - 15px)', left: '100%', marginLeft: '8px' }}
-            >
-              <svg width="46" height="30" viewBox="0 0 34 22">
-                <polygon
-                  points="0,11 20,0 20,7 34,7 34,15 20,15 20,22"
-                  fill="#fff"
-                  stroke="#8B5CF6"
-                  strokeWidth="1.5"
-                  style={{ filter: 'drop-shadow(0 0 10px rgba(255,255,255,1))' }}
-                />
-              </svg>
+              <div className="progress-needle-bar" />
+              <div className="progress-needle-knob" />
             </div>
           </div>
 
@@ -517,27 +483,36 @@ export default function DisplayReactions() {
           to { transform: rotate(360deg); }
         }
         .progress-fill { transition: height 0.5s linear; }
-        .needle-arrow { transition: bottom 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
-        .needle-pulse { animation: needlePulse 1.3s ease-in-out infinite; }
-        @keyframes needlePulse {
-          0%, 100% { transform: scale(1); filter: brightness(1); }
-          50% { transform: scale(1.18); filter: brightness(1.3); }
+        .progress-track-neon {
+          background: rgba(10, 6, 20, 0.55);
+          border: 2px solid rgba(244, 208, 63, 0.55);
+          box-shadow: inset 0 0 14px rgba(0,0,0,0.6), 0 0 24px -2px rgba(139, 92, 246, 0.6);
         }
-        .needle-trail::before {
-          content: '';
-          position: absolute;
-          inset: 0;
+        .progress-needle {
+          transition: bottom 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .progress-needle-bar {
+          height: 6px;
           border-radius: 999px;
-          background: radial-gradient(circle, rgba(244, 208, 63, 0.5), transparent 70%);
-          animation: needleTrail 1.3s ease-in-out infinite;
-          z-index: -1;
+          background: #fff;
+          box-shadow: 0 0 4px 1px #fff, 0 0 16px 4px rgba(244, 208, 63, 0.95), 0 0 28px 8px rgba(233, 30, 140, 0.7);
         }
-        @keyframes needleTrail {
-          0%, 100% { transform: scale(0.8); opacity: 0.4; }
-          50% { transform: scale(1.7); opacity: 0; }
+        .progress-needle-knob {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          width: 20px;
+          height: 20px;
+          border-radius: 999px;
+          background: #F4D03F;
+          border: 3px solid #fff;
+          box-shadow: 0 0 10px 3px rgba(244, 208, 63, 1);
+          animation: needleKnobPulse 1s ease-in-out infinite;
         }
-        .track-shell {
-          box-shadow: inset 0 0 12px rgba(0,0,0,0.5), 0 0 18px 2px rgba(139, 92, 246, 0.25);
+        @keyframes needleKnobPulse {
+          0%, 100% { transform: translate(-50%, -50%) scale(1); }
+          50% { transform: translate(-50%, -50%) scale(1.25); }
         }
         .neon-wave-shell {
           background: linear-gradient(135deg, rgba(139,92,246,0.22), rgba(233,30,140,0.18), rgba(10,8,20,0.65));
@@ -578,13 +553,6 @@ export default function DisplayReactions() {
         @keyframes shimmerMove {
           0% { background-position: 0% 0%; }
           100% { background-position: 0% 100%; }
-        }
-        .reaction-glow {
-          animation: reactionBreathe 2.8s ease-in-out infinite;
-        }
-        @keyframes reactionBreathe {
-          0%, 100% { background-position: 0% 0%; filter: brightness(1); }
-          50% { background-position: 0% 20%; filter: brightness(1.15); }
         }
         .fact-clamp {
           display: -webkit-box;

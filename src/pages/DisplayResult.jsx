@@ -176,6 +176,33 @@ export default function DisplayResult() {
     }
   }, [workspaceType, sessionId, currentSinger ? currentSinger.id : null])
 
+  var reactionStatsState = useState(null)
+  var reactionStats = reactionStatsState[0]
+  var setReactionStats = reactionStatsState[1]
+
+  useEffect(function () {
+    if (workspaceType === 'HOME' || !sessionId || !currentSinger) {
+      setReactionStats(null)
+      return
+    }
+    var since = currentSinger.playbackStartedAt || currentSinger.calledAt || null
+    var query = supabase.from('reactions').select('emoji').eq('session_id', sessionId)
+    if (since) query = query.gte('created_at', since)
+
+    query.then(function (result) {
+      var rows = result.data || []
+      var counts = {}
+      rows.forEach(function (r) {
+        counts[r.emoji] = (counts[r.emoji] || 0) + 1
+      })
+      var top = Object.keys(counts)
+        .map(function (emoji) { return { emoji: emoji, count: counts[emoji] } })
+        .sort(function (a, b) { return b.count - a.count })
+        .slice(0, 4)
+      setReactionStats({ total: rows.length, top: top })
+    })
+  }, [workspaceType, sessionId, currentSinger ? currentSinger.id : null])
+
   var songRatings = useMemo(function () {
     if (!currentSinger) return []
     return ratings.filter(function (r) { return r.singerId === String(currentSinger.id) })
@@ -303,6 +330,29 @@ export default function DisplayResult() {
             </div>
             {vocalResult.feedback && (
               <p className="text-base text-neutral-200 mt-5 font-medium">{vocalResult.feedback}</p>
+            )}
+          </div>
+        )}
+
+        {reactionStats && (
+          <div className="w-full md:w-80 shrink-0 rounded-3xl border-2 px-8 py-8 flex flex-col items-center justify-center text-center result-panel-glow-gold" style={{ borderColor: 'rgba(139,92,246,0.55)', background: 'rgba(10,8,20,0.92)' }}>
+            <p className="text-sm md:text-base uppercase tracking-[3px] mb-3 font-bold" style={{ color: '#8B5CF6' }}>🔥 Reacciones</p>
+            <p className="text-7xl md:text-8xl font-extrabold leading-none" style={{ color: '#8B5CF6', textShadow: '0 0 20px rgba(139,92,246,0.6)' }}>
+              {reactionStats.total}
+            </p>
+            {reactionStats.top.length > 0 ? (
+              <div className="flex items-center justify-center gap-4 mt-6 flex-wrap">
+                {reactionStats.top.map(function (r) {
+                  return (
+                    <div key={r.emoji} className="flex flex-col items-center gap-1">
+                      <span className="text-5xl">{r.emoji}</span>
+                      <span className="text-lg font-extrabold" style={{ color: '#F4D03F' }}>{r.count}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <p className="text-base text-neutral-400 mt-5">Sin reacciones esta vez</p>
             )}
           </div>
         )}
