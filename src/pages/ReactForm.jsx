@@ -42,13 +42,33 @@ export default function ReactForm() {
     }, 1800)
   }
 
+  var lastReactAtRef = useRef(0)
+  var cooldownState = useState(false)
+  var onCooldown = cooldownState[0]
+  var setOnCooldown = cooldownState[1]
+
+  var REACT_COOLDOWN_MS = 1200
+
+  function triggerCooldown() {
+    setOnCooldown(true)
+    setTimeout(function () { setOnCooldown(false) }, REACT_COOLDOWN_MS)
+  }
+
   function handleReact(emoji) {
+    var now = Date.now()
+    if (now - lastReactAtRef.current < REACT_COOLDOWN_MS) return
+    lastReactAtRef.current = now
+    triggerCooldown()
     addReaction(emoji)
     spawnFloater(emoji, false)
   }
 
   function handleReactMeme(memeId, url) {
     if (!memesEnabled) return
+    var now = Date.now()
+    if (now - lastReactAtRef.current < REACT_COOLDOWN_MS) return
+    lastReactAtRef.current = now
+    triggerCooldown()
     addReaction('meme:' + memeId)
     spawnFloater(url, true)
   }
@@ -60,7 +80,7 @@ export default function ReactForm() {
   function handleTouchEnd(e) {
     if (touchStartX.current === null) return
     var diff = e.changedTouches[0].clientX - touchStartX.current
-    if (diff < -40 && page === 0) setPage(1)
+    if (diff < -40 && page === 0 && showMemesTab) setPage(1)
     if (diff > 40 && page === 1) setPage(0)
     touchStartX.current = null
   }
@@ -131,7 +151,8 @@ export default function ReactForm() {
                 <button
                   key={emoji}
                   onClick={() => handleReact(emoji)}
-                  className="aspect-square rounded-full flex items-center justify-center text-xl border-2 active:scale-90 transition-transform"
+                  disabled={onCooldown}
+                  className="aspect-square rounded-full flex items-center justify-center text-xl border-2 active:scale-90 transition-transform disabled:opacity-30"
                   style={{ background: 'rgba(139, 92, 246, 0.1)', borderColor: '#E91E8C' }}
                 >
                   {emoji}
@@ -146,7 +167,8 @@ export default function ReactForm() {
                     <button
                       key={meme.id}
                       onClick={() => handleReactMeme(meme.id, meme.url)}
-                      className="aspect-square rounded-xl overflow-hidden border-2 active:scale-90 transition-transform"
+                      disabled={onCooldown}
+                      className="aspect-square rounded-xl overflow-hidden border-2 active:scale-90 transition-transform disabled:opacity-30"
                       style={{ borderColor: '#F4D03F' }}
                     >
                       <img src={meme.url} alt="" className="w-full h-full object-cover" />
@@ -166,6 +188,10 @@ export default function ReactForm() {
             )}
           </div>
         </div>
+
+        <p className="text-xs text-center mt-2 h-4" style={{ color: '#F4D03F', opacity: onCooldown ? 1 : 0, transition: 'opacity 0.2s' }}>
+          Espera un segundo antes de reaccionar de nuevo
+        </p>
 
         {showMemesTab && (
           <div className="flex items-center justify-center gap-2 mt-4">

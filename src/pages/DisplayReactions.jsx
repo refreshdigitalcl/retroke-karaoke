@@ -321,20 +321,25 @@ export default function DisplayReactions() {
 
       {hasVideo ? (
         <div className="relative w-full h-screen">
-          <div className="absolute top-4 left-4 z-20 flex items-center gap-3 pl-2.5 pr-4 py-2.5 rounded-full neon-wave-shell">
-            <div className="relative w-8 h-8 rounded-full flex items-center justify-center shrink-0 neon-mic-orb">
-              <span className="text-sm relative z-10">🎙️</span>
+          <div className="absolute top-5 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-1.5 px-6 py-3 rounded-2xl listening-badge-v2">
+            <div className="flex items-center gap-2.5">
+              <div className="relative w-7 h-7 rounded-full flex items-center justify-center shrink-0 neon-mic-orb">
+                <span className="text-xs relative z-10">🎙️</span>
+              </div>
+              <svg width="46" height="20" viewBox="0 0 52 24" className="shrink-0">
+                <rect className="neon-wave-bar" x="0" y="8" width="5" rx="2.5" fill="#F4D03F" />
+                <rect className="neon-wave-bar" x="8" y="4" width="5" rx="2.5" fill="#E91E8C" style={{ animationDelay: '0.1s' }} />
+                <rect className="neon-wave-bar" x="16" y="1" width="5" rx="2.5" fill="#8B5CF6" style={{ animationDelay: '0.2s' }} />
+                <rect className="neon-wave-bar" x="24" y="6" width="5" rx="2.5" fill="#F4D03F" style={{ animationDelay: '0.3s' }} />
+                <rect className="neon-wave-bar" x="32" y="2" width="5" rx="2.5" fill="#E91E8C" style={{ animationDelay: '0.15s' }} />
+                <rect className="neon-wave-bar" x="40" y="7" width="5" rx="2.5" fill="#8B5CF6" style={{ animationDelay: '0.25s' }} />
+                <rect className="neon-wave-bar" x="47" y="8" width="5" rx="2.5" fill="#F4D03F" style={{ animationDelay: '0.05s' }} />
+              </svg>
+              <div className="relative w-7 h-7 rounded-full flex items-center justify-center shrink-0 neon-mic-orb">
+                <span className="text-xs relative z-10">🎤</span>
+              </div>
             </div>
-            <svg width="52" height="24" viewBox="0 0 52 24" className="shrink-0">
-              <rect className="neon-wave-bar" x="0" y="8" width="5" rx="2.5" fill="#F4D03F" />
-              <rect className="neon-wave-bar" x="8" y="4" width="5" rx="2.5" fill="#E91E8C" style={{ animationDelay: '0.1s' }} />
-              <rect className="neon-wave-bar" x="16" y="1" width="5" rx="2.5" fill="#8B5CF6" style={{ animationDelay: '0.2s' }} />
-              <rect className="neon-wave-bar" x="24" y="6" width="5" rx="2.5" fill="#F4D03F" style={{ animationDelay: '0.3s' }} />
-              <rect className="neon-wave-bar" x="32" y="2" width="5" rx="2.5" fill="#E91E8C" style={{ animationDelay: '0.15s' }} />
-              <rect className="neon-wave-bar" x="40" y="7" width="5" rx="2.5" fill="#8B5CF6" style={{ animationDelay: '0.25s' }} />
-              <rect className="neon-wave-bar" x="47" y="8" width="5" rx="2.5" fill="#F4D03F" style={{ animationDelay: '0.05s' }} />
-            </svg>
-            <span className="text-xs uppercase tracking-wider font-extrabold neon-wave-label">
+            <span className="text-xs uppercase tracking-[4px] font-extrabold text-center listening-label-v2">
               Escuchando
             </span>
           </div>
@@ -398,33 +403,32 @@ export default function DisplayReactions() {
           {qrCycle.which !== 'none' && (
             <div
               className={
-                'absolute bottom-5 z-20 flex flex-col items-center ' +
-                (qrCycle.which === 'reaction' ? 'left-4' : 'right-4') + ' ' +
+                'absolute bottom-5 right-4 z-20 flex flex-col items-center ' +
                 (qrCycle.phase === 'visible' ? 'qr-glitch-in' : 'qr-fade-out')
               }
             >
               {qrCycle.which === 'reaction' ? (
                 <>
                   <p
-                    className="text-sm font-bold text-yellow-400 mb-2 text-center leading-tight w-[130px]"
+                    className="text-sm font-bold text-yellow-400 mb-2 text-center leading-tight w-[137px]"
                     style={{ textShadow: '0 1px 4px rgba(0,0,0,0.9)' }}
                   >
                     ¡Reacciona a esta presentacion!
                   </p>
                   <div className="rounded-2xl border-2 border-yellow-400 bg-neutral-950/90 p-3">
-                    <QRCode url={reactUrl} size={120} />
+                    <QRCode url={reactUrl} size={126} />
                   </div>
                 </>
               ) : (
                 <>
                   <p
-                    className="text-sm font-bold text-purple-300 mb-2 text-center leading-tight w-[130px]"
+                    className="text-sm font-bold text-purple-300 mb-2 text-center leading-tight w-[137px]"
                     style={{ textShadow: '0 1px 4px rgba(0,0,0,0.9)' }}
                   >
                     ¿Aun no te anotas? ¡Escanea aqui!
                   </p>
                   <div className="rounded-2xl border-2 border-purple-400 bg-neutral-950/90 p-3" style={{ boxShadow: '0 0 24px 4px rgba(139, 92, 246, 0.35)' }}>
-                    <QRCode url={registerUrl} size={120} />
+                    <QRCode url={registerUrl} size={126} />
                   </div>
                 </>
               )}
@@ -503,6 +507,20 @@ export default function DisplayReactions() {
           border-radius: 999px;
           background: #F4D03F;
           border: 3px solid #fff;
+        }
+        .listening-badge-v2 {
+          background: linear-gradient(135deg, rgba(20,14,32,0.92), rgba(35,20,45,0.92));
+          border: 1.5px solid transparent;
+          background-image: linear-gradient(135deg, rgba(20,14,32,0.92), rgba(35,20,45,0.92)), linear-gradient(90deg, #F4D03F, #E91E8C, #8B5CF6);
+          background-origin: border-box;
+          background-clip: padding-box, border-box;
+          box-shadow: 0 4px 20px -4px rgba(0,0,0,0.6);
+        }
+        .listening-label-v2 {
+          background: linear-gradient(90deg, #F4D03F, #E91E8C, #8B5CF6);
+          -webkit-background-clip: text;
+          background-clip: text;
+          color: transparent;
         }
         .neon-wave-shell {
           background: linear-gradient(135deg, rgba(139,92,246,0.22), rgba(233,30,140,0.18), rgba(10,8,20,0.65));
