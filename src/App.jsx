@@ -11,6 +11,7 @@ import DjPanel from './pages/DjPanel'
 import AdminPanel from './pages/AdminPanel'
 import PricingPage from './pages/PricingPage'
 import SignupPage from './pages/SignupPage'
+import WelcomePage from './pages/WelcomePage'
 
 export default function App() {
   return (
@@ -42,6 +43,9 @@ export default function App() {
 
             {/* Registro publico: crear cuenta, workspace y pagar */}
             <Route path="/comenzar" element={<SignupPage />} />
+
+            {/* Pantalla a la que vuelve Mercado Pago despues de pagar */}
+            <Route path="/bienvenido" element={<WelcomePage />} />
           </Routes>
         </BrowserRouter>
         </KaraokeSessionProvider>
