@@ -122,10 +122,10 @@ function Backstage(props) {
 
   return (
     <div
-      className="w-full h-full flex flex-col rounded-3xl px-6 py-6 md:px-7 md:py-7 backstage-glow"
+      className="w-full h-full flex flex-col rounded-3xl px-6 py-5 md:px-7 md:py-6 backstage-glow"
       style={{ background: 'rgba(10,8,18,0.82)', border: '2px solid rgba(139,92,246,0.5)' }}
     >
-      <div className="flex items-center gap-2.5 mb-5">
+      <div className="flex items-center gap-2.5 mb-4">
         <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: '#7ED957', boxShadow: '0 0 8px 2px rgba(126,217,87,0.8)' }} />
         <p className="text-xs md:text-sm tracking-[4px] uppercase font-bold" style={{ color: '#F4D03F' }}>
           Lista de espera
@@ -136,7 +136,7 @@ function Backstage(props) {
           Aún no hay nadie anotado. Escanea el QR y sé el primero en subir al escenario.
         </p>
       )}
-      <div className="flex flex-col gap-3 overflow-y-auto pr-1 max-h-[560px]">{rows}</div>
+      <div className="flex flex-col gap-3 overflow-y-auto pr-1 max-h-[320px]">{rows}</div>
       <style>{`
         .ready-pulse {
           animation: readyPulse 1.4s ease-in-out infinite;
@@ -227,7 +227,7 @@ export default function DisplayQueue(props) {
   var registerUrl = origin + '/registro?' + spaceParam
 
   return (
-    <div className="min-h-screen relative overflow-hidden flex flex-col bg-black">
+    <div className="h-screen relative overflow-hidden flex flex-col bg-black">
       <RetroEqualizer />
       <FloatingDecor />
       <FallingParty />
@@ -257,66 +257,66 @@ export default function DisplayQueue(props) {
         </button>
       </div>
 
-      <header className="flex items-center justify-center gap-3 relative z-10 pt-8 pb-2">
+      <header className="flex items-center justify-center gap-2.5 relative z-10 pt-4 pb-1 shrink-0">
         {logoUrl ? (
           <img
             src={logoUrl}
             alt={barName}
-            className="h-12 w-12 rounded-full object-cover border-2"
+            className="h-10 w-10 rounded-full object-cover border-2"
             style={{ borderColor: '#F4D03F', boxShadow: '0 0 16px 3px rgba(244, 208, 63, 0.5)' }}
           />
         ) : (
-          <span className="text-2xl">🎤</span>
+          <span className="text-xl">🎤</span>
         )}
         <div
-          className="px-6 py-2.5 rounded-full"
+          className="px-5 py-2 rounded-full"
           style={{ background: 'linear-gradient(90deg, #E91E8C, #8B5CF6)', boxShadow: '0 0 22px -4px rgba(233,30,140,0.7)' }}
         >
-          <span className="text-base md:text-lg font-extrabold text-white tracking-wide">
+          <span className="text-sm md:text-base font-extrabold text-white tracking-wide">
             {barName}
           </span>
         </div>
       </header>
 
-      <main className="relative z-10 flex-1 grid grid-cols-1 md:grid-cols-2 gap-8 max-w-6xl w-full mx-auto px-6 md:px-8 pb-10 pt-4">
-        <div className="flex flex-col items-center justify-center text-center">
-          <p className="text-xs md:text-sm tracking-[6px] uppercase font-bold mb-3" style={{ color: '#F4D03F' }}>
+      <main className="relative z-10 flex-1 min-h-0 grid grid-cols-1 md:grid-cols-2 gap-6 max-w-6xl w-full mx-auto px-6 md:px-8 pb-4 pt-2">
+        <div className="flex flex-col items-center justify-center text-center min-h-0">
+          <p className="text-xs tracking-[5px] uppercase font-bold mb-2" style={{ color: '#F4D03F' }}>
             ✨ Karaoke en vivo
           </p>
-          <h1 className="hero-title text-3xl md:text-5xl font-extrabold leading-tight mb-3">
+          <h1 className="hero-title text-2xl md:text-4xl font-extrabold leading-tight mb-2">
             {heroPhrase}
           </h1>
-          <p className="text-lg md:text-2xl font-bold mb-4 hero-subtitle" style={{ color: '#E91E8C' }}>
+          <p className="text-base md:text-xl font-bold mb-2 hero-subtitle" style={{ color: '#E91E8C' }}>
             Somos el sistema operativo del karaoke moderno.
           </p>
-          <p className="text-base md:text-lg text-neutral-300 mb-8 max-w-md">
+          <p className="text-sm md:text-base text-neutral-300 mb-4 max-w-md">
             Escanea el código QR, anota tu nombre y tu canción, y prepárate
             para vivir el verdadero espectáculo interactivo.
           </p>
 
-          <div className="relative rounded-[2rem] px-9 py-8 flex flex-col items-center gap-4" style={{ background: 'rgba(12,8,20,0.9)', border: '2.5px solid #F4D03F', boxShadow: '0 0 24px -6px rgba(244,208,63,0.4)' }}>
+          <div className="relative rounded-[1.75rem] px-7 py-5 flex flex-col items-center gap-3" style={{ background: 'rgba(12,8,20,0.9)', border: '2.5px solid #F4D03F', boxShadow: '0 0 24px -6px rgba(244,208,63,0.4)' }}>
             <span className="qr-corner qr-corner-tl" />
             <span className="qr-corner qr-corner-tr" />
             <span className="qr-corner qr-corner-bl" />
             <span className="qr-corner qr-corner-br" />
-            <QRCode url={registerUrl} size={220} />
-            <p className="text-sm md:text-base font-bold tracking-wide" style={{ color: '#8B5CF6' }}>
+            <QRCode url={registerUrl} size={175} />
+            <p className="text-sm font-bold tracking-wide" style={{ color: '#8B5CF6' }}>
               karaoke.cl/{sessionCode}
             </p>
           </div>
 
           {currentSung && (
-            <div className="mt-6 w-full max-w-[300px] rounded-2xl px-5 py-4" style={{ background: 'rgba(15,10,20,0.75)', border: '1.5px solid rgba(139,92,246,0.4)' }}>
-              <p className="text-xs md:text-sm tracking-widest uppercase font-bold mb-2 text-center" style={{ color: '#8B5CF6' }}>
+            <div className="mt-4 w-full max-w-[300px] rounded-2xl px-5 py-3" style={{ background: 'rgba(15,10,20,0.75)', border: '1.5px solid rgba(139,92,246,0.4)' }}>
+              <p className="text-xs tracking-widest uppercase font-bold mb-1.5 text-center" style={{ color: '#8B5CF6' }}>
                 Ya cantaron esta noche
               </p>
-              <div className="h-9 flex items-center justify-center overflow-hidden">
+              <div className="h-8 flex items-center justify-center overflow-hidden">
                 <div
                   key={currentSung.id + '-' + sungIndex}
                   className="glitch-row flex items-center gap-3"
                 >
-                  <span className="text-white font-bold text-lg">{currentSung.name}</span>
-                  <span className="font-extrabold text-lg" style={{ color: '#F4D03F' }}>{currentSung.average}</span>
+                  <span className="text-white font-bold text-base">{currentSung.name}</span>
+                  <span className="font-extrabold text-base" style={{ color: '#F4D03F' }}>{currentSung.average}</span>
                 </div>
               </div>
             </div>
@@ -365,7 +365,7 @@ export default function DisplayQueue(props) {
           `}</style>
         </div>
 
-        <div className="min-h-[560px]">
+        <div className="min-h-0 h-full">
           <Backstage queue={queue} />
         </div>
       </main>
