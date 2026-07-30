@@ -186,9 +186,12 @@ export default function DisplayResult() {
       setReactionStats(null)
       return
     }
-    var since = currentSinger.playbackStartedAt || currentSinger.calledAt || null
-    var query = supabase.from('reactions').select('emoji').eq('session_id', sessionId)
-    if (since) query = query.gte('created_at', since)
+    setReactionStats(null)
+    var query = supabase
+      .from('reactions')
+      .select('emoji')
+      .eq('session_id', sessionId)
+      .eq('queue_entry_id', currentSinger.id)
 
     query.then(function (result) {
       var rows = result.data || []
