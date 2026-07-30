@@ -53,7 +53,7 @@ export function checkYoutubeEmbeddable(videoId) {
 
       testPlayer = new YT.Player(hiddenDiv, {
         videoId: videoId,
-        playerVars: { autoplay: 1, controls: 0 },
+        playerVars: { autoplay: 1, controls: 0, cc_load_policy: 0 },
         events: {
           onReady: function (e) {
             try {
@@ -94,7 +94,7 @@ export default function YouTubePlayer(props) {
       if (!YT || !mountedRef.current || !containerRef.current) return
       playerRef.current = new YT.Player(containerRef.current, {
         videoId: videoId,
-        playerVars: { autoplay: 0, controls: 1, rel: 0, playsinline: 1 },
+        playerVars: { autoplay: 0, controls: 1, rel: 0, playsinline: 1, cc_load_policy: 0, iv_load_policy: 3 },
         events: {
           onError: function (e) {
             if (onError) onError(e.data)
@@ -118,7 +118,17 @@ export default function YouTubePlayer(props) {
   useEffect(function () {
     if (!playerRef.current || !playerRef.current.playVideo) return
     if (shouldPlay) {
+      try {
+        playerRef.current.mute()
+      } catch (e) {}
       playerRef.current.playVideo()
+      setTimeout(function () {
+        if (playerRef.current && playerRef.current.unMute) {
+          try {
+            playerRef.current.unMute()
+          } catch (e) {}
+        }
+      }, 250)
     }
   }, [shouldPlay])
 
