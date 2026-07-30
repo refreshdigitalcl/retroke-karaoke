@@ -3,6 +3,7 @@ import { useKaraokeSession } from '../contexts/KaraokeSessionContext'
 import { supabase } from '../lib/supabase'
 import RetroEqualizer from '../components/RetroEqualizer'
 import FallingParty from '../components/FallingParty'
+import { isMemeReaction } from '../lib/memeReactions'
 
 var STAGE_LIGHT_COLORS = ['#E91E8C', '#8B5CF6', '#F4D03F', '#7ED957', '#E91E8C']
 var STAGE_LIGHT_POSITIONS = ['8%', '27%', '50%', '73%', '92%']
@@ -192,14 +193,19 @@ export default function DisplayResult() {
     query.then(function (result) {
       var rows = result.data || []
       var counts = {}
+      var memeCount = 0
       rows.forEach(function (r) {
-        counts[r.emoji] = (counts[r.emoji] || 0) + 1
+        if (isMemeReaction(r.emoji)) {
+          memeCount = memeCount + 1
+        } else {
+          counts[r.emoji] = (counts[r.emoji] || 0) + 1
+        }
       })
       var top = Object.keys(counts)
         .map(function (emoji) { return { emoji: emoji, count: counts[emoji] } })
         .sort(function (a, b) { return b.count - a.count })
         .slice(0, 4)
-      setReactionStats({ total: rows.length, top: top })
+      setReactionStats({ total: rows.length, top: top, memeCount: memeCount })
     })
   }, [workspaceType, sessionId, currentSinger ? currentSinger.id : null])
 
@@ -350,9 +356,9 @@ export default function DisplayResult() {
                   )
                 })}
               </div>
-            ) : (
+            ) : reactionStats.total === 0 ? (
               <p className="text-base text-neutral-400 mt-5">Sin reacciones esta vez</p>
-            )}
+            ) : null}
           </div>
         )}
       </div>
