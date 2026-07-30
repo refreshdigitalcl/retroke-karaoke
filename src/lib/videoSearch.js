@@ -22,22 +22,23 @@ export async function fetchVideoDurationSeconds(videoId) {
   }
 }
 
-export async function searchSimilarVideos(query) {
+export async function searchSimilarVideos(query, pageToken) {
   var url =
     'https://www.googleapis.com/youtube/v3/search' +
     '?part=snippet' +
     '&type=video' +
-    '&maxResults=5' +
+    '&maxResults=6' +
     '&q=' + encodeURIComponent(query) +
-    '&key=' + YOUTUBE_API_KEY
+    '&key=' + YOUTUBE_API_KEY +
+    (pageToken ? '&pageToken=' + pageToken : '')
 
   try {
     var res = await fetch(url)
-    if (!res.ok) return []
+    if (!res.ok) return { items: [], nextPageToken: null }
     var data = await res.json()
-    if (!data.items || data.items.length === 0) return []
+    if (!data.items || data.items.length === 0) return { items: [], nextPageToken: null }
 
-    return data.items.map(function (item) {
+    var items = data.items.map(function (item) {
       return {
         videoId: item.id.videoId,
         title: item.snippet.title,
@@ -47,7 +48,8 @@ export async function searchSimilarVideos(query) {
           : ''
       }
     })
+    return { items: items, nextPageToken: data.nextPageToken || null }
   } catch (err) {
-    return []
+    return { items: [], nextPageToken: null }
   }
 }
