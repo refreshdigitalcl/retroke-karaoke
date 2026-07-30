@@ -86,9 +86,47 @@ export default function YouTubePlayer(props) {
   var containerRef = useRef(null)
   var playerRef = useRef(null)
   var mountedRef = useRef(true)
+  var shouldPlayRef = useRef(shouldPlay)
+  var playAttemptedRef = useRef(false)
+
+  shouldPlayRef.current = shouldPlay
+
+  function attemptAutoplay() {
+    if (!playerRef.current || !playerRef.current.playVideo) return
+    playAttemptedRef.current = true
+    try {
+      playerRef.current.mute()
+    } catch (e) {}
+    playerRef.current.playVideo()
+    setTimeout(function () {
+      if (!mountedRef.current || !playerRef.current || !playerRef.current.unMute) return
+      try {
+        playerRef.current.unMute()
+      } catch (e) {}
+    }, 300)
+    // Red de seguridad: si a los 1.2s el video no quedo realmente
+    // reproduciendose (por una carrera con la carga del reproductor
+    // en TVs sin cache), se reintenta una vez mas.
+    setTimeout(function () {
+      if (!mountedRef.current || !playerRef.current || !playerRef.current.getPlayerState) return
+      try {
+        var state = playerRef.current.getPlayerState()
+        if (state !== 1 && state !== 3 && shouldPlayRef.current) {
+          playerRef.current.mute()
+          playerRef.current.playVideo()
+          setTimeout(function () {
+            if (mountedRef.current && playerRef.current && playerRef.current.unMute) {
+              try { playerRef.current.unMute() } catch (e) {}
+            }
+          }, 300)
+        }
+      } catch (e) {}
+    }, 1200)
+  }
 
   useEffect(function () {
     mountedRef.current = true
+    playAttemptedRef.current = false
 
     loadYouTubeApi().then(function (YT) {
       if (!YT || !mountedRef.current || !containerRef.current) return
@@ -96,6 +134,11 @@ export default function YouTubePlayer(props) {
         videoId: videoId,
         playerVars: { autoplay: 0, controls: 1, rel: 0, playsinline: 1, cc_load_policy: 0, iv_load_policy: 3 },
         events: {
+          onReady: function () {
+            if (shouldPlayRef.current && !playAttemptedRef.current) {
+              attemptAutoplay()
+            }
+          },
           onError: function (e) {
             if (onError) onError(e.data)
           },
@@ -117,18 +160,8 @@ export default function YouTubePlayer(props) {
 
   useEffect(function () {
     if (!playerRef.current || !playerRef.current.playVideo) return
-    if (shouldPlay) {
-      try {
-        playerRef.current.mute()
-      } catch (e) {}
-      playerRef.current.playVideo()
-      setTimeout(function () {
-        if (playerRef.current && playerRef.current.unMute) {
-          try {
-            playerRef.current.unMute()
-          } catch (e) {}
-        }
-      }, 250)
+    if (shouldPlay && !playAttemptedRef.current) {
+      attemptAutoplay()
     }
   }, [shouldPlay])
 
