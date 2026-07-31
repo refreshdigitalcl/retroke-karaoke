@@ -11,6 +11,8 @@ function ProfileTab(props) {
   var auth = props.auth
   var workspacePlan = props.workspacePlan
   var onBack = props.onBack
+  var session = useKaraokeSession()
+  var workspaceType = session.workspaceType
 
   var loadingState = useState(true)
   var loading = loadingState[0]
@@ -85,9 +87,20 @@ function ProfileTab(props) {
         }
         var publicUrl = supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl
         setAvatarUrl(publicUrl)
-        return supabase
+        var chain = supabase
           .from('profiles')
           .upsert({ id: auth.session.user.id, avatar_url: publicUrl })
+
+        // La foto de perfil funciona a la vez como logo del local en la
+        // sala de espera, para no tener dos lugares distintos donde
+        // subir "lo mismo".
+        if (workspaceType === 'BAR') {
+          chain = chain.then(function () {
+            return session.updateLogo(publicUrl)
+          })
+        }
+
+        return chain
       })
       .then(function (saveResult) {
         setUploadingAvatar(false)
@@ -174,6 +187,11 @@ function ProfileTab(props) {
                   <input type="file" accept="image/*" onChange={handleAvatarChange} disabled={uploadingAvatar} className="hidden" />
                 </label>
               </div>
+              {workspaceType === 'BAR' && (
+                <p className="text-xs mb-2" style={{ color: 'var(--text-muted)' }}>
+                  Esta imagen también se usa como logo de tu local en la sala de espera.
+                </p>
+              )}
 
               {profileError && (
                 <p className="text-xs mb-4" style={{ color: 'var(--accent-magenta)' }}>{profileError}</p>
@@ -644,36 +662,6 @@ function DjPanelInner() {
       .replace(/[\u0300-\u036f]/g, '')
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/(^-|-$)/g, '')
-  }
-
-  var changingLogoState = useState(false)
-  var changingLogo = changingLogoState[0]
-  var setChangingLogo = changingLogoState[1]
-
-  function handleChangeCurrentBarLogo(e) {
-    var file = e.target.files && e.target.files[0]
-    if (!file) return
-    setChangingLogo(true)
-    var ext = file.name.split('.').pop()
-    var path = 'logo-' + Date.now() + '.' + ext
-    supabase.storage
-      .from('logos')
-      .upload(path, file, { upsert: true })
-      .then(function (result) {
-        if (result.error) throw result.error
-        var publicUrl = supabase.storage.from('logos').getPublicUrl(path).data.publicUrl
-        return session.updateLogo(publicUrl)
-      })
-      .then(function (result) {
-        setChangingLogo(false)
-        if (result && result.error) {
-          window.alert('No se pudo guardar el logo: ' + result.error)
-        }
-      })
-      .catch(function (err) {
-        setChangingLogo(false)
-        window.alert('No se pudo subir el logo: ' + (err && err.message ? err.message : 'error desconocido'))
-      })
   }
 
   function handleAddBar() {
@@ -1198,21 +1186,6 @@ function DjPanelInner() {
             >
               ➕ Agregar local
             </button>
-          )}
-          {hasFeature('custom_branding') && (
-            <label
-              className="text-sm px-3 h-9 rounded-lg border whitespace-nowrap font-medium flex items-center cursor-pointer"
-              style={{ borderColor: 'var(--accent-yellow)', color: 'var(--accent-yellow)' }}
-            >
-              {changingLogo ? 'Subiendo...' : '🖼️ Logo de este local'}
-              <input
-                type="file"
-                accept="image/*"
-                disabled={changingLogo}
-                onChange={handleChangeCurrentBarLogo}
-                className="hidden"
-              />
-            </label>
           )}
           <ThemeToggle />
         </div>
