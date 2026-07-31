@@ -12,6 +12,7 @@ import AdminPanel from './pages/AdminPanel'
 import PricingPage from './pages/PricingPage'
 import SignupPage from './pages/SignupPage'
 import WelcomePage from './pages/WelcomePage'
+import LandingPage from './pages/LandingPage'
 
 export default function App() {
   return (
@@ -46,6 +47,9 @@ export default function App() {
 
             {/* Pantalla a la que vuelve Mercado Pago despues de pagar */}
             <Route path="/bienvenido" element={<WelcomePage />} />
+
+            {/* Portal de ventas / landing page */}
+            <Route path="/inicio" element={<LandingPage />} />
           </Routes>
         </BrowserRouter>
         </KaraokeSessionProvider>
