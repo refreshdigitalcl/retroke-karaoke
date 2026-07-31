@@ -1090,6 +1090,13 @@ var STORE_CATEGORIES = [
   { id: 'luces', label: '✨ Luces' }
 ]
 
+function formatCLP(digitsOnly) {
+  if (!digitsOnly) return ''
+  return digitsOnly.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+}
+
+var MAX_PRODUCT_IMAGES = 8
+
 function StoreProductForm(props) {
   var editing = props.editing
   var onSaved = props.onSaved
@@ -1103,9 +1110,21 @@ function StoreProductForm(props) {
   var description = descState[0]
   var setDescription = descState[1]
 
-  var priceState = useState(editing ? String(editing.price) : '')
-  var price = priceState[0]
-  var setPrice = priceState[1]
+  var longDescState = useState(editing ? (editing.long_description || '') : '')
+  var longDescription = longDescState[0]
+  var setLongDescription = longDescState[1]
+
+  // El precio se guarda como numero puro (389000), pero se muestra
+  // siempre formateado con puntos de miles (389.000) para que no se
+  // confunda con decimales al escribir.
+  var priceDigitsState = useState(editing ? String(editing.price) : '')
+  var priceDigits = priceDigitsState[0]
+  var setPriceDigits = priceDigitsState[1]
+
+  function handlePriceChange(e) {
+    var digitsOnly = e.target.value.replace(/[^0-9]/g, '')
+    setPriceDigits(digitsOnly)
+  }
 
   var categoryState = useState(editing ? editing.category : 'microfonos')
   var category = categoryState[0]
@@ -1115,9 +1134,21 @@ function StoreProductForm(props) {
   var inStock = inStockState[0]
   var setInStock = inStockState[1]
 
-  var imageUrlState = useState(editing ? (editing.image_url || '') : '')
-  var imageUrl = imageUrlState[0]
-  var setImageUrl = imageUrlState[1]
+  var imagesState = useState(editing && editing.images && editing.images.length ? editing.images : (editing && editing.image_url ? [editing.image_url] : []))
+  var images = imagesState[0]
+  var setImages = imagesState[1]
+
+  var specsState = useState(editing && editing.specs ? editing.specs : [])
+  var specs = specsState[0]
+  var setSpecs = specsState[1]
+
+  var mlUrlState = useState('')
+  var mlUrl = mlUrlState[0]
+  var setMlUrl = mlUrlState[1]
+
+  var importingState = useState(false)
+  var importing = importingState[0]
+  var setImporting = importingState[1]
 
   var uploadingState = useState(false)
   var uploading = uploadingState[0]
@@ -1131,36 +1162,92 @@ function StoreProductForm(props) {
   var error = errorState[0]
   var setError = errorState[1]
 
-  function handleImageChange(e) {
-    var file = e.target.files && e.target.files[0]
-    if (!file) return
+  function handleImagesChange(e) {
+    var files = Array.from(e.target.files || [])
+    if (!files.length) return
+    var room = MAX_PRODUCT_IMAGES - images.length
+    if (room <= 0) {
+      setError('Máximo ' + MAX_PRODUCT_IMAGES + ' fotos por producto.')
+      return
+    }
+    files = files.slice(0, room)
     setUploading(true)
-    var ext = file.name.split('.').pop()
-    var path = 'product-' + Date.now() + '.' + ext
-    supabase.storage
-      .from('products')
-      .upload(path, file, { upsert: true })
-      .then(function (result) {
-        setUploading(false)
-        if (result.error) {
-          setError('No se pudo subir la imagen: ' + result.error.message)
+    setError('')
+    Promise.all(
+      files.map(function (file) {
+        var ext = file.name.split('.').pop()
+        var path = 'product-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7) + '.' + ext
+        return supabase.storage.from('products').upload(path, file, { upsert: true }).then(function (result) {
+          if (result.error) return null
+          return supabase.storage.from('products').getPublicUrl(path).data.publicUrl
+        })
+      })
+    ).then(function (urls) {
+      setUploading(false)
+      var valid = urls.filter(Boolean)
+      setImages(function (prev) { return [...prev, ...valid].slice(0, MAX_PRODUCT_IMAGES) })
+    })
+  }
+
+  function removeImage(idx) {
+    setImages(function (prev) { return prev.filter(function (_, i) { return i !== idx }) })
+  }
+
+  function addSpecRow() {
+    setSpecs(function (prev) { return [...prev, { label: '', value: '' }] })
+  }
+  function updateSpecRow(idx, field, val) {
+    setSpecs(function (prev) { return prev.map(function (s, i) { return i === idx ? { ...s, [field]: val } : s }) })
+  }
+  function removeSpecRow(idx) {
+    setSpecs(function (prev) { return prev.filter(function (_, i) { return i !== idx }) })
+  }
+
+  function handleImportFromML() {
+    if (!mlUrl.trim()) return
+    setImporting(true)
+    setError('')
+    fetch('/api/import-mercadolibre', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: mlUrl.trim() })
+    })
+      .then(function (r) { return r.json() })
+      .then(function (data) {
+        setImporting(false)
+        if (data.error) {
+          setError(data.error)
           return
         }
-        setImageUrl(supabase.storage.from('products').getPublicUrl(path).data.publicUrl)
+        if (data.name) setName(data.name)
+        if (data.description) setDescription(data.description.slice(0, 200))
+        if (data.description) setLongDescription(data.description)
+        if (data.images && data.images.length) {
+          setImages(function (prev) { return [...prev, ...data.images].slice(0, MAX_PRODUCT_IMAGES) })
+        }
+        if (data.specs && data.specs.length) setSpecs(data.specs)
+      })
+      .catch(function () {
+        setImporting(false)
+        setError('No se pudo importar desde ese link.')
       })
   }
 
   function handleSubmit() {
-    if (!name.trim() || !price) return
+    if (!name.trim() || !priceDigits) return
     setSaving(true)
     setError('')
     var payload = {
       name: name.trim(),
       description: description.trim() || null,
-      price: parseInt(price, 10) || 0,
+      long_description: longDescription.trim() || null,
+      price: parseInt(priceDigits, 10) || 0,
       category: category,
       in_stock: inStock,
-      image_url: imageUrl || null
+      images: images,
+      image_url: images[0] || null,
+      specs: specs.filter(function (s) { return s.label && s.value }),
+      source_url: mlUrl.trim() || (editing ? editing.source_url : null) || null
     }
     var query = editing
       ? supabase.from('store_products').update(payload).eq('id', editing.id)
@@ -1181,6 +1268,34 @@ function StoreProductForm(props) {
       <p className="text-sm font-medium mb-3" style={{ color: 'var(--text-primary)' }}>
         {editing ? 'Editar producto' : 'Nuevo producto'}
       </p>
+
+      <div className="rounded-lg p-3 mb-3" style={{ background: 'var(--bg-card)', border: '1px dashed var(--accent-yellow)' }}>
+        <p className="text-xs font-medium mb-2" style={{ color: 'var(--accent-yellow)' }}>
+          ⚡ Importar desde Mercado Libre
+        </p>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={mlUrl}
+            onChange={function (e) { setMlUrl(e.target.value) }}
+            placeholder="Pega el link del producto en MercadoLibre"
+            className="h-9 flex-1 rounded-lg px-3 border outline-none text-xs"
+            style={{ background: 'var(--bg-card-alt)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+          />
+          <button
+            onClick={handleImportFromML}
+            disabled={importing || !mlUrl.trim()}
+            className="text-xs px-3 rounded-lg font-medium text-white disabled:opacity-50 whitespace-nowrap"
+            style={{ background: 'var(--accent-yellow)', color: '#0a0a0a' }}
+          >
+            {importing ? 'Leyendo...' : 'Importar'}
+          </button>
+        </div>
+        <p className="text-[10px] mt-1.5" style={{ color: 'var(--text-muted)' }}>
+          Trae nombre, fotos, descripción y ficha técnica automáticamente. Revisa y ajusta el precio de venta después.
+        </p>
+      </div>
+
       <div className="flex flex-col gap-2.5">
         <input
           type="text"
@@ -1193,20 +1308,36 @@ function StoreProductForm(props) {
         <textarea
           value={description}
           onChange={function (e) { setDescription(e.target.value) }}
-          placeholder="Descripción corta"
+          placeholder="Descripción corta (se muestra en la tarjeta del producto)"
           rows={2}
           className="rounded-lg px-3 py-2 border outline-none text-sm resize-none"
           style={{ background: 'var(--bg-card)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
         />
+        <textarea
+          value={longDescription}
+          onChange={function (e) { setLongDescription(e.target.value) }}
+          placeholder="Descripción completa (se muestra en la ficha del producto)"
+          rows={4}
+          className="rounded-lg px-3 py-2 border outline-none text-sm resize-none"
+          style={{ background: 'var(--bg-card)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+        />
+
         <div className="flex gap-2.5">
-          <input
-            type="number"
-            value={price}
-            onChange={function (e) { setPrice(e.target.value) }}
-            placeholder="Precio CLP"
-            className="h-10 rounded-lg px-3 border outline-none text-sm flex-1"
-            style={{ background: 'var(--bg-card)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
-          />
+          <div className="flex-1">
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm" style={{ color: 'var(--text-muted)' }}>$</span>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={formatCLP(priceDigits)}
+                onChange={handlePriceChange}
+                placeholder="Precio de venta"
+                className="h-10 w-full rounded-lg pl-7 pr-3 border outline-none text-sm"
+                style={{ background: 'var(--bg-card)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+              />
+            </div>
+            <p className="text-[10px] mt-1" style={{ color: 'var(--text-muted)' }}>Precio final en pesos chilenos (CLP)</p>
+          </div>
           <select
             value={category}
             onChange={function (e) { setCategory(e.target.value) }}
@@ -1218,18 +1349,75 @@ function StoreProductForm(props) {
             })}
           </select>
         </div>
+
         <label className="flex items-center gap-2 text-sm cursor-pointer" style={{ color: 'var(--text-secondary)' }}>
           <input type="checkbox" checked={inStock} onChange={function (e) { setInStock(e.target.checked) }} />
           Con stock disponible
         </label>
-        <label
-          className="text-sm cursor-pointer font-medium px-3 py-2 rounded-lg border text-center"
-          style={{ borderColor: 'var(--border)', color: 'var(--accent-purple)' }}
-        >
-          {uploading ? 'Subiendo...' : imageUrl ? 'Cambiar imagen' : '📷 Subir imagen'}
-          <input type="file" accept="image/*" onChange={handleImageChange} disabled={uploading} className="hidden" />
-        </label>
-        {imageUrl && <img src={imageUrl} alt="" className="w-20 h-20 rounded-lg object-cover" />}
+
+        <div>
+          <p className="text-xs font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
+            Fotos ({images.length}/{MAX_PRODUCT_IMAGES}) — sube al menos 5 para una buena ficha
+          </p>
+          <div className="flex flex-wrap gap-2 mb-2">
+            {images.map(function (url, idx) {
+              return (
+                <div key={idx} className="relative w-16 h-16 rounded-lg overflow-hidden group">
+                  <img src={url} alt="" className="w-full h-full object-cover" />
+                  <button
+                    onClick={function () { removeImage(idx) }}
+                    className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full text-white text-[10px] flex items-center justify-center"
+                    style={{ background: 'rgba(0,0,0,0.7)' }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              )
+            })}
+            {images.length < MAX_PRODUCT_IMAGES && (
+              <label
+                className="w-16 h-16 rounded-lg border-2 border-dashed flex items-center justify-center cursor-pointer text-xs"
+                style={{ borderColor: 'var(--border)', color: 'var(--accent-purple)' }}
+              >
+                {uploading ? '...' : '📷 +'}
+                <input type="file" accept="image/*" multiple onChange={handleImagesChange} disabled={uploading} className="hidden" />
+              </label>
+            )}
+          </div>
+        </div>
+
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>Ficha técnica</p>
+            <button onClick={addSpecRow} className="text-xs font-medium" style={{ color: 'var(--accent-purple)' }}>+ Agregar</button>
+          </div>
+          {specs.length > 0 && (
+            <div className="flex flex-col gap-1.5 mb-1">
+              {specs.map(function (s, idx) {
+                return (
+                  <div key={idx} className="flex gap-1.5">
+                    <input
+                      value={s.label}
+                      onChange={function (e) { updateSpecRow(idx, 'label', e.target.value) }}
+                      placeholder="Característica"
+                      className="h-8 flex-1 rounded-md px-2 border outline-none text-xs"
+                      style={{ background: 'var(--bg-card)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+                    />
+                    <input
+                      value={s.value}
+                      onChange={function (e) { updateSpecRow(idx, 'value', e.target.value) }}
+                      placeholder="Valor"
+                      className="h-8 flex-1 rounded-md px-2 border outline-none text-xs"
+                      style={{ background: 'var(--bg-card)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+                    />
+                    <button onClick={function () { removeSpecRow(idx) }} className="text-xs px-1.5" style={{ color: 'var(--accent-magenta)' }}>✕</button>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
         {error && <p className="text-xs" style={{ color: 'var(--accent-magenta)' }}>{error}</p>}
         <div className="flex gap-2 mt-1">
           <button
@@ -1242,7 +1430,7 @@ function StoreProductForm(props) {
           </button>
           <button
             onClick={handleSubmit}
-            disabled={saving || uploading || !name.trim() || !price}
+            disabled={saving || uploading || !name.trim() || !priceDigits}
             className="flex-1 h-10 rounded-lg text-sm font-medium text-white disabled:opacity-50"
             style={{ background: 'var(--accent-purple)' }}
           >
@@ -1482,7 +1670,7 @@ function StoreManager() {
               return (
                 <div key={p.id} className="flex items-center gap-3 rounded-lg p-2.5" style={{ background: 'var(--bg-card-alt)' }}>
                   <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0 flex items-center justify-center" style={{ background: 'var(--bg-card)' }}>
-                    {p.image_url ? <img src={p.image_url} alt="" className="w-full h-full object-cover" /> : '📦'}
+                    {(p.images && p.images[0]) || p.image_url ? <img src={(p.images && p.images[0]) || p.image_url} alt="" className="w-full h-full object-cover" /> : '📦'}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{p.name}</p>

@@ -85,16 +85,19 @@ function ProductCard(props) {
   var whatsapp = props.whatsapp
   var onAdd = props.onAdd
   var link = waLink(whatsapp, p)
+  var detailHref = '/tienda/producto?id=' + p.id
 
   return (
     <div className="pcard">
-      <div className="pcard-img">
+      <a href={detailHref} target="_blank" rel="noopener noreferrer" className="pcard-img">
         {p.image_url ? <img src={p.image_url} alt={p.name} loading="lazy" /> : <span className="pcard-placeholder">📦</span>}
         {!p.in_stock && <span className="pcard-badge">Sin stock</span>}
         <span className="pcard-glow" />
-      </div>
+      </a>
       <div className="pcard-body">
-        <p className="pcard-name">{p.name}</p>
+        <a href={detailHref} target="_blank" rel="noopener noreferrer" className="pcard-name-link">
+          <p className="pcard-name">{p.name}</p>
+        </a>
         {p.description && <p className="pcard-desc">{p.description}</p>}
         <p className="pcard-price">${p.price.toLocaleString('es-CL')}</p>
         {p.in_stock ? (
@@ -385,7 +388,8 @@ export default function StorePage() {
 
         .pcard { border-radius: 22px; overflow: hidden; background: linear-gradient(160deg, rgba(139,92,246,0.08), rgba(255,255,255,0.02)); border: 1.5px solid rgba(139,92,246,0.28); transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease; }
         .pcard:hover { transform: translateY(-6px); border-color: rgba(233,30,140,0.55); box-shadow: 0 20px 50px -20px rgba(233,30,140,0.4); }
-        .pcard-img { position: relative; height: 180px; background: rgba(255,255,255,0.03); display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        .pcard-img { position: relative; height: 180px; background: rgba(255,255,255,0.03); display: flex; align-items: center; justify-content: center; overflow: hidden; text-decoration: none; }
+        .pcard-name-link { text-decoration: none; color: inherit; }
         .pcard-img img { width: 100%; height: 100%; object-fit: cover; }
         .pcard-placeholder { font-size: 42px; opacity: 0.35; }
         .pcard-glow { position: absolute; inset: 0; background: radial-gradient(circle at 50% 100%, rgba(233,30,140,0.15), transparent 70%); pointer-events: none; }

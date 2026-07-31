@@ -15,6 +15,7 @@ import WelcomePage from './pages/WelcomePage'
 import LandingPage from './pages/LandingPage'
 import StorePage from './pages/StorePage'
 import StoreThankYou from './pages/StoreThankYou'
+import StoreProductDetail from './pages/StoreProductDetail'
 
 export default function App() {
   return (
@@ -56,6 +57,7 @@ export default function App() {
             {/* Tienda de productos */}
             <Route path="/tienda" element={<StorePage />} />
             <Route path="/tienda/gracias" element={<StoreThankYou />} />
+            <Route path="/tienda/producto" element={<StoreProductDetail />} />
           </Routes>
         </BrowserRouter>
         </KaraokeSessionProvider>
