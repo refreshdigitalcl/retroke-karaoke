@@ -56,69 +56,103 @@ function Reveal(props) {
   )
 }
 
+// Numero que cuenta hacia arriba cuando entra en pantalla.
+function CountUp(props) {
+  var ref = useRef(null)
+  var valueState = useState(0)
+  var value = valueState[0]
+  var setValue = valueState[1]
+
+  useEffect(function () {
+    var el = ref.current
+    if (!el) return
+    var started = false
+    var observer = new IntersectionObserver(
+      function (entries) {
+        if (entries[0].isIntersecting && !started) {
+          started = true
+          var target = props.target
+          var duration = 900
+          var startTime = null
+          function step(ts) {
+            if (!startTime) startTime = ts
+            var progress = Math.min(1, (ts - startTime) / duration)
+            setValue(Math.round(target * (1 - Math.pow(1 - progress, 3))))
+            if (progress < 1) requestAnimationFrame(step)
+          }
+          requestAnimationFrame(step)
+          observer.disconnect()
+        }
+      },
+      { threshold: 0.4 }
+    )
+    observer.observe(el)
+    return function () { observer.disconnect() }
+  }, [props.target])
+
+  return <span ref={ref}>{value}{props.suffix || ''}</span>
+}
+
+// Fondo con brillo que sigue al mouse suavemente (sin librerias externas).
+function useMouseGlow(ref) {
+  useEffect(function () {
+    var el = ref.current
+    if (!el) return
+    function onMove(e) {
+      var rect = el.getBoundingClientRect()
+      var x = ((e.clientX - rect.left) / rect.width) * 100
+      var y = ((e.clientY - rect.top) / rect.height) * 100
+      el.style.setProperty('--mx', x + '%')
+      el.style.setProperty('--my', y + '%')
+    }
+    el.addEventListener('mousemove', onMove)
+    return function () { el.removeEventListener('mousemove', onMove) }
+  }, [])
+}
+
 var MODES = [
   {
-    emoji: '🍺',
-    name: 'RETROKE BAR',
-    tagline: 'Para bares, pubs, restaurantes y locales.',
-    desc: 'Convierte tu karaoke en una experiencia interactiva para todo el público. Deja de improvisar con papel y lápiz: cada mesa participa desde su celular, y tu local se convierte en el tema de conversación del fin de semana.',
-    features: ['Panel DJ profesional', 'Cola de cantantes en vivo', 'Reacciones y memes', 'Calificaciones del público', 'Estadísticas del local', 'Branding personalizado', 'Multi-Bar: todos tus locales'],
-    cta: 'Descubrir Retroke Bar',
-    accent: '#E91E8C'
+    emoji: '🍺', name: 'RETROKE BAR', accent: '#E91E8C', img: '/landing/panel-dj.jpg',
+    tagline: 'Para bares, pubs y locales.',
+    desc: 'Deja el papel y el caos. Cada mesa se anota desde su celular y tu local se convierte en el tema de la semana.',
+    features: ['Panel DJ profesional', 'Cola en vivo', 'Reacciones y memes', 'Multi-Bar']
   },
   {
-    emoji: '🎧',
-    name: 'RETROKE DJ',
+    emoji: '🎧', name: 'RETROKE DJ', accent: '#8B5CF6', img: '/landing/resultado-reacciones.jpg',
     tagline: 'Para DJs y animadores.',
-    desc: 'Lleva tu experiencia Retroke contigo, evento tras evento. Reemplaza la libreta y el caos de organizar turnos a mano por un panel que controla todo desde tu celular o notebook, en cualquier lugar donde trabajes.',
-    features: ['Panel DJ portátil', 'Gestión de participantes', 'Control total del show', 'Reacciones en tiempo real', 'Calificaciones en vivo', 'Imagen profesional frente al cliente'],
-    cta: 'Descubrir Retroke DJ',
-    accent: '#8B5CF6'
+    desc: 'Lleva tu experiencia contigo. Un panel que controla todo el show desde tu celular, en cualquier evento.',
+    features: ['Panel portátil', 'Control total del show', 'Calificaciones en vivo', 'Imagen profesional']
   },
   {
-    emoji: '🏠',
-    name: 'RETROKE HOME',
-    tagline: 'Para casas, reuniones y fiestas.',
-    desc: 'Lleva la experiencia Retroke directamente a tu TV, sin instalar nada. Conecta a todos tus invitados desde su propio celular y transforma una junta cualquiera en una noche que se va a recordar.',
-    features: ['Funciona desde el navegador', 'El celular es tu micrófono', 'Invitados ilimitados', 'Reacciones en vivo', 'Experiencia Home completa', 'Próximamente: Vocal Score'],
-    cta: 'Descubrir Retroke Home',
-    accent: '#F4D03F'
+    emoji: '🏠', name: 'RETROKE HOME', accent: '#F4D03F', img: '/landing/mobile-registro.jpg',
+    tagline: 'Para casas y fiestas.',
+    desc: 'Tu TV se convierte en escenario. Tus invitados usan su propio celular como micrófono, sin instalar nada.',
+    features: ['Sin apps que instalar', 'El celular es el micrófono', 'Invitados ilimitados', 'Próx.: Vocal Score']
   }
 ]
 
 var STEPS = [
-  { n: '01', title: 'Elige', desc: 'Elige tu canción desde el celular, sin hacer fila ni interrumpir al DJ.' },
-  { n: '02', title: 'Regístrate', desc: 'Anota tu nombre y entra a la cola en segundos. Ves tu posición en tiempo real.' },
-  { n: '03', title: 'Sube', desc: 'Cuando llegue tu momento, la pantalla y el escenario son tuyos.' },
-  { n: '04', title: 'Vívelo', desc: 'El público reacciona, califica y participa mientras cantas.' }
+  { n: '01', title: 'Elige', desc: 'Tu canción, desde el celular.' },
+  { n: '02', title: 'Regístrate', desc: 'Entras a la cola en segundos.' },
+  { n: '03', title: 'Sube', desc: 'La pantalla y el escenario, tuyos.' },
+  { n: '04', title: 'Vívelo', desc: 'El público reacciona y califica.' }
 ]
 
 var PLANS = [
   { group: 'BAR', name: 'Bar Free', price: 'Gratis', accent: '#8B5CF6' },
-  { group: 'BAR', name: 'Bar Pro', price: '$24.990 / mes', accent: '#E91E8C', recommended: true, note: 'Recomendado para locales' },
+  { group: 'BAR', name: 'Bar Pro', price: '$24.990 / mes', accent: '#E91E8C', recommended: true },
   { group: 'DJ', name: 'DJ Free', price: 'Gratis', accent: '#8B5CF6' },
-  { group: 'DJ', name: 'DJ Pro', price: '$19.990 / mes', accent: '#8B5CF6', note: 'Experiencia profesional' },
+  { group: 'DJ', name: 'DJ Pro', price: '$19.990 / mes', accent: '#8B5CF6' },
   { group: 'HOME', name: 'Home Basic', price: 'Gratis', accent: '#8B5CF6' },
-  { group: 'HOME', name: 'Home Pro', price: '$7.990 / mes', accent: '#F4D03F', note: 'La experiencia completa' }
+  { group: 'HOME', name: 'Home Pro', price: '$7.990 / mes', accent: '#F4D03F' }
 ]
 
-var METRICS = [
-  { label: 'Afinación', desc: 'Qué tan cerca estás del tono real de la canción.' },
-  { label: 'Ritmo', desc: 'Qué tan pareja y constante es tu interpretación.' },
-  { label: 'Estabilidad', desc: 'Tolera el vibrato natural, no lo penaliza.' },
-  { label: 'Energía', desc: 'Volumen y dinámica de tu presentación.' }
+var FAQS = [
+  { q: '¿Necesito instalar una app?', a: 'No. Retroke funciona completo desde el navegador — tanto en la TV como en el celular de cada persona.' },
+  { q: '¿Cómo empiezo gratis?', a: 'Eliges tu plan (Bar, DJ o Home) y creas tu cuenta en menos de un minuto. Sin tarjeta para probar.' },
+  { q: '¿Qué es el Retroke Score?', a: 'Un puntaje calculado en el mismo celular de quien canta — afinación, ritmo, estabilidad y energía — sin subir audio a ningún servidor.' },
+  { q: '¿Puedo usarlo en varios locales?', a: 'Sí, el plan Bar Pro incluye Multi-Bar: administras todos tus locales desde un solo panel.' }
 ]
-
-function SoundWave() {
-  var bars = Array.from({ length: 24 })
-  return (
-    <div className="soundwave" aria-hidden="true">
-      {bars.map(function (_, i) {
-        return <span key={i} style={{ animationDelay: (i * 0.07) + 's' }} />
-      })}
-    </div>
-  )
-}
 
 function Screenshot(props) {
   return (
@@ -128,9 +162,26 @@ function Screenshot(props) {
   )
 }
 
+function FaqItem(props) {
+  var openState = useState(false)
+  var open = openState[0]
+  var setOpen = openState[1]
+  return (
+    <div className={'faq-item' + (open ? ' open' : '')}>
+      <button className="faq-question" onClick={function () { setOpen(!open) }} aria-expanded={open}>
+        <span>{props.q}</span>
+        <span className="faq-toggle">{open ? '−' : '+'}</span>
+      </button>
+      {open && <p className="faq-answer">{props.a}</p>}
+    </div>
+  )
+}
+
 export default function LandingPage() {
   useGoogleFonts()
   var reducedMotion = usePrefersReducedMotion()
+  var heroRef = useRef(null)
+  useMouseGlow(heroRef)
 
   var navScrolledState = useState(false)
   var navScrolled = navScrolledState[0]
@@ -140,11 +191,18 @@ export default function LandingPage() {
   var menuOpen = menuOpenState[0]
   var setMenuOpen = menuOpenState[1]
 
+  var parallaxState = useState(0)
+  var parallaxY = parallaxState[0]
+  var setParallaxY = parallaxState[1]
+
   useEffect(function () {
-    function onScroll() { setNavScrolled(window.scrollY > 40) }
+    function onScroll() {
+      setNavScrolled(window.scrollY > 40)
+      if (!reducedMotion) setParallaxY(window.scrollY)
+    }
     window.addEventListener('scroll', onScroll)
     return function () { window.removeEventListener('scroll', onScroll) }
-  }, [])
+  }, [reducedMotion])
 
   return (
     <div className={'retroke-landing' + (reducedMotion ? ' reduced-motion' : '')}>
@@ -154,16 +212,15 @@ export default function LandingPage() {
             <img src="/landing/retroke-logo.png" alt="Retroke" className="landing-logo-img" />
           </a>
           <div className="landing-nav-links">
-            <a href="#inicio">Inicio</a>
+            <a href="#que-es">Qué es</a>
             <a href="#como-funciona">Cómo funciona</a>
-            <a href="#bar">Bar</a>
-            <a href="#dj">DJ</a>
-            <a href="#home">Home</a>
+            <a href="#modos">Modos</a>
             <a href="#planes">Planes</a>
+            <a href="#faq">FAQ</a>
           </div>
           <div className="landing-nav-actions">
             <a href="/dj" className="landing-btn landing-btn-ghost small">Iniciar sesión</a>
-            <a href="/precios" className="landing-btn landing-btn-primary small">Probar Retroke</a>
+            <a href="/precios" className="landing-btn landing-btn-primary small">Comenzar gratis</a>
           </div>
           <button className="landing-nav-burger" aria-label="Abrir menú" aria-expanded={menuOpen} onClick={function () { setMenuOpen(!menuOpen) }}>
             <span /><span /><span />
@@ -171,60 +228,56 @@ export default function LandingPage() {
         </div>
         {menuOpen && (
           <div className="landing-nav-mobile">
-            <a href="#inicio" onClick={function () { setMenuOpen(false) }}>Inicio</a>
+            <a href="#que-es" onClick={function () { setMenuOpen(false) }}>Qué es</a>
             <a href="#como-funciona" onClick={function () { setMenuOpen(false) }}>Cómo funciona</a>
-            <a href="#bar" onClick={function () { setMenuOpen(false) }}>Bar</a>
-            <a href="#dj" onClick={function () { setMenuOpen(false) }}>DJ</a>
-            <a href="#home" onClick={function () { setMenuOpen(false) }}>Home</a>
+            <a href="#modos" onClick={function () { setMenuOpen(false) }}>Modos</a>
             <a href="#planes" onClick={function () { setMenuOpen(false) }}>Planes</a>
+            <a href="#faq" onClick={function () { setMenuOpen(false) }}>FAQ</a>
             <a href="/dj" className="landing-btn landing-btn-ghost">Iniciar sesión</a>
-            <a href="/precios" className="landing-btn landing-btn-primary">Probar Retroke</a>
+            <a href="/precios" className="landing-btn landing-btn-primary">Comenzar gratis</a>
           </div>
         )}
       </nav>
 
       {/* HERO */}
-      <header className="landing-hero" id="inicio">
-        <div className="landing-hero-glow glow-magenta" />
-        <div className="landing-hero-glow glow-purple" />
+      <header className="landing-hero" ref={heroRef}>
+        <div className="hero-bg-photo" style={{ backgroundImage: 'url(/landing/hero-atmosfera.jpg)', transform: reducedMotion ? 'none' : ('translateY(' + Math.min(parallaxY * 0.15, 60) + 'px)') }} />
+        <div className="hero-bg-overlay" />
+        <div className="hero-mouse-glow" aria-hidden="true" />
         <div className="hero-scanlines" aria-hidden="true" />
         <div className="landing-hero-inner">
-          <div className="landing-hero-copy">
-            <p className="eyebrow">✨ Una plataforma de entretenimiento en vivo</p>
-            <img src="/landing/retroke-logo.png" alt="RETROKE" className="hero-brand-logo" />
-            <p className="hero-tagline">El karaoke se vive diferente.</p>
-            <p className="hero-sub">
-              Canta. Reacciona. Compite. Disfruta. Retroke convierte cualquier bar, evento
-              o junta en casa en un show interactivo real — con cola en vivo, micrófono
-              desde el celular y una pantalla hecha para verse bien desde lejos.
-            </p>
-            <div className="hero-ctas">
-              <a href="/precios" className="landing-btn landing-btn-primary large">🎤 Probar Retroke</a>
-              <a href="#vivelo" className="landing-btn landing-btn-ghost large">▶️ Descubrir la experiencia</a>
-            </div>
-            <div className="hero-stats">
-              <div><strong>3</strong><span>Modos: Bar, DJ y Home</span></div>
-              <div><strong>100%</strong><span>Desde el navegador, sin apps</span></div>
-              <div><strong>0$</strong><span>Para empezar a probar</span></div>
-            </div>
+          <p className="eyebrow">✨ Una plataforma de entretenimiento en vivo</p>
+          <img src="/landing/retroke-logo.png" alt="RETROKE" className="hero-brand-logo" />
+          <p className="hero-tagline">Vienes a vivir el escenario.</p>
+          <p className="hero-sub">
+            No vienes solo a cantar. Retroke transforma cualquier bar, evento o junta en
+            casa en un show real — cola en vivo, micrófono desde el celular, y un público
+            que participa de verdad.
+          </p>
+          <div className="hero-ctas">
+            <a href="/precios" className="landing-btn landing-btn-primary large">Comenzar gratis</a>
+            <a href="#que-es" className="landing-btn landing-btn-ghost large">Ver demo</a>
           </div>
-          <div className="landing-hero-visual">
-            <Screenshot src="/landing/sala-espera.jpg" alt="Sala de espera de Retroke en la pantalla principal" className="hero-screenshot" />
-            <SoundWave />
+          <div className="hero-stats">
+            <div><strong><CountUp target={3} /></strong><span>Modos: Bar, DJ, Home</span></div>
+            <div><strong><CountUp target={100} suffix="%" /></strong><span>Desde el navegador</span></div>
+            <div><strong><CountUp target={0} suffix="$" /></strong><span>Para empezar</span></div>
           </div>
+          <Screenshot src="/landing/sala-espera.jpg" alt="Vista previa en vivo de la sala de espera de Retroke" className="hero-preview" />
         </div>
+        <div className="hero-scroll-hint" aria-hidden="true"><span /></div>
       </header>
 
-      {/* NO ES SOLO KARAOKE */}
-      <section className="landing-section">
+      {/* QUE ES / POR QUE ES DIFERENTE */}
+      <section className="landing-section" id="que-es">
         <Reveal>
           <div className="landing-section-inner center-text">
+            <p className="section-eyebrow center">¿Qué es Retroke?</p>
             <h2 className="section-title big">NO ES SOLO KARAOKE.</h2>
             <p className="section-lead">
-              Retroke transforma una canción en una experiencia. Uno canta, el público
-              reacciona en vivo desde su celular, y cada turno puede convertirse en el
-              momento que todos van a recordar al día siguiente. No es una pista de audio
-              con letras — es un show completo, con público real participando en tiempo real.
+              Es una plataforma que transforma una canción en una experiencia. Uno canta,
+              el público reacciona desde su celular en tiempo real, y cada turno puede
+              convertirse en el momento que todos recuerdan al día siguiente.
             </p>
             <div className="pill-row">
               <span className="pill">🎤 Canta</span>
@@ -236,25 +289,21 @@ export default function LandingPage() {
         </Reveal>
       </section>
 
-      {/* VIVELO */}
-      <section className="landing-section vivelo-section" id="vivelo">
+      {/* VIVELO - proof visual */}
+      <section className="landing-section vivelo-section">
         <div className="landing-hero-glow glow-purple" style={{ top: '10%', right: '5%' }} />
         <Reveal>
           <div className="landing-section-inner vivelo-grid">
             <div>
-              <h2 className="section-title big gradient-text">NO LO MIRES. VÍVELO.</h2>
+              <p className="section-eyebrow">Por qué es diferente</p>
+              <h2 className="section-title gradient-text">NO LO MIRES. VÍVELO.</h2>
               <p className="section-lead left">
-                El escenario no se mira. Se vive. Retroke convierte al cantante en
-                protagonista y al público en parte del espectáculo: mientras alguien
-                canta, la pantalla muestra la letra, un dato real del artista y las
-                reacciones del público en vivo — todo al mismo tiempo, todo legible
-                incluso desde la última mesa.
+                Mientras alguien canta, la pantalla muestra la letra, un dato real y
+                verificado del artista, y las reacciones del público apareciendo en vivo
+                — todo al mismo tiempo, legible desde la última mesa.
               </p>
-              <div className="vivelo-icons">
-                <span>🎤</span><span>📱</span><span>📺</span><span>❤️</span><span>⭐</span>
-              </div>
             </div>
-            <Screenshot src="/landing/reproduccion.jpg" alt="Pantalla de reproducción con letra, datos del artista y QR de reacciones" />
+            <Screenshot src="/landing/video-datos-artista.jpg" alt="Pantalla de reproducción con letra y datos reales del artista" />
           </div>
         </Reveal>
       </section>
@@ -264,11 +313,7 @@ export default function LandingPage() {
         <Reveal>
           <div className="landing-section-inner">
             <p className="section-eyebrow center">Cómo funciona</p>
-            <h2 className="section-title center">¿Cómo funciona Retroke?</h2>
-            <p className="section-lead center-margin">
-              Sin apps que descargar, sin libretas, sin que el DJ tenga que adivinar
-              quién va primero. Todo pasa en el navegador del celular de cada persona.
-            </p>
+            <h2 className="section-title center">De la mesa al escenario</h2>
             <div className="steps-grid">
               {STEPS.map(function (s, i) {
                 return (
@@ -281,39 +326,31 @@ export default function LandingPage() {
                 )
               })}
             </div>
-            <div className="steps-screens">
-              <Screenshot src="/landing/mobile-registro.jpg" alt="Formulario de registro para cantar, desde el celular" className="steps-screen-mobile" />
-              <Screenshot src="/landing/mobile-reacciones.jpg" alt="Pantalla de reacciones desde el celular del público" className="steps-screen-mobile" />
-            </div>
           </div>
         </Reveal>
       </section>
 
       {/* MODOS */}
-      <section className="landing-section">
+      <section className="landing-section" id="modos">
         <Reveal>
           <div className="landing-section-inner">
-            <p className="section-eyebrow center">Los modos de Retroke</p>
-            <h2 className="section-title center">Una experiencia. Diferentes formas de vivirla.</h2>
-            <p className="section-lead center-margin">
-              El mismo sistema, adaptado a donde lo necesites: un local con público
-              todas las noches, un DJ que se mueve de evento en evento, o una casa
-              con invitados que solo quieren pasarlo bien.
-            </p>
+            <p className="section-eyebrow center">Una experiencia, tres formas de vivirla</p>
+            <h2 className="section-title center">Bar. DJ. Home.</h2>
             <div className="modes-grid">
               {MODES.map(function (m) {
                 return (
-                  <div className="mode-card" key={m.name} id={m.name.split(' ')[1].toLowerCase()} style={{ '--accent': m.accent }}>
-                    <span className="mode-emoji">{m.emoji}</span>
-                    <p className="mode-name">{m.name}</p>
-                    <p className="mode-tagline">{m.tagline}</p>
-                    <p className="mode-desc">{m.desc}</p>
-                    <ul className="mode-features">
-                      {m.features.map(function (f) {
-                        return <li key={f}>{f}</li>
-                      })}
-                    </ul>
-                    <a href="/precios" className="mode-cta">{m.cta} →</a>
+                  <div className="mode-card" key={m.name} style={{ '--accent': m.accent }}>
+                    <div className="mode-card-img"><img src={m.img} alt={m.name} loading="lazy" /></div>
+                    <div className="mode-card-body">
+                      <span className="mode-emoji">{m.emoji}</span>
+                      <p className="mode-name">{m.name}</p>
+                      <p className="mode-tagline">{m.tagline}</p>
+                      <p className="mode-desc">{m.desc}</p>
+                      <ul className="mode-features">
+                        {m.features.map(function (f) { return <li key={f}>{f}</li> })}
+                      </ul>
+                      <a href="/precios" className="mode-cta">Descubrir {m.name.split(' ')[1]} →</a>
+                    </div>
                   </div>
                 )
               })}
@@ -322,102 +359,35 @@ export default function LandingPage() {
         </Reveal>
       </section>
 
-      {/* EL PUBLICO */}
+      {/* REACCIONES + RANKINGS */}
       <section className="landing-section publico-section">
         <div className="landing-hero-glow glow-magenta" style={{ bottom: '0%', left: '0%' }} />
         <Reveal>
           <div className="landing-section-inner center-text">
             <h2 className="section-title big gradient-text">CANTA UNO. LO VIVEN TODOS.</h2>
             <p className="section-lead">
-              En Retroke nadie es simplemente espectador. Cada persona en la sala puede
-              reaccionar, animar, votar y formar parte del show desde su propio celular —
-              sin pedir el micrófono, sin interrumpir, en tiempo real.
+              Nadie es simplemente espectador. Cada persona reacciona, califica y aparece
+              en el ranking de la noche — todo desde su propio celular, en tiempo real.
             </p>
-            <div className="flow-chain">
-              <span className="flow-step">🎤 Alguien canta</span>
-              <span className="flow-arrow">↓</span>
-              <span className="flow-step">❤️ El público reacciona</span>
-              <span className="flow-arrow">↓</span>
-              <span className="flow-step">🔥 Aparecen emociones y memes en pantalla</span>
-              <span className="flow-arrow">↓</span>
-              <span className="flow-step">⭐ Se califica la presentación</span>
-              <span className="flow-arrow">↓</span>
-              <span className="flow-step">🎉 Todos participan</span>
-            </div>
             <div className="publico-screens">
-              <Screenshot src="/landing/mobile-reacciones.jpg" alt="El público reacciona desde su celular" className="steps-screen-mobile" />
-              <Screenshot src="/landing/reproduccion.jpg" alt="Las reacciones aparecen en la pantalla principal" />
+              <Screenshot src="/landing/video-memes-overlay.jpg" alt="Memes del público apareciendo sobre el video en vivo" />
+              <Screenshot src="/landing/resultado-reacciones.jpg" alt="Resultado final con público, nota y reacciones" />
             </div>
           </div>
         </Reveal>
       </section>
 
-      {/* GAMIFICACION */}
-      <section className="landing-section">
-        <Reveal>
-          <div className="landing-section-inner gamif-grid">
-            <Screenshot src="/landing/nota-final.jpg" alt="Pantalla de nota final con Retroke Score, público y métricas" />
-            <div>
-              <p className="section-eyebrow">Gamificación real</p>
-              <h2 className="section-title">Cada canción es un nuevo momento.</h2>
-              <p className="section-lead left">
-                Al terminar cada presentación, Retroke combina la nota del público con el
-                <strong> Retroke Score</strong> — un puntaje calculado en el mismo celular
-                de quien canta, sin subir audio a ningún servidor.
-              </p>
-              <div className="metrics-list">
-                {METRICS.map(function (m) {
-                  return (
-                    <div className="metric-item" key={m.label}>
-                      <p className="metric-label">{m.label}</p>
-                      <p className="metric-desc">{m.desc}</p>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          </div>
-        </Reveal>
-      </section>
-
-      {/* HOME MIC */}
-      <section className="landing-section homemic-section" id="home">
-        <Reveal>
-          <div className="landing-section-inner homemic-grid">
-            <div>
-              <p className="section-eyebrow">Retroke Home</p>
-              <h2 className="section-title">Tu celular se convierte en micrófono.</h2>
-              <p className="section-lead left">
-                Con Retroke Home puedes usar tu teléfono como micrófono mientras disfrutas
-                la experiencia completa en tu TV — sin comprar micrófonos, sin instalar
-                nada, sin cables. Solo abres el navegador y empieza el show.
-              </p>
-            </div>
-            <div className="homemic-flow">
-              <div className="homemic-step"><span>📱</span><p>Teléfono</p></div>
-              <span className="homemic-arrow">→</span>
-              <div className="homemic-step"><span>🎤</span><p>Micrófono</p></div>
-              <span className="homemic-arrow">→</span>
-              <div className="homemic-step"><span>📺</span><p>TV</p></div>
-              <span className="homemic-arrow">→</span>
-              <div className="homemic-step"><span>🎉</span><p>Experiencia</p></div>
-            </div>
-          </div>
-        </Reveal>
-      </section>
-
-      {/* VOCAL SCORE */}
+      {/* VOCAL SCORE / IA */}
       <section className="landing-section vocalscore-section">
         <Reveal>
           <div className="landing-section-inner center-text">
             <p className="section-eyebrow center">Próximamente</p>
             <h2 className="section-title big">Retroke Vocal Score</h2>
             <p className="section-lead">
-              Estamos desarrollando una nueva forma de analizar tu interpretación para
-              entregarte feedback sobre afinación, ritmo, estabilidad y presencia vocal —
-              pensado para ayudarte a mejorar, no para juzgarte.
+              Estamos desarrollando una nueva forma de analizar tu interpretación —
+              afinación, ritmo, estabilidad y presencia vocal — para ayudarte a mejorar,
+              no para juzgarte. Parte de Retroke Home y los planes compatibles.
             </p>
-            <p className="vocalscore-note">Será parte de Retroke Home y los planes compatibles.</p>
           </div>
         </Reveal>
       </section>
@@ -428,10 +398,6 @@ export default function LandingPage() {
           <div className="landing-section-inner">
             <p className="section-eyebrow center">Planes</p>
             <h2 className="section-title center">Elige tu experiencia</h2>
-            <p className="section-lead center-margin">
-              Empieza gratis en el plan de tu tipo. Cuando quieras más, sube a PRO sin
-              perder nada de lo que ya construiste.
-            </p>
             <div className="plans-grid">
               {PLANS.map(function (p) {
                 return (
@@ -440,29 +406,26 @@ export default function LandingPage() {
                     <p className="plan-mini-group">{p.group}</p>
                     <p className="plan-mini-name">{p.name}</p>
                     <p className="plan-mini-price">{p.price}</p>
-                    {p.note && <p className="plan-mini-note">{p.note}</p>}
                   </div>
                 )
               })}
             </div>
-            <div className="center-text" style={{ marginTop: '40px' }}>
+            <div className="center-text" style={{ marginTop: '36px' }}>
               <a href="/precios" className="landing-btn landing-btn-primary">Ver todos los planes</a>
             </div>
           </div>
         </Reveal>
       </section>
 
-      {/* PRUEBA GRATIS */}
-      <section className="landing-section trial-section">
+      {/* FAQ */}
+      <section className="landing-section" id="faq">
         <Reveal>
-          <div className="landing-section-inner center-text">
-            <h2 className="section-title big">Pruébalo. Vívelo. Decide.</h2>
-            <p className="section-lead">
-              Empieza gratis en tu plan Bar, DJ o Home — sin tarjeta, sin compromiso.
-              Cuando quieras, activa una prueba de la experiencia PRO por 24 horas
-              directo desde tu propio panel y decide con la experiencia real en la mano.
-            </p>
-            <a href="/precios" className="landing-btn landing-btn-primary large">Comenzar prueba gratis</a>
+          <div className="landing-section-inner faq-inner">
+            <p className="section-eyebrow center">Preguntas frecuentes</p>
+            <h2 className="section-title center">Antes de empezar</h2>
+            <div className="faq-list">
+              {FAQS.map(function (f) { return <FaqItem key={f.q} q={f.q} a={f.a} /> })}
+            </div>
           </div>
         </Reveal>
       </section>
@@ -471,12 +434,11 @@ export default function LandingPage() {
       <section className="landing-final-cta">
         <div className="landing-hero-glow glow-magenta" style={{ top: '-10%', left: '10%' }} />
         <div className="landing-hero-glow glow-purple" style={{ bottom: '-10%', right: '10%' }} />
-        <SoundWave />
         <div className="landing-section-inner final-cta-inner">
           <h2 className="final-cta-title">CANTA UNO.<br />LO VIVEN TODOS.</h2>
           <p className="final-cta-sub">Retroke transforma cualquier canción en un momento para recordar.</p>
           <div className="hero-ctas center">
-            <a href="/precios" className="landing-btn landing-btn-primary large">🎤 Vivir Retroke</a>
+            <a href="/precios" className="landing-btn landing-btn-primary large">Comenzar gratis</a>
             <a href="#planes" className="landing-btn landing-btn-ghost large">Ver planes</a>
           </div>
         </div>
@@ -491,33 +453,27 @@ export default function LandingPage() {
           </div>
           <div>
             <p className="footer-col-title">Productos</p>
-            <a href="#bar">Bar</a>
-            <a href="#dj">DJ</a>
-            <a href="#home">Home</a>
+            <a href="#modos">Bar</a>
+            <a href="#modos">DJ</a>
+            <a href="#modos">Home</a>
           </div>
           <div>
             <p className="footer-col-title">Recursos</p>
             <a href="#como-funciona">Cómo funciona</a>
             <a href="/precios">Planes</a>
-            <a href="#planes">Preguntas frecuentes</a>
-            <a href="#planes">Compatibilidad</a>
+            <a href="#faq">Preguntas frecuentes</a>
           </div>
           <div>
             <p className="footer-col-title">Cuenta</p>
             <a href="/dj">Iniciar sesión</a>
             <a href="/precios">Crear cuenta</a>
           </div>
-          <div>
-            <p className="footer-col-title">Legal</p>
-            <a href="#planes">Términos</a>
-            <a href="#planes">Privacidad</a>
-          </div>
         </div>
         <p className="footer-copy">© {new Date().getFullYear()} Retroke. Todos los derechos reservados.</p>
       </footer>
 
       <style>{`
-        .retroke-landing { background: #0a0612; color: #fff; font-family: 'Manrope', sans-serif; overflow-x: hidden; }
+        .retroke-landing { background: #060309; color: #fff; font-family: 'Manrope', sans-serif; overflow-x: hidden; }
         .retroke-landing * { box-sizing: border-box; }
 
         .reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.7s ease, transform 0.7s ease; }
@@ -527,11 +483,11 @@ export default function LandingPage() {
 
         /* Nav */
         .landing-nav { position: sticky; top: 0; z-index: 50; padding: 14px 6vw; transition: background 0.25s ease, border-color 0.25s ease, padding 0.25s ease; border-bottom: 1px solid transparent; }
-        .landing-nav.scrolled { background: rgba(10, 6, 18, 0.9); backdrop-filter: blur(10px); border-bottom-color: rgba(139, 92, 246, 0.25); padding: 9px 6vw; }
-        .landing-nav-inner { max-width: 1240px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+        .landing-nav.scrolled { background: rgba(6, 3, 9, 0.85); backdrop-filter: blur(14px); border-bottom-color: rgba(139, 92, 246, 0.25); padding: 9px 6vw; }
+        .landing-nav-inner { max-width: 1260px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
         .landing-logo-link { display: flex; align-items: center; }
-        .landing-logo-img { height: 34px; width: auto; display: block; }
-        .landing-logo-img.small { height: 30px; margin-bottom: 10px; }
+        .landing-logo-img { height: 42px; width: auto; display: block; }
+        .landing-logo-img.small { height: 36px; margin-bottom: 10px; }
         .landing-nav-links { display: flex; gap: 26px; font-size: 13.5px; font-weight: 600; color: #b7aecb; }
         .landing-nav-links a { color: inherit; text-decoration: none; transition: color 0.15s; }
         .landing-nav-links a:hover { color: #fff; }
@@ -545,167 +501,140 @@ export default function LandingPage() {
         .landing-btn { display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; font-weight: 700; font-size: 14px; text-decoration: none; padding: 12px 24px; transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, background 0.15s ease; white-space: nowrap; cursor: pointer; }
         .landing-btn:focus-visible { outline: 2px solid #F4D03F; outline-offset: 3px; }
         .landing-btn.small { padding: 9px 18px; font-size: 12.5px; }
-        .landing-btn.large { padding: 16px 34px; font-size: 16px; }
-        .landing-btn-primary { background: linear-gradient(90deg, #E91E8C, #8B5CF6); color: #fff; box-shadow: 0 0 24px -4px rgba(233, 30, 140, 0.6); }
-        .landing-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 32px -4px rgba(233, 30, 140, 0.85); }
-        .landing-btn-ghost { background: rgba(255,255,255,0.04); color: #fff; border: 1.5px solid rgba(139, 92, 246, 0.5); }
-        .landing-btn-ghost:hover { border-color: #8B5CF6; background: rgba(139,92,246,0.12); transform: translateY(-2px); }
+        .landing-btn.large { padding: 17px 36px; font-size: 16px; }
+        .landing-btn-primary { background: linear-gradient(90deg, #E91E8C, #8B5CF6); color: #fff; box-shadow: 0 0 30px -4px rgba(233, 30, 140, 0.7); }
+        .landing-btn-primary:hover { transform: translateY(-2px) scale(1.02); box-shadow: 0 6px 40px -4px rgba(233, 30, 140, 0.9); }
+        .landing-btn-ghost { background: rgba(255,255,255,0.05); color: #fff; border: 1.5px solid rgba(139, 92, 246, 0.5); backdrop-filter: blur(6px); }
+        .landing-btn-ghost:hover { border-color: #8B5CF6; background: rgba(139,92,246,0.15); transform: translateY(-2px); }
 
         /* Screenshot frame */
-        .screenshot-frame { border-radius: 16px; overflow: hidden; border: 1.5px solid rgba(244,208,63,0.4); box-shadow: 0 20px 60px -20px rgba(139,92,246,0.5), 0 0 0 1px rgba(255,255,255,0.03); }
+        .screenshot-frame { border-radius: 16px; overflow: hidden; border: 1.5px solid rgba(244,208,63,0.35); box-shadow: 0 24px 70px -20px rgba(139,92,246,0.55), 0 0 0 1px rgba(255,255,255,0.03); transition: transform 0.3s ease; }
+        .screenshot-frame:hover { transform: translateY(-4px); }
         .screenshot-frame img { display: block; width: 100%; height: auto; }
-        .steps-screen-mobile { max-width: 220px; }
 
         /* Hero */
-        .landing-hero { position: relative; padding: 56px 6vw 100px; overflow: hidden; }
-        .landing-hero-glow { position: absolute; width: 34rem; height: 34rem; border-radius: 999px; filter: blur(95px); opacity: 0.3; pointer-events: none; }
+        .landing-hero { position: relative; padding: 130px 6vw 60px; min-height: 100vh; display: flex; align-items: center; overflow: hidden; }
+        .hero-bg-photo { position: absolute; inset: -5% -5% -5% -5%; background-size: cover; background-position: center 30%; opacity: 0.4; will-change: transform; }
+        .hero-bg-overlay { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(6,3,9,0.55) 0%, rgba(6,3,9,0.75) 55%, #060309 100%), radial-gradient(ellipse at 50% 0%, rgba(139,92,246,0.25), transparent 60%); }
+        .hero-mouse-glow { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(420px circle at var(--mx, 50%) var(--my, 30%), rgba(233,30,140,0.16), transparent 70%); transition: background 0.1s ease; }
+        .hero-scanlines { position: absolute; inset: 0; pointer-events: none; opacity: 0.04; background-image: repeating-linear-gradient(0deg, #fff 0px, transparent 1px, transparent 3px); }
+        .landing-hero-glow { position: absolute; width: 34rem; height: 34rem; border-radius: 999px; filter: blur(95px); opacity: 0.28; pointer-events: none; }
         .glow-magenta { background: #E91E8C; top: -8rem; left: -10rem; }
         .glow-purple { background: #8B5CF6; bottom: -10rem; right: -8rem; }
-        .hero-scanlines { position: absolute; inset: 0; pointer-events: none; opacity: 0.05; background-image: repeating-linear-gradient(0deg, #fff 0px, transparent 1px, transparent 3px); }
-        .landing-hero-inner { position: relative; z-index: 2; max-width: 1240px; margin: 0 auto; display: grid; grid-template-columns: 1.05fr 1fr; gap: 60px; align-items: center; }
+        .landing-hero-inner { position: relative; z-index: 2; max-width: 780px; margin: 0 auto; text-align: center; display: flex; flex-direction: column; align-items: center; }
         .eyebrow { font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: #F4D03F; margin-bottom: 22px; font-weight: 600; }
-        .hero-brand-logo { width: min(420px, 90%); height: auto; display: block; margin-bottom: 14px; filter: drop-shadow(0 0 40px rgba(233,30,140,0.35)); }
-        .hero-tagline { font-family: 'Bungee', cursive; font-size: clamp(1.1rem, 2.2vw, 1.6rem); color: #fff; margin-bottom: 22px; }
-        .hero-sub { font-size: 17px; line-height: 1.7; color: #c3bcd4; max-width: 480px; margin-bottom: 32px; }
-        .hero-ctas { display: flex; gap: 14px; flex-wrap: wrap; }
-        .hero-ctas.center { justify-content: center; }
-        .hero-stats { display: flex; gap: 30px; margin-top: 40px; flex-wrap: wrap; }
-        .hero-stats strong { font-family: 'Bungee', cursive; font-size: 22px; display: block; background: linear-gradient(90deg, #F4D03F, #E91E8C); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .hero-brand-logo { width: min(460px, 92%); height: auto; display: block; margin-bottom: 12px; filter: drop-shadow(0 0 50px rgba(233,30,140,0.4)); }
+        .hero-tagline { font-family: 'Bungee', cursive; font-size: clamp(1.2rem, 2.6vw, 1.8rem); color: #fff; margin-bottom: 22px; }
+        .hero-sub { font-size: 17px; line-height: 1.7; color: #c3bcd4; max-width: 520px; margin-bottom: 34px; }
+        .hero-ctas { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+        .hero-stats { display: flex; gap: 34px; margin: 40px 0 46px; flex-wrap: wrap; justify-content: center; }
+        .hero-stats strong { font-family: 'Bungee', cursive; font-size: 24px; display: block; background: linear-gradient(90deg, #F4D03F, #E91E8C); -webkit-background-clip: text; background-clip: text; color: transparent; }
         .hero-stats span { font-size: 12px; color: #9b92ad; font-weight: 600; }
-
-        /* Soundwave */
-        .soundwave { display: flex; align-items: flex-end; gap: 3px; height: 26px; margin-top: 26px; justify-content: center; }
-        .soundwave span { width: 3px; background: linear-gradient(180deg, #F4D03F, #E91E8C); border-radius: 2px; height: 6px; animation: soundwave-bounce 1.4s ease-in-out infinite; }
-        @keyframes soundwave-bounce { 0%, 100% { height: 6px; } 50% { height: 24px; } }
-
-        .hero-screenshot { max-width: 460px; margin: 0 auto; display: block; }
+        .hero-preview { max-width: 560px; width: 100%; }
+        .hero-scroll-hint { position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%); width: 22px; height: 36px; border: 2px solid rgba(255,255,255,0.3); border-radius: 12px; z-index: 2; }
+        .hero-scroll-hint span { display: block; width: 3px; height: 8px; background: #F4D03F; border-radius: 2px; margin: 6px auto; animation: scrollhint 1.6s ease-in-out infinite; }
+        @keyframes scrollhint { 0% { opacity: 0; transform: translateY(0); } 30% { opacity: 1; } 100% { opacity: 0; transform: translateY(10px); } }
 
         /* Sections shared */
-        .landing-section { padding: 96px 6vw; position: relative; }
-        .landing-section-inner { max-width: 1240px; margin: 0 auto; position: relative; z-index: 2; }
+        .landing-section { padding: 84px 6vw; position: relative; }
+        .landing-section-inner { max-width: 1260px; margin: 0 auto; position: relative; z-index: 2; }
         .center-text { text-align: center; }
         .section-eyebrow { font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: #8B5CF6; font-weight: 600; margin-bottom: 10px; }
         .section-eyebrow.center { text-align: center; }
-        .section-title { font-family: 'Bungee', cursive; font-size: clamp(1.5rem, 2.6vw, 2.2rem); line-height: 1.25; margin-bottom: 20px; max-width: 640px; }
+        .section-title { font-family: 'Bungee', cursive; font-size: clamp(1.5rem, 2.6vw, 2.2rem); line-height: 1.25; margin-bottom: 18px; max-width: 640px; }
         .section-title.center { margin-left: auto; margin-right: auto; text-align: center; }
-        .section-title.big { font-size: clamp(1.9rem, 4vw, 3.1rem); max-width: 780px; margin-left: auto; margin-right: auto; }
+        .section-title.big { font-size: clamp(1.9rem, 4vw, 3rem); max-width: 780px; margin-left: auto; margin-right: auto; }
         .gradient-text { background: linear-gradient(90deg, #F4D03F, #E91E8C, #8B5CF6); -webkit-background-clip: text; background-clip: text; color: transparent; }
-        .section-lead { font-size: 16.5px; line-height: 1.8; color: #c3bcd4; max-width: 640px; margin: 0 auto; }
-        .section-lead.left { margin: 0 0 24px; }
-        .section-lead.center-margin { margin: 0 auto 20px; }
-        .section-lead strong { color: #fff; }
+        .section-lead { font-size: 16px; line-height: 1.75; color: #c3bcd4; max-width: 620px; margin: 0 auto; }
+        .section-lead.left { margin: 0; }
 
-        .pill-row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 32px; }
+        .pill-row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 30px; }
         .pill { font-weight: 700; font-size: 13.5px; padding: 10px 20px; border-radius: 999px; background: rgba(139,92,246,0.12); border: 1.5px solid rgba(139,92,246,0.4); color: #fff; }
 
         /* Vivelo */
         .vivelo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 50px; align-items: center; }
-        .vivelo-icons { display: flex; gap: 22px; font-size: 30px; margin-top: 20px; }
-        .vivelo-icons span { animation: float-icon 3s ease-in-out infinite; display: inline-block; }
-        .vivelo-icons span:nth-child(2) { animation-delay: 0.3s; }
-        .vivelo-icons span:nth-child(3) { animation-delay: 0.6s; }
-        .vivelo-icons span:nth-child(4) { animation-delay: 0.9s; }
-        .vivelo-icons span:nth-child(5) { animation-delay: 1.2s; }
-        @keyframes float-icon { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
 
         /* Steps */
-        .steps-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 44px; }
+        .steps-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 40px; }
         .step-card { position: relative; padding-right: 14px; }
-        .step-number { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: #F4D03F; display: block; margin-bottom: 12px; }
+        .step-number { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: #F4D03F; display: block; margin-bottom: 10px; }
         .step-title { font-weight: 800; font-size: 16px; margin-bottom: 6px; }
-        .step-desc { font-size: 13.5px; color: #a79fbb; line-height: 1.55; }
+        .step-desc { font-size: 13.5px; color: #a79fbb; line-height: 1.5; }
         .step-connector { display: none; }
         @media (min-width: 769px) { .step-connector { display: block; position: absolute; top: 8px; right: -14px; width: 20px; height: 1.5px; background: linear-gradient(90deg, rgba(139,92,246,0.6), transparent); } }
-        .steps-screens { display: flex; gap: 24px; justify-content: center; margin-top: 56px; flex-wrap: wrap; }
 
         /* Modes */
-        .modes-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; margin-top: 44px; }
-        .mode-card { background: linear-gradient(160deg, color-mix(in srgb, var(--accent) 14%, transparent), rgba(15,10,20,0.5)); border: 1.5px solid color-mix(in srgb, var(--accent) 45%, transparent); border-radius: 24px; padding: 32px 28px; transition: transform 0.2s ease, border-color 0.2s ease; }
-        .mode-card:hover { transform: translateY(-5px); border-color: var(--accent); }
-        .mode-emoji { font-size: 34px; display: block; margin-bottom: 14px; }
-        .mode-name { font-family: 'Bungee', cursive; font-size: 16px; color: var(--accent); margin-bottom: 6px; }
-        .mode-tagline { font-size: 12.5px; color: #9b92ad; margin-bottom: 12px; font-weight: 600; }
-        .mode-desc { font-size: 13.5px; color: #d7d0e6; line-height: 1.6; margin-bottom: 18px; }
-        .mode-features { list-style: none; padding: 0; margin: 0 0 22px; display: flex; flex-direction: column; gap: 8px; }
-        .mode-features li { font-size: 13px; color: #c3bcd4; padding-left: 18px; position: relative; }
+        .modes-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; margin-top: 40px; }
+        .mode-card { border-radius: 22px; overflow: hidden; background: linear-gradient(160deg, color-mix(in srgb, var(--accent) 12%, transparent), rgba(12,8,16,0.6)); border: 1.5px solid color-mix(in srgb, var(--accent) 40%, transparent); transition: transform 0.25s ease, border-color 0.25s ease; }
+        .mode-card:hover { transform: translateY(-6px); border-color: var(--accent); }
+        .mode-card-img { height: 140px; overflow: hidden; }
+        .mode-card-img img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
+        .mode-card-body { padding: 22px 24px 26px; }
+        .mode-emoji { font-size: 28px; display: block; margin-bottom: 10px; }
+        .mode-name { font-family: 'Bungee', cursive; font-size: 15px; color: var(--accent); margin-bottom: 5px; }
+        .mode-tagline { font-size: 12px; color: #9b92ad; margin-bottom: 10px; font-weight: 600; }
+        .mode-desc { font-size: 13px; color: #d7d0e6; line-height: 1.55; margin-bottom: 16px; }
+        .mode-features { list-style: none; padding: 0; margin: 0 0 18px; display: flex; flex-direction: column; gap: 6px; }
+        .mode-features li { font-size: 12.5px; color: #c3bcd4; padding-left: 16px; position: relative; }
         .mode-features li::before { content: '✓'; position: absolute; left: 0; color: var(--accent); font-weight: 800; }
-        .mode-cta { font-size: 13.5px; font-weight: 800; color: var(--accent); text-decoration: none; }
+        .mode-cta { font-size: 13px; font-weight: 800; color: var(--accent); text-decoration: none; }
         .mode-cta:hover { text-decoration: underline; }
 
         /* Publico */
-        .publico-section { padding-top: 110px; }
-        .flow-chain { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-top: 40px; }
-        .flow-step { font-weight: 700; font-size: 15px; padding: 10px 22px; border-radius: 999px; background: rgba(255,255,255,0.04); border: 1.5px solid rgba(139,92,246,0.35); }
-        .flow-arrow { color: #8B5CF6; font-size: 16px; }
-        .publico-screens { display: flex; gap: 24px; justify-content: center; margin-top: 50px; flex-wrap: wrap; align-items: flex-start; }
-        .publico-screens .screenshot-frame:last-child { max-width: 480px; }
+        .publico-section { padding-top: 100px; }
+        .publico-screens { display: flex; gap: 22px; justify-content: center; margin-top: 42px; flex-wrap: wrap; align-items: flex-start; }
+        .publico-screens .screenshot-frame { max-width: 480px; flex: 1 1 380px; }
 
-        /* Gamificacion */
-        .gamif-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: center; }
-        .metrics-list { display: flex; flex-direction: column; gap: 16px; margin-top: 26px; }
-        .metric-item { border-left: 2px solid rgba(139,92,246,0.5); padding-left: 16px; }
-        .metric-label { font-weight: 800; font-size: 14.5px; margin-bottom: 3px; }
-        .metric-desc { font-size: 13px; color: #a79fbb; }
-
-        /* Home mic */
-        .homemic-section { background: linear-gradient(180deg, transparent, rgba(139,92,246,0.06), transparent); }
-        .homemic-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 50px; align-items: center; }
-        .homemic-flow { display: flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: wrap; }
-        .homemic-step { text-align: center; }
-        .homemic-step span { font-size: 32px; display: block; margin-bottom: 8px; }
-        .homemic-step p { font-size: 12px; font-weight: 700; color: #c3bcd4; }
-        .homemic-arrow { color: #8B5CF6; font-size: 18px; }
-
-        /* Vocal score */
         .vocalscore-section { text-align: center; }
-        .vocalscore-note { font-size: 13px; color: #7a7290; margin-top: 20px; font-weight: 600; }
 
         /* Plans */
-        .plans-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 24px; }
-        .plan-mini { border-radius: 20px; padding: 24px 22px; text-align: center; background: rgba(255,255,255,0.03); border: 1.5px solid color-mix(in srgb, var(--accent) 35%, transparent); position: relative; }
+        .plans-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 22px; }
+        .plan-mini { border-radius: 18px; padding: 22px 20px; text-align: center; background: rgba(255,255,255,0.03); border: 1.5px solid color-mix(in srgb, var(--accent) 35%, transparent); position: relative; }
         .plan-mini.recommended { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
         .plan-mini-badge { position: absolute; top: -11px; left: 50%; transform: translateX(-50%); background: var(--accent); color: #0a0612; font-size: 10px; font-weight: 800; padding: 4px 12px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.5px; }
-        .plan-mini-group { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 1.5px; color: #7a7290; margin-bottom: 8px; }
-        .plan-mini-name { font-weight: 800; font-size: 15px; margin-bottom: 6px; }
-        .plan-mini-price { font-weight: 800; font-size: 18px; color: var(--accent); margin-bottom: 6px; }
-        .plan-mini-note { font-size: 11.5px; color: #9b92ad; }
+        .plan-mini-group { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 1.5px; color: #7a7290; margin-bottom: 6px; }
+        .plan-mini-name { font-weight: 800; font-size: 14.5px; margin-bottom: 6px; }
+        .plan-mini-price { font-weight: 800; font-size: 17px; color: var(--accent); }
 
-        .trial-section { background: rgba(126,217,87,0.04); }
+        /* FAQ */
+        .faq-inner { max-width: 760px; }
+        .faq-list { margin-top: 30px; display: flex; flex-direction: column; gap: 10px; }
+        .faq-item { border: 1.5px solid rgba(139,92,246,0.3); border-radius: 14px; background: rgba(255,255,255,0.02); overflow: hidden; }
+        .faq-question { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 22px; background: none; border: none; color: #fff; font-weight: 700; font-size: 14.5px; text-align: left; cursor: pointer; }
+        .faq-toggle { color: #F4D03F; font-size: 18px; font-weight: 800; flex-shrink: 0; }
+        .faq-answer { padding: 0 22px 20px; font-size: 13.5px; color: #a79fbb; line-height: 1.6; }
 
         /* Final CTA */
-        .landing-final-cta { position: relative; padding: 120px 6vw; text-align: center; overflow: hidden; }
+        .landing-final-cta { position: relative; padding: 110px 6vw; text-align: center; overflow: hidden; }
         .final-cta-inner { position: relative; z-index: 2; }
-        .final-cta-title { font-family: 'Bungee', cursive; font-size: clamp(1.8rem, 4.4vw, 3.4rem); line-height: 1.2; margin-bottom: 20px; background: linear-gradient(90deg, #F4D03F, #E91E8C, #8B5CF6); -webkit-background-clip: text; background-clip: text; color: transparent; }
-        .final-cta-sub { font-size: 16px; color: #c3bcd4; margin-bottom: 34px; }
+        .final-cta-title { font-family: 'Bungee', cursive; font-size: clamp(1.8rem, 4.4vw, 3.2rem); line-height: 1.2; margin-bottom: 18px; background: linear-gradient(90deg, #F4D03F, #E91E8C, #8B5CF6); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .final-cta-sub { font-size: 15.5px; color: #c3bcd4; margin-bottom: 32px; }
 
         /* Footer */
-        .landing-footer { padding: 60px 6vw 36px; border-top: 1px solid rgba(139,92,246,0.2); }
-        .footer-grid { max-width: 1240px; margin: 0 auto 40px; display: grid; grid-template-columns: 1.4fr repeat(4, 1fr); gap: 30px; }
-        .footer-tagline { font-size: 13px; color: #9b92ad; margin-top: 8px; }
-        .footer-col-title { font-weight: 800; font-size: 13px; margin-bottom: 14px; color: #fff; }
-        .footer-grid a { display: block; font-size: 13.5px; color: #a79fbb; text-decoration: none; margin-bottom: 10px; }
+        .landing-footer { padding: 50px 6vw 32px; border-top: 1px solid rgba(139,92,246,0.2); }
+        .footer-grid { max-width: 1260px; margin: 0 auto 34px; display: grid; grid-template-columns: 1.4fr repeat(3, 1fr); gap: 30px; }
+        .footer-tagline { font-size: 13px; color: #9b92ad; margin-top: 4px; }
+        .footer-col-title { font-weight: 800; font-size: 12.5px; margin-bottom: 12px; color: #fff; }
+        .footer-grid a { display: block; font-size: 13px; color: #a79fbb; text-decoration: none; margin-bottom: 9px; }
         .footer-grid a:hover { color: #fff; }
-        .footer-copy { max-width: 1240px; margin: 0 auto; font-size: 12px; color: #6c6480; text-align: center; padding-top: 24px; border-top: 1px solid rgba(139,92,246,0.12); }
+        .footer-copy { max-width: 1260px; margin: 0 auto; font-size: 12px; color: #6c6480; text-align: center; padding-top: 22px; border-top: 1px solid rgba(139,92,246,0.12); }
 
         /* Responsive */
         @media (max-width: 900px) {
           .landing-nav-links, .landing-nav-actions { display: none; }
           .landing-nav-burger { display: flex; }
-          .landing-hero-inner { grid-template-columns: 1fr; }
-          .landing-hero-visual { order: -1; }
-          .vivelo-grid { grid-template-columns: 1fr; }
+          .vivelo-grid { grid-template-columns: 1fr; text-align: center; }
+          .vivelo-grid .section-lead.left { margin: 0 auto; }
           .steps-grid { grid-template-columns: repeat(2, 1fr); gap: 30px; }
           .step-connector { display: none; }
           .modes-grid { grid-template-columns: 1fr; }
-          .gamif-grid { grid-template-columns: 1fr; }
-          .homemic-grid { grid-template-columns: 1fr; text-align: center; }
-          .homemic-grid .section-lead.left { margin-left: auto; margin-right: auto; }
           .plans-grid { grid-template-columns: 1fr; }
           .footer-grid { grid-template-columns: repeat(2, 1fr); }
         }
         @media (max-width: 560px) {
           .steps-grid { grid-template-columns: 1fr; }
           .footer-grid { grid-template-columns: 1fr; }
+          .hero-stats { gap: 22px; }
         }
       `}</style>
     </div>
