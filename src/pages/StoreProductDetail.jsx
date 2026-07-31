@@ -219,16 +219,32 @@ export default function StoreProductDetail() {
       {product.specs && product.specs.length > 0 && (
         <section className="pdp-section" id="sec-especificaciones">
           <p className="pdp-section-title">Especificaciones</p>
-          <div className="pdp-specs">
-            {product.specs.map(function (s, i) {
+          {(function () {
+            var groups = {}
+            var order = []
+            product.specs.forEach(function (s) {
+              var g = s.group || 'General'
+              if (!groups[g]) { groups[g] = []; order.push(g) }
+              groups[g].push(s)
+            })
+            return order.map(function (g) {
               return (
-                <div className="pdp-spec-row" key={i}>
-                  <span className="pdp-spec-label">{s.label}</span>
-                  <span className="pdp-spec-value">{s.value}</span>
+                <div key={g} className="pdp-spec-group">
+                  {order.length > 1 && <p className="pdp-spec-group-title">{g}</p>}
+                  <div className="pdp-specs">
+                    {groups[g].map(function (s, i) {
+                      return (
+                        <div className="pdp-spec-row" key={i}>
+                          <span className="pdp-spec-label">{s.label}</span>
+                          <span className="pdp-spec-value">{s.value}</span>
+                        </div>
+                      )
+                    })}
+                  </div>
                 </div>
               )
-            })}
-          </div>
+            })
+          })()}
         </section>
       )}
 
@@ -310,6 +326,9 @@ export default function StoreProductDetail() {
         .pdp-section-title { font-family: 'Audiowide', cursive; font-size: 16px; color: #F4D03F; margin-bottom: 20px; letter-spacing: 0.5px; }
         .pdp-longdesc { font-size: 14px; color: #c3bcd4; line-height: 1.85; white-space: pre-line; }
 
+        .pdp-spec-group { margin-bottom: 22px; }
+        .pdp-spec-group:last-child { margin-bottom: 0; }
+        .pdp-spec-group-title { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; letter-spacing: 1px; text-transform: uppercase; color: #8B5CF6; font-weight: 700; margin-bottom: 10px; }
         .pdp-specs { display: flex; flex-direction: column; border-radius: 16px; overflow: hidden; border: 1px solid rgba(139,92,246,0.25); }
         .pdp-spec-row { display: flex; justify-content: space-between; gap: 16px; padding: 13px 18px; font-size: 13px; }
         .pdp-spec-row:nth-child(odd) { background: rgba(255,255,255,0.025); }

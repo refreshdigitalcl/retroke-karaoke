@@ -400,9 +400,10 @@ export default function StorePage() {
         .pcard-price { font-family: 'Audiowide', cursive; font-size: 18px; color: #F4D03F; margin-bottom: 14px; }
         .pcard-actions { display: flex; gap: 8px; }
 
-        .pbtn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border-radius: 999px; font-weight: 700; font-size: 13px; cursor: pointer; border: none; padding: 11px 18px; transition: transform 0.15s ease, box-shadow 0.15s ease; text-decoration: none; }
-        .pbtn.full { width: 100%; }
-        .pbtn-primary { background: linear-gradient(90deg, #E91E8C, #8B5CF6); color: #fff; box-shadow: 0 0 20px -6px rgba(233,30,140,0.7); flex: 1; }
+        .pbtn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border-radius: 999px; font-weight: 700; font-size: 13px; cursor: pointer; border: none; padding: 11px 18px; transition: transform 0.15s ease, box-shadow 0.15s ease; text-decoration: none; flex-shrink: 0; }
+        .pbtn.full { width: 100%; flex-grow: 0; }
+        .pbtn-primary { background: linear-gradient(90deg, #E91E8C, #8B5CF6); color: #fff; box-shadow: 0 0 20px -6px rgba(233,30,140,0.7); }
+        .pcard-actions .pbtn-primary { flex: 1; }
         .pbtn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 26px -6px rgba(233,30,140,0.9); }
         .pbtn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
         .pbtn-ghost { background: rgba(255,255,255,0.05); color: #fff; border: 1.5px solid rgba(139,92,246,0.4); padding: 11px 14px; }

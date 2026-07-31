@@ -1095,7 +1095,7 @@ function formatCLP(digitsOnly) {
   return digitsOnly.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
 }
 
-var MAX_PRODUCT_IMAGES = 8
+var MAX_PRODUCT_IMAGES = 10
 
 function StoreProductForm(props) {
   var editing = props.editing
@@ -1237,9 +1237,14 @@ function StoreProductForm(props) {
         if (data.description) setDescription(data.description.slice(0, 200))
         if (data.description) setLongDescription(data.description)
         if (data.images && data.images.length) {
-          setImages(function (prev) { return [...prev, ...data.images].slice(0, MAX_PRODUCT_IMAGES) })
+          setImages(function (prev) {
+            var merged = [...prev, ...data.images]
+            var unique = merged.filter(function (u, i) { return merged.indexOf(u) === i })
+            return unique.slice(0, MAX_PRODUCT_IMAGES)
+          })
         }
         if (data.specs && data.specs.length) setSpecs(data.specs)
+        if (typeof data.in_stock === 'boolean') setInStock(data.in_stock)
       })
       .catch(function () {
         setImporting(false)
