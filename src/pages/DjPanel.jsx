@@ -622,6 +622,21 @@ function DjPanelInner() {
   var addBarError = addBarErrorState[0]
   var setAddBarError = addBarErrorState[1]
 
+  var newBarLogoFileState = useState(null)
+  var newBarLogoFile = newBarLogoFileState[0]
+  var setNewBarLogoFile = newBarLogoFileState[1]
+
+  var newBarLogoPreviewState = useState(null)
+  var newBarLogoPreview = newBarLogoPreviewState[0]
+  var setNewBarLogoPreview = newBarLogoPreviewState[1]
+
+  function handleNewBarLogoChange(e) {
+    var file = e.target.files && e.target.files[0]
+    if (!file) return
+    setNewBarLogoFile(file)
+    setNewBarLogoPreview(URL.createObjectURL(file))
+  }
+
   function slugifyBarName(text) {
     return text
       .toLowerCase()
@@ -638,6 +653,7 @@ function DjPanelInner() {
 
     var slug = slugifyBarName(newBarName) + '-' + Math.random().toString(36).slice(2, 6)
     var userId = auth.session.user.id
+    var createdBar = null
 
     supabase
       .from('bars')
@@ -646,9 +662,9 @@ function DjPanelInner() {
       .single()
       .then(function (result) {
         if (result.error) throw result.error
-        var newBar = result.data
+        createdBar = result.data
 
-        var chain = supabase.from('bar_members').insert({ bar_id: newBar.id, user_id: userId, role: 'OWNER' })
+        var chain = supabase.from('bar_members').insert({ bar_id: createdBar.id, user_id: userId, role: 'OWNER' })
 
         if (currentBarId) {
           chain = chain.then(function () {
@@ -666,6 +682,19 @@ function DjPanelInner() {
         }
 
         return chain
+      })
+      .then(function () {
+        if (!newBarLogoFile || !createdBar) return
+        var ext = newBarLogoFile.name.split('.').pop()
+        var path = 'logo-' + Date.now() + '.' + ext
+        return supabase.storage
+          .from('logos')
+          .upload(path, newBarLogoFile, { upsert: true })
+          .then(function (result) {
+            if (result.error) return
+            var publicUrl = supabase.storage.from('logos').getPublicUrl(path).data.publicUrl
+            return supabase.from('bars').update({ logo_url: publicUrl }).eq('id', createdBar.id)
+          })
       })
       .then(function () {
         window.location.href = '/dj'
@@ -1161,6 +1190,20 @@ function DjPanelInner() {
               className="w-full h-11 rounded-lg px-3 border outline-none mb-3"
               style={{ background: 'var(--bg-card-alt)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
             />
+            <label
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border cursor-pointer mb-4"
+              style={{ borderColor: 'var(--border)', background: 'var(--bg-card-alt)' }}
+            >
+              {newBarLogoPreview ? (
+                <img src={newBarLogoPreview} alt="Logo" className="w-9 h-9 rounded-full object-cover" />
+              ) : (
+                <span className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: 'rgba(139,92,246,0.15)' }}>📷</span>
+              )}
+              <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                {newBarLogoPreview ? 'Logo seleccionado' : 'Subir logo del local (opcional)'}
+              </span>
+              <input type="file" accept="image/*" onChange={handleNewBarLogoChange} className="hidden" />
+            </label>
             {addBarError && (
               <p className="text-xs mb-3" style={{ color: 'var(--accent-magenta)' }}>{addBarError}</p>
             )}

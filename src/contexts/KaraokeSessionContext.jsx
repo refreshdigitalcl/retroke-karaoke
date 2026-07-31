@@ -239,6 +239,7 @@ export function KaraokeSessionProvider({ children }) {
           setLogoUrl(bar.logo_url || null)
 
           if (bar.workspace_id) {
+            setWorkspaceId(bar.workspace_id)
             // Workspace + features en segundo plano, no bloquea la pantalla
             supabase
               .from('workspaces')
