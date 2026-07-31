@@ -38,6 +38,10 @@ export default function SignupPage() {
   var error = errorState[0]
   var setError = errorState[1]
 
+  var createdWorkspaceIdState = useState(null)
+  var createdWorkspaceId = createdWorkspaceIdState[0]
+  var setCreatedWorkspaceId = createdWorkspaceIdState[1]
+
   useEffect(function () {
     var params = new URLSearchParams(window.location.search)
     var planId = params.get('plan')
@@ -138,6 +142,7 @@ export default function SignupPage() {
           })
       })
       .then(function (subscription) {
+        setCreatedWorkspaceId(subscription.workspace_id)
         if (plan.price_monthly <= 0) {
           setStatus('done_free')
           return null
@@ -192,7 +197,7 @@ export default function SignupPage() {
             <p className="text-lg font-bold text-white mb-2">Tu cuenta esta lista</p>
             <p className="text-sm text-neutral-400 mb-5">Ya puedes ingresar y empezar a usar Retroke.</p>
             <a
-              href="/dj"
+              href={'/dj?ws=' + createdWorkspaceId}
               className="inline-block h-11 px-6 rounded-xl font-bold text-white leading-[44px]"
               style={{ background: 'linear-gradient(90deg, #E91E8C, #8B5CF6)' }}
             >

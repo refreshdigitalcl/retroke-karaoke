@@ -6,6 +6,10 @@ export default function WelcomePage() {
   var status = statusState[0]
   var setStatus = statusState[1]
 
+  var workspaceIdState = useState(null)
+  var workspaceId = workspaceIdState[0]
+  var setWorkspaceId = workspaceIdState[1]
+
   var isPending = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('pending') === '1'
 
   useEffect(function () {
@@ -21,10 +25,13 @@ export default function WelcomePage() {
       attempts = attempts + 1
       supabase
         .from('subscriptions')
-        .select('status')
+        .select('status, workspace_id')
         .eq('id', subId)
         .single()
         .then(function (result) {
+          if (result.data && result.data.workspace_id) {
+            setWorkspaceId(result.data.workspace_id)
+          }
           if (result.data && result.data.status === 'active') {
             setStatus('active')
           } else if (attempts < 8) {
@@ -63,7 +70,7 @@ export default function WelcomePage() {
             <p className="text-2xl font-extrabold text-white mb-2">¡Bienvenido a Retroke!</p>
             <p className="text-sm text-neutral-300 mb-6">Tu cuenta ya está lista y tu plan activado.</p>
             <a
-              href="/dj"
+              href={workspaceId ? ("/dj?ws=" + workspaceId) : "/dj"}
               className="inline-block h-12 px-8 rounded-xl font-bold text-white leading-[48px]"
               style={{ background: 'linear-gradient(90deg, #E91E8C, #8B5CF6)' }}
             >
@@ -82,7 +89,7 @@ export default function WelcomePage() {
               Puede tomar unos minutos más. Ya puedes entrar a tu panel, tu plan se activará apenas se confirme.
             </p>
             <a
-              href="/dj"
+              href={workspaceId ? ("/dj?ws=" + workspaceId) : "/dj"}
               className="inline-block h-12 px-8 rounded-xl font-bold text-white leading-[48px]"
               style={{ background: 'linear-gradient(90deg, #E91E8C, #8B5CF6)' }}
             >
@@ -99,7 +106,7 @@ export default function WelcomePage() {
               Si tu pago fue aprobado, tu cuenta se activará en breve.
             </p>
             <a
-              href="/dj"
+              href={workspaceId ? ("/dj?ws=" + workspaceId) : "/dj"}
               className="inline-block h-12 px-8 rounded-xl font-bold text-white leading-[48px]"
               style={{ background: 'linear-gradient(90deg, #E91E8C, #8B5CF6)' }}
             >
