@@ -13,6 +13,8 @@ import PricingPage from './pages/PricingPage'
 import SignupPage from './pages/SignupPage'
 import WelcomePage from './pages/WelcomePage'
 import LandingPage from './pages/LandingPage'
+import StorePage from './pages/StorePage'
+import StoreThankYou from './pages/StoreThankYou'
 
 export default function App() {
   return (
@@ -50,6 +52,10 @@ export default function App() {
 
             {/* Portal de ventas / landing page */}
             <Route path="/inicio" element={<LandingPage />} />
+
+            {/* Tienda de productos */}
+            <Route path="/tienda" element={<StorePage />} />
+            <Route path="/tienda/gracias" element={<StoreThankYou />} />
           </Routes>
         </BrowserRouter>
         </KaraokeSessionProvider>

@@ -1084,6 +1084,447 @@ function PlanRow(props) {
   )
 }
 
+var STORE_CATEGORIES = [
+  { id: 'microfonos', label: '🎤 Micrófonos' },
+  { id: 'parlantes', label: '🔊 Parlantes y sets' },
+  { id: 'luces', label: '✨ Luces' }
+]
+
+function StoreProductForm(props) {
+  var editing = props.editing
+  var onSaved = props.onSaved
+  var onCancel = props.onCancel
+
+  var nameState = useState(editing ? editing.name : '')
+  var name = nameState[0]
+  var setName = nameState[1]
+
+  var descState = useState(editing ? (editing.description || '') : '')
+  var description = descState[0]
+  var setDescription = descState[1]
+
+  var priceState = useState(editing ? String(editing.price) : '')
+  var price = priceState[0]
+  var setPrice = priceState[1]
+
+  var categoryState = useState(editing ? editing.category : 'microfonos')
+  var category = categoryState[0]
+  var setCategory = categoryState[1]
+
+  var inStockState = useState(editing ? editing.in_stock : true)
+  var inStock = inStockState[0]
+  var setInStock = inStockState[1]
+
+  var imageUrlState = useState(editing ? (editing.image_url || '') : '')
+  var imageUrl = imageUrlState[0]
+  var setImageUrl = imageUrlState[1]
+
+  var uploadingState = useState(false)
+  var uploading = uploadingState[0]
+  var setUploading = uploadingState[1]
+
+  var savingState = useState(false)
+  var saving = savingState[0]
+  var setSaving = savingState[1]
+
+  var errorState = useState('')
+  var error = errorState[0]
+  var setError = errorState[1]
+
+  function handleImageChange(e) {
+    var file = e.target.files && e.target.files[0]
+    if (!file) return
+    setUploading(true)
+    var ext = file.name.split('.').pop()
+    var path = 'product-' + Date.now() + '.' + ext
+    supabase.storage
+      .from('products')
+      .upload(path, file, { upsert: true })
+      .then(function (result) {
+        setUploading(false)
+        if (result.error) {
+          setError('No se pudo subir la imagen: ' + result.error.message)
+          return
+        }
+        setImageUrl(supabase.storage.from('products').getPublicUrl(path).data.publicUrl)
+      })
+  }
+
+  function handleSubmit() {
+    if (!name.trim() || !price) return
+    setSaving(true)
+    setError('')
+    var payload = {
+      name: name.trim(),
+      description: description.trim() || null,
+      price: parseInt(price, 10) || 0,
+      category: category,
+      in_stock: inStock,
+      image_url: imageUrl || null
+    }
+    var query = editing
+      ? supabase.from('store_products').update(payload).eq('id', editing.id)
+      : supabase.from('store_products').insert(payload)
+
+    query.then(function (result) {
+      setSaving(false)
+      if (result.error) {
+        setError('No se pudo guardar: ' + result.error.message)
+        return
+      }
+      onSaved()
+    })
+  }
+
+  return (
+    <div className="rounded-xl border p-4 mb-4" style={{ borderColor: 'var(--accent-purple)', background: 'var(--bg-card-alt)' }}>
+      <p className="text-sm font-medium mb-3" style={{ color: 'var(--text-primary)' }}>
+        {editing ? 'Editar producto' : 'Nuevo producto'}
+      </p>
+      <div className="flex flex-col gap-2.5">
+        <input
+          type="text"
+          value={name}
+          onChange={function (e) { setName(e.target.value) }}
+          placeholder="Nombre del producto"
+          className="h-10 rounded-lg px-3 border outline-none text-sm"
+          style={{ background: 'var(--bg-card)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+        />
+        <textarea
+          value={description}
+          onChange={function (e) { setDescription(e.target.value) }}
+          placeholder="Descripción corta"
+          rows={2}
+          className="rounded-lg px-3 py-2 border outline-none text-sm resize-none"
+          style={{ background: 'var(--bg-card)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+        />
+        <div className="flex gap-2.5">
+          <input
+            type="number"
+            value={price}
+            onChange={function (e) { setPrice(e.target.value) }}
+            placeholder="Precio CLP"
+            className="h-10 rounded-lg px-3 border outline-none text-sm flex-1"
+            style={{ background: 'var(--bg-card)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+          />
+          <select
+            value={category}
+            onChange={function (e) { setCategory(e.target.value) }}
+            className="h-10 rounded-lg px-3 border outline-none text-sm"
+            style={{ background: 'var(--bg-card)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+          >
+            {STORE_CATEGORIES.map(function (c) {
+              return <option key={c.id} value={c.id}>{c.label}</option>
+            })}
+          </select>
+        </div>
+        <label className="flex items-center gap-2 text-sm cursor-pointer" style={{ color: 'var(--text-secondary)' }}>
+          <input type="checkbox" checked={inStock} onChange={function (e) { setInStock(e.target.checked) }} />
+          Con stock disponible
+        </label>
+        <label
+          className="text-sm cursor-pointer font-medium px-3 py-2 rounded-lg border text-center"
+          style={{ borderColor: 'var(--border)', color: 'var(--accent-purple)' }}
+        >
+          {uploading ? 'Subiendo...' : imageUrl ? 'Cambiar imagen' : '📷 Subir imagen'}
+          <input type="file" accept="image/*" onChange={handleImageChange} disabled={uploading} className="hidden" />
+        </label>
+        {imageUrl && <img src={imageUrl} alt="" className="w-20 h-20 rounded-lg object-cover" />}
+        {error && <p className="text-xs" style={{ color: 'var(--accent-magenta)' }}>{error}</p>}
+        <div className="flex gap-2 mt-1">
+          <button
+            onClick={onCancel}
+            disabled={saving}
+            className="flex-1 h-10 rounded-lg border text-sm font-medium disabled:opacity-50"
+            style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={saving || uploading || !name.trim() || !price}
+            className="flex-1 h-10 rounded-lg text-sm font-medium text-white disabled:opacity-50"
+            style={{ background: 'var(--accent-purple)' }}
+          >
+            {saving ? 'Guardando...' : editing ? 'Guardar cambios' : 'Crear producto'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function StoreManager() {
+  var productsState = useState(null)
+  var products = productsState[0]
+  var setProducts = productsState[1]
+
+  var showFormState = useState(false)
+  var showForm = showFormState[0]
+  var setShowForm = showFormState[1]
+
+  var editingState = useState(null)
+  var editing = editingState[0]
+  var setEditing = editingState[1]
+
+  var whatsappState = useState('')
+  var whatsapp = whatsappState[0]
+  var setWhatsapp = whatsappState[1]
+
+  var shippingFeeState = useState('')
+  var shippingFee = shippingFeeState[0]
+  var setShippingFee = shippingFeeState[1]
+
+  var freeShippingState = useState('')
+  var freeShippingThreshold = freeShippingState[0]
+  var setFreeShippingThreshold = freeShippingState[1]
+
+  var savingWhatsappState = useState(false)
+  var savingWhatsapp = savingWhatsappState[0]
+  var setSavingWhatsapp = savingWhatsappState[1]
+
+  var ordersState = useState(null)
+  var orders = ordersState[0]
+  var setOrders = ordersState[1]
+
+  var ORDER_STATUS_LABELS = { pending: '⏳ Pendiente', paid: '✅ Pagado', shipped: '📦 Enviado', cancelled: '✕ Cancelado' }
+
+  function loadOrders() {
+    supabase
+      .from('store_orders')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .then(function (result) { setOrders(result.data || []) })
+  }
+
+  function handleUpdateOrderStatus(order, status) {
+    supabase.from('store_orders').update({ status: status }).eq('id', order.id).then(loadOrders)
+  }
+
+  function load() {
+    supabase
+      .from('store_products')
+      .select('*')
+      .order('sort_order')
+      .order('created_at', { ascending: false })
+      .then(function (result) {
+        setProducts(result.data || [])
+      })
+    supabase
+      .from('store_settings')
+      .select('whatsapp_number, shipping_flat_fee, free_shipping_threshold')
+      .eq('id', 1)
+      .maybeSingle()
+      .then(function (result) {
+        if (result.data) {
+          setWhatsapp(result.data.whatsapp_number || '')
+          setShippingFee(String(result.data.shipping_flat_fee))
+          setFreeShippingThreshold(String(result.data.free_shipping_threshold))
+        }
+      })
+    loadOrders()
+  }
+
+  useEffect(function () { load() }, [])
+
+  function handleToggleActive(p) {
+    supabase.from('store_products').update({ is_active: !p.is_active }).eq('id', p.id).then(load)
+  }
+
+  function handleDelete(p) {
+    if (!window.confirm('¿Eliminar "' + p.name + '" para siempre? Esto no se puede deshacer.')) return
+    supabase.from('store_products').delete().eq('id', p.id).then(load)
+  }
+
+  function handleSaveWhatsapp() {
+    setSavingWhatsapp(true)
+    supabase
+      .from('store_settings')
+      .update({
+        whatsapp_number: whatsapp.trim(),
+        shipping_flat_fee: parseInt(shippingFee, 10) || 0,
+        free_shipping_threshold: parseInt(freeShippingThreshold, 10) || 0
+      })
+      .eq('id', 1)
+      .then(function () { setSavingWhatsapp(false) })
+  }
+
+
+  return (
+    <div className="flex flex-col gap-4">
+      <Card>
+        <p className="text-xs uppercase mb-3" style={{ color: 'var(--accent-yellow)' }}>WhatsApp y envío</p>
+        <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>
+          Los clientes usan este número para consultar por un producto desde /tienda.
+        </p>
+        <div className="flex flex-col gap-2.5">
+          <input
+            type="text"
+            value={whatsapp}
+            onChange={function (e) { setWhatsapp(e.target.value) }}
+            placeholder="+56912345678"
+            className="h-10 rounded-lg px-3 border outline-none text-sm"
+            style={{ background: 'var(--bg-card-alt)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+          />
+          <div className="flex gap-2.5">
+            <div className="flex-1">
+              <p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>Costo de envío (CLP)</p>
+              <input
+                type="number"
+                value={shippingFee}
+                onChange={function (e) { setShippingFee(e.target.value) }}
+                className="h-10 w-full rounded-lg px-3 border outline-none text-sm"
+                style={{ background: 'var(--bg-card-alt)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+              />
+            </div>
+            <div className="flex-1">
+              <p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>Envío gratis desde (CLP)</p>
+              <input
+                type="number"
+                value={freeShippingThreshold}
+                onChange={function (e) { setFreeShippingThreshold(e.target.value) }}
+                className="h-10 w-full rounded-lg px-3 border outline-none text-sm"
+                style={{ background: 'var(--bg-card-alt)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+              />
+            </div>
+          </div>
+          <button
+            onClick={handleSaveWhatsapp}
+            disabled={savingWhatsapp}
+            className="h-10 rounded-lg text-sm font-medium text-white disabled:opacity-50"
+            style={{ background: 'var(--accent-purple)' }}
+          >
+            {savingWhatsapp ? 'Guardando...' : 'Guardar'}
+          </button>
+        </div>
+      </Card>
+
+      <Card>
+        <p className="text-xs uppercase mb-3" style={{ color: 'var(--accent-yellow)' }}>Pedidos ({orders ? orders.length : 0})</p>
+        <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>
+          Cuando un pedido queda "Pagado", cómpralo en Mercado Libre y despáchalo a la
+          dirección del cliente. Marca "Enviado" cuando lo hayas hecho.
+        </p>
+        {orders === null ? (
+          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Cargando...</p>
+        ) : orders.length === 0 ? (
+          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Todavía no hay pedidos.</p>
+        ) : (
+          <div className="flex flex-col gap-2.5">
+            {orders.map(function (o) {
+              return (
+                <div key={o.id} className="rounded-lg p-3" style={{ background: 'var(--bg-card-alt)' }}>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{o.customer_name}</p>
+                    <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: 'var(--bg-card)', color: 'var(--text-secondary)' }}>
+                      {ORDER_STATUS_LABELS[o.status] || o.status}
+                    </span>
+                  </div>
+                  <p className="text-xs mb-1" style={{ color: 'var(--text-secondary)' }}>
+                    {o.items.map(function (it) { return it.quantity + 'x ' + it.name }).join(', ')}
+                  </p>
+                  <p className="text-xs mb-1" style={{ color: 'var(--text-secondary)' }}>
+                    📍 {o.shipping_address}, {o.shipping_city}, {o.shipping_region}
+                  </p>
+                  <p className="text-xs mb-2" style={{ color: 'var(--text-secondary)' }}>
+                    📞 {o.customer_phone} {o.customer_email ? '· ' + o.customer_email : ''}
+                  </p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium" style={{ color: 'var(--accent-yellow)' }}>
+                      ${o.total.toLocaleString('es-CL')}
+                    </p>
+                    {o.status === 'paid' && (
+                      <button
+                        onClick={function () { handleUpdateOrderStatus(o, 'shipped') }}
+                        className="text-xs px-2.5 py-1 rounded-lg font-medium text-white"
+                        style={{ background: 'var(--accent-purple)' }}
+                      >
+                        Marcar enviado
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </Card>
+
+      <Card>
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-xs uppercase" style={{ color: 'var(--accent-yellow)' }}>Productos ({products ? products.length : 0})</p>
+          {!showForm && (
+            <button
+              onClick={function () { setEditing(null); setShowForm(true) }}
+              className="text-xs px-3 py-1.5 rounded-lg font-medium text-white"
+              style={{ background: 'var(--accent-purple)' }}
+            >
+              ➕ Agregar producto
+            </button>
+          )}
+        </div>
+
+        {showForm && (
+          <StoreProductForm
+            editing={editing}
+            onCancel={function () { setShowForm(false); setEditing(null) }}
+            onSaved={function () { setShowForm(false); setEditing(null); load() }}
+          />
+        )}
+
+        {products === null ? (
+          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Cargando...</p>
+        ) : products.length === 0 ? (
+          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Todavía no tienes productos.</p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {products.map(function (p) {
+              return (
+                <div key={p.id} className="flex items-center gap-3 rounded-lg p-2.5" style={{ background: 'var(--bg-card-alt)' }}>
+                  <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0 flex items-center justify-center" style={{ background: 'var(--bg-card)' }}>
+                    {p.image_url ? <img src={p.image_url} alt="" className="w-full h-full object-cover" /> : '📦'}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{p.name}</p>
+                    <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                      ${p.price.toLocaleString('es-CL')} · {STORE_CATEGORIES.find(function (c) { return c.id === p.category })?.label || p.category}
+                      {!p.in_stock && ' · Sin stock'}
+                    </p>
+                  </div>
+                  <button
+                    onClick={function () { handleToggleActive(p) }}
+                    className="text-xs px-2.5 py-1 rounded-full font-medium shrink-0"
+                    style={{
+                      background: p.is_active ? 'var(--accent-green)' : 'var(--border)',
+                      color: p.is_active ? '#0a0a0a' : 'var(--text-muted)'
+                    }}
+                  >
+                    {p.is_active ? 'Visible' : 'Oculto'}
+                  </button>
+                  <button
+                    onClick={function () { setEditing(p); setShowForm(true) }}
+                    className="text-xs px-2.5 py-1 rounded-lg border shrink-0"
+                    style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}
+                  >
+                    Editar
+                  </button>
+                  <button
+                    onClick={function () { handleDelete(p) }}
+                    className="text-xs px-2.5 py-1 rounded-lg border shrink-0"
+                    style={{ borderColor: 'var(--accent-magenta)', color: 'var(--accent-magenta)' }}
+                  >
+                    🗑️
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </Card>
+    </div>
+  )
+}
+
 function PlansManager() {
   var plansState = useState(null)
   var plans = plansState[0]
@@ -1279,6 +1720,7 @@ export default function AdminPanel() {
     { id: 'resumen', label: '📊 Resumen' },
     { id: 'clientes', label: '👥 Clientes (' + workspaces.length + ')' },
     { id: 'planes', label: '💳 Planes' },
+    { id: 'tienda', label: '🛍️ Tienda' },
     { id: 'nuevo', label: '➕ Nuevo' }
   ]
 
@@ -1325,6 +1767,7 @@ export default function AdminPanel() {
           {activeTab === 'resumen' && <Dashboard stats={stats} />}
           {activeTab === 'clientes' && <WorkspacesList workspaces={workspaces} onChanged={loadEverything} />}
           {activeTab === 'planes' && <PlansManager />}
+          {activeTab === 'tienda' && <StoreManager />}
           {activeTab === 'nuevo' && <NewWorkspaceForm onCreated={function () { loadEverything(); setActiveTab('clientes') }} />}
         </div>
       )}
