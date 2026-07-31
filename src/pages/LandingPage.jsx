@@ -111,18 +111,21 @@ function useMouseGlow(ref) {
 var MODES = [
   { emoji: '🍺', name: 'RETROKE BAR', accent: '#E91E8C', img: '/landing/modo-bar.jpg',
     desc: 'Deja el papel y el caos. Cada mesa se anota desde su celular y tu local se convierte en el tema de la semana.',
-    features: ['Panel DJ profesional', 'Cola en vivo', 'Reacciones y memes', 'Multi-Bar'] },
+    diff: 'Lo único pensado para varios locales a la vez.',
+    features: ['Panel DJ profesional en vivo', 'Cola de cantantes sin límite', 'Reacciones y memes del público', 'Multi-Bar: todos tus locales, un solo panel', 'Estadísticas y ranking por local', 'Branding con tu marca'] },
   { emoji: '🎧', name: 'RETROKE DJ', accent: '#8B5CF6', img: '/landing/modo-dj.jpg',
     desc: 'Lleva tu experiencia contigo. Un panel que controla todo el show desde tu celular, en cualquier evento.',
-    features: ['Panel portátil', 'Control total del show', 'Calificaciones en vivo', 'Imagen profesional'] },
+    diff: 'Pensado para moverte de evento en evento.',
+    features: ['Panel 100% portátil', 'Control total del show en vivo', 'Calificaciones y reacciones en tiempo real', 'Configuración que viaja contigo', 'Imagen profesional frente al cliente', 'Funciona en cualquier local, sin instalar nada'] },
   { emoji: '🏠', name: 'RETROKE HOME', accent: '#F4D03F', img: '/landing/modo-home.jpg',
     desc: 'Tu TV se convierte en escenario. Tus invitados usan su propio celular como micrófono, sin instalar nada.',
-    features: ['Sin apps que instalar', 'El celular es el micrófono', 'Invitados ilimitados', 'Próx.: Vocal Score'] }
+    diff: 'El único modo pensado para la casa, no el negocio.',
+    features: ['Sin apps que instalar', 'El celular es el micrófono', 'Invitados ilimitados', 'Reacciones en vivo entre amigos', 'Ideal para cumpleaños y juntas', 'Próximamente: Vocal Score'] }
 ]
 
 var REQUISITOS = [
   {
-    tier: '🟢 Esencial', accent: '#7ED957', subtitle: 'Todo lo que necesitas para comenzar.',
+    tier: 'Esencial', icon: '🟢', accent: '#7ED957', subtitle: 'Todo lo que necesitas para comenzar.',
     items: [
       'Navegador web actualizado (Chrome, Edge, Brave, Safari o Firefox).',
       'Conexión a Internet estable (10 Mbps o superior).',
@@ -132,7 +135,7 @@ var REQUISITOS = [
     ]
   },
   {
-    tier: '🔵 Recomendado', accent: '#8B5CF6', subtitle: 'Para una experiencia más fluida y estable.',
+    tier: 'Recomendado', icon: '🔵', accent: '#8B5CF6', subtitle: 'Para una experiencia más fluida y estable.', highlight: true,
     items: [
       'Google Chrome, Brave o Safari actualizados.',
       'Acceder siempre directo desde el navegador.',
@@ -143,7 +146,7 @@ var REQUISITOS = [
     ]
   },
   {
-    tier: '🟣 Experiencia Premium', accent: '#E91E8C', subtitle: 'Para disfrutar Retroke al máximo.',
+    tier: 'Experiencia Premium', icon: '🟣', accent: '#E91E8C', subtitle: 'Para disfrutar Retroke al máximo.',
     items: [
       'Computador o notebook de buen rendimiento.',
       'Conexión a Internet estable de alta velocidad.',
@@ -162,6 +165,17 @@ var FAQS = [
   { q: '¿Por qué no debo abrir el link desde Gmail u otra app?', a: 'Esas apps usan su propio navegador interno, más limitado, y pueden bloquear que el video se reproduzca solo. Siempre copia el link y ábrelo directo en Chrome, Brave o Safari.' },
   { q: '¿Necesito instalar algo?', a: 'No. Todo funciona desde el navegador, tanto en la TV como en el celular de cada persona.' }
 ]
+
+function VintageEqualizer() {
+  var bars = [0.4, 0.7, 0.5, 0.9, 0.6, 1, 0.55, 0.85, 0.45, 0.75, 0.5, 0.65]
+  return (
+    <div className="vintage-eq" aria-hidden="true">
+      {bars.map(function (h, i) {
+        return <span key={i} style={{ animationDelay: (i * 0.09) + 's', '--h': h }} />
+      })}
+    </div>
+  )
+}
 
 function Screenshot(props) {
   return (
@@ -265,10 +279,30 @@ export default function LandingPage() {
             <a href="/precios" className="landing-btn landing-btn-primary large">Comenzar gratis</a>
             <a href="#modos" className="landing-btn landing-btn-ghost large">Ver demo</a>
           </div>
-          <div className="hero-stats">
-            <div><strong><CountUp target={3} /></strong><span>Modos: Bar, DJ, Home</span></div>
-            <div><strong><CountUp target={100} suffix="%" /></strong><span>Desde el navegador</span></div>
-            <div><strong><CountUp target={0} suffix="$" /></strong><span>Para empezar</span></div>
+          <div className="hero-feature-strip">
+            <div className="hero-feature-item">
+              <span className="hero-feature-icon">🎛️</span>
+              <div>
+                <strong><CountUp target={3} /> modos</strong>
+                <span>Bar, DJ y Home</span>
+              </div>
+            </div>
+            <div className="hero-feature-divider" />
+            <div className="hero-feature-item">
+              <span className="hero-feature-icon">🌐</span>
+              <div>
+                <strong><CountUp target={100} suffix="%" /></strong>
+                <span>Desde el navegador</span>
+              </div>
+            </div>
+            <div className="hero-feature-divider" />
+            <div className="hero-feature-item">
+              <span className="hero-feature-icon">🚀</span>
+              <div>
+                <strong>Gratis</strong>
+                <span>Para empezar hoy</span>
+              </div>
+            </div>
           </div>
         </div>
         <div className="hero-scroll-hint" aria-hidden="true"><span /></div>
@@ -292,6 +326,7 @@ export default function LandingPage() {
                       <span className="mode-emoji">{m.emoji}</span>
                       <p className="mode-name">{m.name}</p>
                       <p className="mode-desc">{m.desc}</p>
+                      <p className="mode-diff">⚡ {m.diff}</p>
                       <ul className="mode-features">
                         {m.features.map(function (f) { return <li key={f}>{f}</li> })}
                       </ul>
@@ -313,19 +348,27 @@ export default function LandingPage() {
             <div>
               <h2 className="section-title big gradient-text">CANTA UNO.<br />LO VIVEN TODOS.</h2>
               <p className="section-lead left">
-                Nadie es simplemente espectador. Mientras alguien canta, la pantalla muestra
-                la letra y un dato real del artista — y las reacciones de todo el público
-                aparecen en vivo, desde el celular de cada persona, sin pedir el micrófono.
+                Nadie es simplemente espectador. Mientras alguien canta, el público entero
+                se convierte en jurado: reacciona en vivo, pone la nota final, y cada
+                presentación queda con sus propias estadísticas — todo desde el celular
+                de cada persona, en tiempo real, sin pedir el micrófono.
               </p>
+              <div className="vivelo-stat-row">
+                <div className="vivelo-stat"><strong>⭐ 1-10</strong><span>Nota del público en vivo</span></div>
+                <div className="vivelo-stat"><strong>🔥 En vivo</strong><span>Reacciones que se cuentan solas</span></div>
+                <div className="vivelo-stat"><strong>📊 Al toque</strong><span>Estadísticas de cada show</span></div>
+              </div>
               <div className="flow-chain">
                 <span className="flow-step">🎤 Alguien canta</span>
                 <span className="flow-arrow">→</span>
                 <span className="flow-step">❤️ El público reacciona</span>
                 <span className="flow-arrow">→</span>
-                <span className="flow-step">🎉 Todos participan</span>
+                <span className="flow-step">⭐ Se pone nota</span>
+                <span className="flow-arrow">→</span>
+                <span className="flow-step">🎉 Queda en las estadísticas</span>
               </div>
             </div>
-            <Screenshot src="/landing/publico-reacciona.jpg" alt="El público reacciona en vivo desde su celular mientras alguien canta" />
+            <Screenshot src="/landing/vivelo-calificacion.jpg" alt="El público califica y reacciona en vivo desde su celular" />
           </div>
         </Reveal>
       </section>
@@ -339,14 +382,21 @@ export default function LandingPage() {
             <p className="section-lead center-margin">
               Retroke no requiere instalar ninguna aplicación.
             </p>
+            <div className="req-ladder" aria-hidden="true">
+              <span className="req-ladder-line" />
+            </div>
             <div className="req-grid">
-              {REQUISITOS.map(function (r) {
+              {REQUISITOS.map(function (r, ri) {
                 return (
-                  <div className="req-card" key={r.tier} style={{ '--accent': r.accent }}>
+                  <div className={'req-card' + (r.highlight ? ' req-card-highlight' : '')} key={r.tier} style={{ '--accent': r.accent }}>
+                    {r.highlight && <span className="req-badge">Más elegido</span>}
+                    <div className="req-icon-badge">{r.icon}</div>
                     <p className="req-tier">{r.tier}</p>
                     <p className="req-subtitle">{r.subtitle}</p>
                     <ul className="req-list">
-                      {r.items.map(function (it, i) { return <li key={i}>{it}</li> })}
+                      {r.items.map(function (it, i) {
+                        return <li key={i} style={{ transitionDelay: (ri * 80 + i * 60) + 'ms' }}>{it}</li>
+                      })}
                     </ul>
                   </div>
                 )
@@ -373,12 +423,14 @@ export default function LandingPage() {
       <section className="landing-final-cta">
         <div className="landing-hero-glow glow-magenta" style={{ top: '-10%', left: '10%' }} />
         <div className="landing-hero-glow glow-purple" style={{ bottom: '-10%', right: '10%' }} />
+        <VintageEqualizer />
         <div className="landing-section-inner final-cta-inner">
-          <h2 className="final-cta-title">CANTA UNO.<br />LO VIVEN TODOS.</h2>
+          <h2 className="final-cta-title">MÁS QUE UN KARAOKE,<br />UN ESCENARIO PARA TODOS.</h2>
           <div className="hero-ctas center">
             <a href="/precios" className="landing-btn landing-btn-primary large">Comenzar gratis</a>
           </div>
         </div>
+        <VintageEqualizer />
       </section>
 
       {/* FOOTER */}
@@ -401,7 +453,7 @@ export default function LandingPage() {
         .landing-nav.scrolled { background: rgba(6, 3, 9, 0.85); backdrop-filter: blur(14px); border-bottom-color: rgba(139, 92, 246, 0.25); padding: 9px 6vw; }
         .landing-nav-inner { max-width: 1260px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
         .landing-logo-link { display: flex; align-items: center; }
-        .landing-logo-img { height: 42px; width: auto; display: block; }
+        .landing-logo-img { height: 54px; width: auto; display: block; }
         .landing-logo-img.small { height: 40px; margin: 0 auto 10px; }
         .landing-nav-links { display: flex; gap: 26px; font-size: 13.5px; font-weight: 600; color: #b7aecb; }
         .landing-nav-links a { color: inherit; text-decoration: none; transition: color 0.15s; }
@@ -439,9 +491,19 @@ export default function LandingPage() {
         .hero-tagline { font-family: 'Audiowide', cursive; font-size: clamp(1.1rem, 2.4vw, 1.7rem); color: #fff; margin-bottom: 22px; letter-spacing: 0.5px; }
         .hero-sub { font-size: 17px; line-height: 1.7; color: #c3bcd4; max-width: 520px; margin-bottom: 34px; }
         .hero-ctas { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
-        .hero-stats { display: flex; gap: 34px; margin: 40px 0 10px; flex-wrap: wrap; justify-content: center; }
-        .hero-stats strong { font-family: 'Audiowide', cursive; font-size: 24px; display: block; background: linear-gradient(90deg, #F4D03F, #E91E8C); -webkit-background-clip: text; background-clip: text; color: transparent; }
-        .hero-stats span { font-size: 12px; color: #9b92ad; font-weight: 600; }
+        .hero-feature-strip {
+          display: flex; align-items: center; gap: 0; margin: 42px auto 10px;
+          padding: 18px 34px; border-radius: 999px; flex-wrap: wrap; justify-content: center;
+          background: rgba(255,255,255,0.045); border: 1.5px solid rgba(244,208,63,0.35);
+          box-shadow: 0 0 40px -10px rgba(233,30,140,0.35), inset 0 1px 0 rgba(255,255,255,0.06);
+          backdrop-filter: blur(10px);
+        }
+        .hero-feature-item { display: flex; align-items: center; gap: 12px; padding: 0 22px; }
+        .hero-feature-icon { font-size: 24px; filter: drop-shadow(0 0 8px rgba(244,208,63,0.6)); }
+        .hero-feature-item strong { font-family: 'Audiowide', cursive; font-size: 18px; display: block; background: linear-gradient(90deg, #F4D03F, #E91E8C); -webkit-background-clip: text; background-clip: text; color: transparent; letter-spacing: 0.3px; }
+        .hero-feature-item span { font-size: 11.5px; color: #b7aecb; font-weight: 600; }
+        .hero-feature-divider { width: 1.5px; height: 32px; background: linear-gradient(180deg, transparent, rgba(139,92,246,0.5), transparent); }
+        @media (max-width: 560px) { .hero-feature-strip { padding: 16px 20px; gap: 4px; } .hero-feature-divider { display: none; } .hero-feature-item { padding: 6px 10px; } }
         .hero-scroll-hint { position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%); width: 22px; height: 36px; border: 2px solid rgba(255,255,255,0.3); border-radius: 12px; z-index: 2; }
         .hero-scroll-hint span { display: block; width: 3px; height: 8px; background: #F4D03F; border-radius: 2px; margin: 6px auto; animation: scrollhint 1.6s ease-in-out infinite; }
         @keyframes scrollhint { 0% { opacity: 0; transform: translateY(0); } 30% { opacity: 1; } 100% { opacity: 0; transform: translateY(10px); } }
@@ -468,7 +530,8 @@ export default function LandingPage() {
         .mode-card-body { padding: 22px 24px 26px; }
         .mode-emoji { font-size: 28px; display: block; margin-bottom: 10px; }
         .mode-name { font-family: 'Audiowide', cursive; font-size: 14px; color: var(--accent); margin-bottom: 10px; letter-spacing: 0.5px; }
-        .mode-desc { font-size: 13px; color: #d7d0e6; line-height: 1.55; margin-bottom: 16px; }
+        .mode-desc { font-size: 13px; color: #d7d0e6; line-height: 1.55; margin-bottom: 12px; }
+        .mode-diff { font-size: 11.5px; font-weight: 700; color: var(--accent); margin-bottom: 16px; padding: 8px 12px; background: color-mix(in srgb, var(--accent) 12%, transparent); border-radius: 10px; border-left: 2px solid var(--accent); }
         .mode-features { list-style: none; padding: 0; margin: 0 0 18px; display: flex; flex-direction: column; gap: 6px; }
         .mode-features li { font-size: 12.5px; color: #c3bcd4; padding-left: 16px; position: relative; }
         .mode-features li::before { content: '✓'; position: absolute; left: 0; color: var(--accent); font-weight: 800; }
@@ -479,18 +542,31 @@ export default function LandingPage() {
         .publico-section { padding-top: 100px; }
         .vivelo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 50px; align-items: center; }
         .flow-chain { display: flex; align-items: center; gap: 10px; margin-top: 28px; flex-wrap: wrap; }
+        .vivelo-stat-row { display: flex; gap: 14px; flex-wrap: wrap; margin: 26px 0 6px; }
+        .vivelo-stat { padding: 12px 18px; border-radius: 14px; background: rgba(255,255,255,0.04); border: 1.5px solid rgba(244,208,63,0.3); }
+        .vivelo-stat strong { display: block; font-family: 'Audiowide', cursive; font-size: 14px; color: #F4D03F; margin-bottom: 3px; letter-spacing: 0.3px; }
+        .vivelo-stat span { font-size: 11px; color: #a79fbb; font-weight: 600; }
         .flow-step { font-weight: 700; font-size: 13.5px; padding: 9px 18px; border-radius: 999px; background: rgba(255,255,255,0.04); border: 1.5px solid rgba(139,92,246,0.35); }
         .flow-arrow { color: #8B5CF6; font-size: 15px; }
 
         /* Requisitos */
         .requisitos-section { background: linear-gradient(180deg, transparent, rgba(139,92,246,0.05), transparent); }
-        .req-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 36px; align-items: start; }
-        .req-card { border-radius: 20px; padding: 26px 24px; background: rgba(255,255,255,0.03); border: 1.5px solid color-mix(in srgb, var(--accent) 40%, transparent); }
-        .req-tier { font-family: 'Audiowide', cursive; font-size: 14px; color: var(--accent); margin-bottom: 6px; letter-spacing: 0.5px; }
-        .req-subtitle { font-size: 12.5px; color: #9b92ad; margin-bottom: 16px; font-weight: 600; }
-        .req-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
-        .req-list li { font-size: 12.5px; color: #c3bcd4; line-height: 1.55; padding-left: 16px; position: relative; }
+        .req-ladder { max-width: 900px; margin: 8px auto 0; height: 2px; position: relative; }
+        .req-ladder-line { position: absolute; top: 0; left: 8%; right: 8%; height: 2px; background: linear-gradient(90deg, #7ED957, #8B5CF6, #E91E8C); opacity: 0.5; border-radius: 2px; }
+        .req-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; margin-top: 40px; align-items: start; }
+        .req-card { position: relative; border-radius: 22px; padding: 30px 26px; background: rgba(255,255,255,0.03); border: 1.5px solid color-mix(in srgb, var(--accent) 40%, transparent); transition: transform 0.25s ease, box-shadow 0.25s ease; }
+        .req-card:hover { transform: translateY(-6px); box-shadow: 0 20px 50px -20px color-mix(in srgb, var(--accent) 60%, transparent); }
+        .req-card-highlight { background: linear-gradient(160deg, color-mix(in srgb, var(--accent) 14%, transparent), rgba(255,255,255,0.03)); border-width: 2px; box-shadow: 0 0 40px -14px color-mix(in srgb, var(--accent) 70%, transparent); }
+        .req-badge { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: var(--accent); color: #0a0612; font-size: 10.5px; font-weight: 800; padding: 5px 14px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
+        .req-icon-badge { width: 46px; height: 46px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 22px; background: color-mix(in srgb, var(--accent) 18%, transparent); border: 1.5px solid color-mix(in srgb, var(--accent) 45%, transparent); margin-bottom: 16px; }
+        .req-tier { font-family: 'Audiowide', cursive; font-size: 15px; color: var(--accent); margin-bottom: 6px; letter-spacing: 0.5px; }
+        .req-subtitle { font-size: 12.5px; color: #9b92ad; margin-bottom: 18px; font-weight: 600; }
+        .req-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 11px; }
+        .req-list li { font-size: 12.5px; color: #c3bcd4; line-height: 1.55; padding-left: 16px; position: relative; opacity: 0; transform: translateX(-8px); transition: opacity 0.5s ease, transform 0.5s ease; }
+        .reveal-visible .req-list li { opacity: 1; transform: translateX(0); }
+        .reduced-motion .req-list li { opacity: 1; transform: none; }
         .req-list li::before { content: '•'; position: absolute; left: 0; color: var(--accent); font-weight: 800; }
+        @media (max-width: 900px) { .req-grid { grid-template-columns: 1fr; } .req-ladder { display: none; } }
 
         /* FAQ */
         .faq-inner { max-width: 760px; }
@@ -501,9 +577,13 @@ export default function LandingPage() {
         .faq-answer { padding: 0 22px 20px; font-size: 13.5px; color: #a79fbb; line-height: 1.6; }
 
         /* Final CTA */
-        .landing-final-cta { position: relative; padding: 100px 6vw; text-align: center; overflow: hidden; }
+        .landing-final-cta { position: relative; padding: 90px 6vw; text-align: center; overflow: hidden; }
         .final-cta-inner { position: relative; z-index: 2; }
-        .final-cta-title { font-family: 'Audiowide', cursive; font-size: clamp(1.6rem, 3.8vw, 2.8rem); line-height: 1.3; margin-bottom: 30px; background: linear-gradient(90deg, #F4D03F, #E91E8C, #8B5CF6); -webkit-background-clip: text; background-clip: text; color: transparent; letter-spacing: 0.5px; }
+        .final-cta-title { font-family: 'Audiowide', cursive; font-size: clamp(1.5rem, 3.6vw, 2.6rem); line-height: 1.35; margin-bottom: 30px; background: linear-gradient(90deg, #F4D03F, #E91E8C, #8B5CF6); -webkit-background-clip: text; background-clip: text; color: transparent; letter-spacing: 0.5px; }
+        .vintage-eq { position: relative; z-index: 1; display: flex; align-items: flex-end; justify-content: center; gap: 6px; height: 44px; margin: 0 auto 30px; max-width: 480px; }
+        .vintage-eq span { width: 6px; border-radius: 3px 3px 0 0; background: linear-gradient(180deg, #F4D03F, #E91E8C 60%, #8B5CF6); box-shadow: 0 0 10px -1px rgba(233,30,140,0.7); height: calc(var(--h) * 44px); animation: eqBounce 1.1s ease-in-out infinite; transform-origin: bottom; }
+        @keyframes eqBounce { 0%, 100% { transform: scaleY(0.5); opacity: 0.7; } 50% { transform: scaleY(1); opacity: 1; } }
+        .landing-final-cta .vintage-eq:last-child { margin: 30px auto 0; }
 
         /* Footer */
         .landing-footer { padding: 44px 6vw 30px; border-top: 1px solid rgba(139,92,246,0.2); text-align: center; }
