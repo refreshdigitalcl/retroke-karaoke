@@ -646,6 +646,36 @@ function DjPanelInner() {
       .replace(/(^-|-$)/g, '')
   }
 
+  var changingLogoState = useState(false)
+  var changingLogo = changingLogoState[0]
+  var setChangingLogo = changingLogoState[1]
+
+  function handleChangeCurrentBarLogo(e) {
+    var file = e.target.files && e.target.files[0]
+    if (!file) return
+    setChangingLogo(true)
+    var ext = file.name.split('.').pop()
+    var path = 'logo-' + Date.now() + '.' + ext
+    supabase.storage
+      .from('logos')
+      .upload(path, file, { upsert: true })
+      .then(function (result) {
+        if (result.error) throw result.error
+        var publicUrl = supabase.storage.from('logos').getPublicUrl(path).data.publicUrl
+        return session.updateLogo(publicUrl)
+      })
+      .then(function (result) {
+        setChangingLogo(false)
+        if (result && result.error) {
+          window.alert('No se pudo guardar el logo: ' + result.error)
+        }
+      })
+      .catch(function (err) {
+        setChangingLogo(false)
+        window.alert('No se pudo subir el logo: ' + (err && err.message ? err.message : 'error desconocido'))
+      })
+  }
+
   function handleAddBar() {
     if (!newBarName.trim() || !currentWorkspaceId) return
     setAddingBar(true)
@@ -1168,6 +1198,21 @@ function DjPanelInner() {
             >
               ➕ Agregar local
             </button>
+          )}
+          {hasFeature('custom_branding') && (
+            <label
+              className="text-sm px-3 h-9 rounded-lg border whitespace-nowrap font-medium flex items-center cursor-pointer"
+              style={{ borderColor: 'var(--accent-yellow)', color: 'var(--accent-yellow)' }}
+            >
+              {changingLogo ? 'Subiendo...' : '🖼️ Logo de este local'}
+              <input
+                type="file"
+                accept="image/*"
+                disabled={changingLogo}
+                onChange={handleChangeCurrentBarLogo}
+                className="hidden"
+              />
+            </label>
           )}
           <ThemeToggle />
         </div>
