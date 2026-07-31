@@ -603,6 +603,78 @@ function DjPanelInner() {
   var barName = session.barName
   var workspacePlan = session.workspacePlan
   var workspaceType = session.workspaceType
+  var currentBarId = session.barId
+  var currentWorkspaceId = session.workspaceId
+
+  var addBarOpenState = useState(false)
+  var addBarOpen = addBarOpenState[0]
+  var setAddBarOpen = addBarOpenState[1]
+
+  var newBarNameState = useState('')
+  var newBarName = newBarNameState[0]
+  var setNewBarName = newBarNameState[1]
+
+  var addingBarState = useState(false)
+  var addingBar = addingBarState[0]
+  var setAddingBar = addingBarState[1]
+
+  var addBarErrorState = useState('')
+  var addBarError = addBarErrorState[0]
+  var setAddBarError = addBarErrorState[1]
+
+  function slugifyBarName(text) {
+    return text
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '')
+  }
+
+  function handleAddBar() {
+    if (!newBarName.trim() || !currentWorkspaceId) return
+    setAddingBar(true)
+    setAddBarError('')
+
+    var slug = slugifyBarName(newBarName) + '-' + Math.random().toString(36).slice(2, 6)
+    var userId = auth.session.user.id
+
+    supabase
+      .from('bars')
+      .insert({ name: newBarName.trim(), slug: slug, workspace_id: currentWorkspaceId, is_active: true })
+      .select()
+      .single()
+      .then(function (result) {
+        if (result.error) throw result.error
+        var newBar = result.data
+
+        var chain = supabase.from('bar_members').insert({ bar_id: newBar.id, user_id: userId, role: 'OWNER' })
+
+        if (currentBarId) {
+          chain = chain.then(function () {
+            return supabase
+              .from('bar_members')
+              .select('id')
+              .eq('bar_id', currentBarId)
+              .eq('user_id', userId)
+              .maybeSingle()
+              .then(function (existing) {
+                if (existing.data) return null
+                return supabase.from('bar_members').insert({ bar_id: currentBarId, user_id: userId, role: 'OWNER' })
+              })
+          })
+        }
+
+        return chain
+      })
+      .then(function () {
+        window.location.href = '/dj'
+      })
+      .catch(function (err) {
+        setAddingBar(false)
+        setAddBarError('No se pudo crear el local: ' + (err && err.message ? err.message : 'error desconocido'))
+      })
+  }
   var workspaceId = session.workspaceId
 
   var subExpiryState = useState(null)
@@ -1059,9 +1131,60 @@ function DjPanelInner() {
           >
             👤 Mi perfil
           </button>
+          {workspaceType === 'BAR' && workspacePlan === 'PRO' && (
+            <button
+              onClick={function () { setAddBarOpen(true) }}
+              className="text-sm px-3 h-9 rounded-lg border whitespace-nowrap font-medium"
+              style={{ borderColor: 'var(--accent-purple)', color: 'var(--accent-purple)' }}
+            >
+              ➕ Agregar local
+            </button>
+          )}
           <ThemeToggle />
         </div>
       </header>
+
+      {addBarOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-6" style={{ background: 'rgba(0,0,0,0.6)' }}>
+          <div className="w-full max-w-sm rounded-2xl border p-6" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
+            <p className="text-lg font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
+              Agregar otro local
+            </p>
+            <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
+              Incluido en tu plan Bar Pro — administra varios locales desde una sola cuenta.
+            </p>
+            <input
+              type="text"
+              value={newBarName}
+              onChange={function (e) { setNewBarName(e.target.value) }}
+              placeholder="Nombre del nuevo local"
+              className="w-full h-11 rounded-lg px-3 border outline-none mb-3"
+              style={{ background: 'var(--bg-card-alt)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+            />
+            {addBarError && (
+              <p className="text-xs mb-3" style={{ color: 'var(--accent-magenta)' }}>{addBarError}</p>
+            )}
+            <div className="flex gap-2.5">
+              <button
+                onClick={function () { setAddBarOpen(false); setAddBarError('') }}
+                disabled={addingBar}
+                className="flex-1 h-11 rounded-lg border font-medium disabled:opacity-50"
+                style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleAddBar}
+                disabled={addingBar || !newBarName.trim()}
+                className="flex-1 h-11 rounded-lg font-medium text-white disabled:opacity-50"
+                style={{ background: 'var(--accent-purple)' }}
+              >
+                {addingBar ? 'Creando...' : 'Crear local'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {workspacePlan === 'FREE' && subExpiry && subExpiry.status === 'active' && !subExpiry.trial_used && (
         <div
