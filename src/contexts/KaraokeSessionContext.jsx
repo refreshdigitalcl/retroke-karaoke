@@ -243,13 +243,12 @@ export function KaraokeSessionProvider({ children }) {
             // Workspace + features en segundo plano, no bloquea la pantalla
             supabase
               .from('workspaces')
-              .select('plan, type, logo_url')
+              .select('plan, type')
               .eq('id', bar.workspace_id)
               .maybeSingle()
               .then(({ data: ws }) => {
                 if (cancelled || !ws) return
                 setWorkspaceType(ws.type)
-                if (!bar.logo_url && ws.logo_url) setLogoUrl(ws.logo_url)
                 const plan = (ws.plan || 'FREE').toUpperCase()
                 setWorkspacePlan(plan)
                 return supabase

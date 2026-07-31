@@ -771,17 +771,21 @@ function WorkspaceRow(props) {
       .then(function (result) {
         if (result.error) {
           setUploadingLogo(false)
+          setDeleteError('No se pudo subir la imagen: ' + result.error.message)
           return
         }
         var publicUrl = supabase.storage.from('logos').getPublicUrl(path).data.publicUrl
-        var updates = [
-          supabase.from('workspaces').update({ logo_url: publicUrl }).eq('id', ws.id),
-          supabase.from('bars').update({ logo_url: publicUrl }).eq('workspace_id', ws.id)
-        ]
-        return Promise.all(updates)
+        // Este logo es el de la MARCA del workspace, no el de un local puntual.
+        // Cada local (bar) administra su propio logo por separado, para que
+        // varios locales bajo el mismo workspace no queden todos iguales.
+        return supabase.from('workspaces').update({ logo_url: publicUrl }).eq('id', ws.id)
       })
-      .then(function () {
+      .then(function (result) {
         setUploadingLogo(false)
+        if (result && result.error) {
+          setDeleteError('No se pudo guardar el logo: ' + result.error.message)
+          return
+        }
         onChanged()
       })
   }
