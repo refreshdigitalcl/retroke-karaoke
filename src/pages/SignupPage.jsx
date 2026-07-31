@@ -106,14 +106,25 @@ export default function SignupPage() {
 
             if (plan.workspace_type === 'BAR') {
               chain = chain.then(function () {
-                return supabase.from('bars').insert({
-                  name: name,
-                  slug: slug,
-                  workspace_id: workspace.id,
-                  is_active: true
-                }).then(function (barResult) {
-                  if (barResult.error) throw new Error('No se pudo crear el bar: ' + barResult.error.message)
-                })
+                return supabase
+                  .from('bars')
+                  .insert({
+                    name: name,
+                    slug: slug,
+                    workspace_id: workspace.id,
+                    is_active: true
+                  })
+                  .select()
+                  .single()
+                  .then(function (barResult) {
+                    if (barResult.error) throw new Error('No se pudo crear el bar: ' + barResult.error.message)
+                    return supabase
+                      .from('bar_members')
+                      .insert({ bar_id: barResult.data.id, user_id: userId, role: 'OWNER' })
+                      .then(function (memberResult) {
+                        if (memberResult.error) throw new Error('No se pudo vincular tu cuenta al bar: ' + memberResult.error.message)
+                      })
+                  })
               })
             }
 
