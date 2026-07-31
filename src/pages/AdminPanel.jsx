@@ -1142,6 +1142,10 @@ function StoreProductForm(props) {
   var specs = specsState[0]
   var setSpecs = specsState[1]
 
+  var highlightsState = useState(editing && editing.highlights ? editing.highlights : [])
+  var highlights = highlightsState[0]
+  var setHighlights = highlightsState[1]
+
   var mlUrlState = useState('')
   var mlUrl = mlUrlState[0]
   var setMlUrl = mlUrlState[1]
@@ -1203,6 +1207,16 @@ function StoreProductForm(props) {
     setSpecs(function (prev) { return prev.filter(function (_, i) { return i !== idx }) })
   }
 
+  function addHighlightRow() {
+    setHighlights(function (prev) { return [...prev, ''] })
+  }
+  function updateHighlightRow(idx, val) {
+    setHighlights(function (prev) { return prev.map(function (h, i) { return i === idx ? val : h }) })
+  }
+  function removeHighlightRow(idx) {
+    setHighlights(function (prev) { return prev.filter(function (_, i) { return i !== idx }) })
+  }
+
   function handleImportFromML() {
     if (!mlUrl.trim()) return
     setImporting(true)
@@ -1247,6 +1261,7 @@ function StoreProductForm(props) {
       images: images,
       image_url: images[0] || null,
       specs: specs.filter(function (s) { return s.label && s.value }),
+      highlights: highlights.filter(function (h) { return h && h.trim() }),
       source_url: mlUrl.trim() || (editing ? editing.source_url : null) || null
     }
     var query = editing
@@ -1384,6 +1399,31 @@ function StoreProductForm(props) {
               </label>
             )}
           </div>
+        </div>
+
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>Puntos destacados (bullets junto al precio)</p>
+            <button onClick={addHighlightRow} className="text-xs font-medium" style={{ color: 'var(--accent-purple)' }}>+ Agregar</button>
+          </div>
+          {highlights.length > 0 && (
+            <div className="flex flex-col gap-1.5 mb-1">
+              {highlights.map(function (h, idx) {
+                return (
+                  <div key={idx} className="flex gap-1.5">
+                    <input
+                      value={h}
+                      onChange={function (e) { updateHighlightRow(idx, e.target.value) }}
+                      placeholder="Ej: Hasta 15 horas de reproducción"
+                      className="h-8 flex-1 rounded-md px-2 border outline-none text-xs"
+                      style={{ background: 'var(--bg-card)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+                    />
+                    <button onClick={function () { removeHighlightRow(idx) }} className="text-xs px-1.5" style={{ color: 'var(--accent-magenta)' }}>✕</button>
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </div>
 
         <div>
