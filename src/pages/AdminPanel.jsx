@@ -1150,6 +1150,63 @@ function StoreProductForm(props) {
   var mlUrl = mlUrlState[0]
   var setMlUrl = mlUrlState[1]
 
+  var pastedTextState = useState('')
+  var pastedText = pastedTextState[0]
+  var setPastedText = pastedTextState[1]
+
+  function handleParseText() {
+    if (!pastedText.trim()) return
+    setError('')
+
+    var rawLines = pastedText
+      .split(/\r?\n|\s*\|\s*|\s*·\s*/)
+      .map(function (l) { return l.trim() })
+      .filter(Boolean)
+
+    var parsedSpecs = []
+    var parsedHighlights = []
+    var i = 0
+    while (i < rawLines.length) {
+      var line = rawLines[i]
+      var colonIdx = line.indexOf(':')
+      if (colonIdx > 0 && colonIdx < 60) {
+        var label = line.slice(0, colonIdx).trim()
+        var value = line.slice(colonIdx + 1).trim()
+        if (value) {
+          parsedSpecs.push({ label: label, value: value, group: null })
+          i += 1
+          continue
+        }
+      }
+      // Sin ":" en la misma linea: puede ser un par label/value en dos
+      // lineas seguidas (comun al copiar tablas), o una frase suelta
+      // (la tratamos como punto destacado).
+      var next = rawLines[i + 1]
+      if (next && line.length < 40 && !/^[✔️•\-]/.test(line) && next.length < 60) {
+        parsedSpecs.push({ label: line, value: next, group: null })
+        i += 2
+        continue
+      }
+      if (line.length > 3 && line.length < 140) {
+        parsedHighlights.push(line.replace(/^[✔️•\-]\s*/, ''))
+      }
+      i += 1
+    }
+
+    if (parsedSpecs.length === 0 && parsedHighlights.length === 0) {
+      setError('No logramos reconocer nada en ese texto. Prueba copiando directamente el bloque de "Características" de la página.')
+      return
+    }
+
+    if (parsedSpecs.length > 0) {
+      setSpecs(function (prev) { return [...prev, ...parsedSpecs] })
+    }
+    if (parsedHighlights.length > 0) {
+      setHighlights(function (prev) { return [...prev, ...parsedHighlights].slice(0, 12) })
+    }
+    setPastedText('')
+  }
+
   var importingState = useState(false)
   var importing = importingState[0]
   var setImporting = importingState[1]
@@ -1291,7 +1348,7 @@ function StoreProductForm(props) {
 
       <div className="rounded-lg p-3 mb-3" style={{ background: 'var(--bg-card)', border: '1px dashed var(--accent-yellow)' }}>
         <p className="text-xs font-medium mb-2" style={{ color: 'var(--accent-yellow)' }}>
-          ⚡ Importar desde Mercado Libre
+          ⚡ Importar desde Mercado Libre (link)
         </p>
         <div className="flex gap-2">
           <input
@@ -1312,8 +1369,39 @@ function StoreProductForm(props) {
           </button>
         </div>
         <p className="text-[10px] mt-1.5" style={{ color: 'var(--text-muted)' }}>
+          Mercado Libre bloquea la lectura automática de sus páginas, así que esto puede fallar seguido. Si falla,
+          usa la opción de pegar texto de abajo — es más confiable.
+        </p>
+      </div>
+        <p className="text-[10px] mt-1.5" style={{ color: 'var(--text-muted)' }}>
           Trae nombre, fotos, descripción y ficha técnica automáticamente. Revisa y ajusta el precio de venta después.
         </p>
+      </div>
+
+      <div className="rounded-lg p-3 mb-3" style={{ background: 'var(--bg-card)', border: '1px dashed var(--accent-purple)' }}>
+        <p className="text-xs font-medium mb-1.5" style={{ color: 'var(--accent-purple)' }}>
+          📋 O pega el texto de "Características" (más confiable)
+        </p>
+        <p className="text-[10px] mb-2" style={{ color: 'var(--text-muted)' }}>
+          Mercado Libre bloquea la lectura automática por link, así que esta vía es más segura: en la página del
+          producto, selecciona y copia el bloque de "Características del producto" completo, y pégalo aquí.
+        </p>
+        <textarea
+          value={pastedText}
+          onChange={function (e) { setPastedText(e.target.value) }}
+          placeholder="Pega aquí el texto de características copiado desde MercadoLibre..."
+          rows={3}
+          className="w-full rounded-lg px-3 py-2 border outline-none text-xs resize-none mb-2"
+          style={{ background: 'var(--bg-card-alt)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+        />
+        <button
+          onClick={handleParseText}
+          disabled={!pastedText.trim()}
+          className="text-xs px-3 py-1.5 rounded-lg font-medium text-white disabled:opacity-50"
+          style={{ background: 'var(--accent-purple)' }}
+        >
+          Analizar texto
+        </button>
       </div>
 
       <div className="flex flex-col gap-2.5">
