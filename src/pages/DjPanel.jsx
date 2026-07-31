@@ -1118,8 +1118,12 @@ function DjPanelInner() {
               boxShadow: '0 0 0 2px var(--bg-page), 0 0 0 4px #F4D03F, 0 0 18px 2px rgba(244, 208, 63, 0.55)'
             }}
           >
-            {djAvatarUrl ? (
-              <img src={djAvatarUrl} alt="" className="w-full h-full object-cover" />
+            {(workspaceType === 'BAR' ? session.logoUrl : djAvatarUrl) ? (
+              <img
+                src={workspaceType === 'BAR' ? session.logoUrl : djAvatarUrl}
+                alt=""
+                className="w-full h-full object-cover"
+              />
             ) : (
               '🎧'
             )}
