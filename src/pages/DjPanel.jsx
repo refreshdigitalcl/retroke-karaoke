@@ -664,6 +664,36 @@ function DjPanelInner() {
       .replace(/(^-|-$)/g, '')
   }
 
+  var deleteBarOpenState = useState(false)
+  var deleteBarOpen = deleteBarOpenState[0]
+  var setDeleteBarOpen = deleteBarOpenState[1]
+
+  var deletingBarState = useState(false)
+  var deletingBar = deletingBarState[0]
+  var setDeletingBar = deletingBarState[1]
+
+  var deleteBarErrorState = useState('')
+  var deleteBarError = deleteBarErrorState[0]
+  var setDeleteBarError = deleteBarErrorState[1]
+
+  function handleDeleteBar() {
+    if (!currentBarId) return
+    setDeletingBar(true)
+    setDeleteBarError('')
+    supabase
+      .from('bars')
+      .update({ is_active: false })
+      .eq('id', currentBarId)
+      .then(function (result) {
+        if (result.error) throw result.error
+        window.location.href = '/dj'
+      })
+      .catch(function (err) {
+        setDeletingBar(false)
+        setDeleteBarError('No se pudo eliminar el local: ' + (err && err.message ? err.message : 'error desconocido'))
+      })
+  }
+
   function handleAddBar() {
     if (!newBarName.trim() || !currentWorkspaceId) return
     setAddingBar(true)
@@ -1187,10 +1217,54 @@ function DjPanelInner() {
               ➕ Agregar local
             </button>
           )}
+          {workspaceType === 'BAR' && myBars && myBars.length > 1 && (
+            <button
+              onClick={function () { setDeleteBarOpen(true) }}
+              className="text-sm px-3 h-9 rounded-lg border whitespace-nowrap font-medium"
+              style={{ borderColor: 'var(--accent-magenta)', color: 'var(--accent-magenta)' }}
+            >
+              🗑️ Eliminar local
+            </button>
+          )}
           <ThemeToggle />
         </div>
       </header>
 
+      {deleteBarOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-6" style={{ background: 'rgba(0,0,0,0.6)' }}>
+          <div className="w-full max-w-sm rounded-2xl border p-6" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
+            <p className="text-lg font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
+              ¿Eliminar "{barName}"?
+            </p>
+            <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
+              Este local dejará de aparecer en tu lista y nadie podrá anotarse a cantar
+              ahí. El historial de noches pasadas se conserva — si más adelante quieres
+              recuperarlo, pídeselo al administrador.
+            </p>
+            {deleteBarError && (
+              <p className="text-xs mb-3" style={{ color: 'var(--accent-magenta)' }}>{deleteBarError}</p>
+            )}
+            <div className="flex gap-2.5">
+              <button
+                onClick={function () { setDeleteBarOpen(false); setDeleteBarError('') }}
+                disabled={deletingBar}
+                className="flex-1 h-11 rounded-lg border font-medium disabled:opacity-50"
+                style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleDeleteBar}
+                disabled={deletingBar}
+                className="flex-1 h-11 rounded-lg font-medium text-white disabled:opacity-50"
+                style={{ background: 'var(--accent-magenta)' }}
+              >
+                {deletingBar ? 'Eliminando...' : 'Sí, eliminar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {addBarOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-6" style={{ background: 'rgba(0,0,0,0.6)' }}>
           <div className="w-full max-w-sm rounded-2xl border p-6" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>

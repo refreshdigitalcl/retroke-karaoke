@@ -32,6 +32,7 @@ export function useMyBars(auth) {
 
       barRows.forEach(function (r) {
         if (!r.bars) return
+        if (r.bars.is_active === false) return
         if (seen[r.bars.id]) return
         seen[r.bars.id] = true
         list.push({
