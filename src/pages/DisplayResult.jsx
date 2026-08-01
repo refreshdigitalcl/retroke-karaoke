@@ -144,7 +144,18 @@ export default function DisplayResult() {
   var currentSinger = session.currentSinger
   var ratings = session.ratings
   var workspaceType = session.workspaceType
+  var workspacePlan = session.workspacePlan
   var sessionId = session.sessionId
+
+  // Efecto de sonido al revelar la nota. Por ahora solo en el plan Free,
+  // que hasta ahora se quedaba sin ningun sonido en esta pantalla.
+  useEffect(function () {
+    if (!currentSinger || workspacePlan === 'PRO') return
+    var audio = new Audio('/sounds/applause.mp3')
+    audio.volume = 0.5
+    audio.play().catch(function () {})
+    return function () { audio.pause() }
+  }, [currentSinger ? currentSinger.id : null, workspacePlan])
 
   var vocalResultState = useState(null)
   var vocalResult = vocalResultState[0]

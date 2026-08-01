@@ -9,7 +9,7 @@ import DisplayResult from './DisplayResult'
 import SessionLeaderboard from './SessionLeaderboard'
 import SessionHub from './SessionHub'
 import AudioUnlockGate from '../components/AudioUnlockGate'
-import { pickRandomTrack } from '../lib/waitingMusic'
+import { pickTrackForPlan } from '../lib/waitingMusic'
 import { supabase } from '../lib/supabase'
 
 function checkNoParams() {
@@ -26,7 +26,7 @@ function getSavedRoom() {
 var WAITING_MODES = ['queue', 'called', 'countdown']
 
 export default function Display() {
-  const { screenMode, hasActiveSession, lastClosedSession, sessionId, workspaceType } = useKaraokeSession()
+  const { screenMode, hasActiveSession, lastClosedSession, sessionId, workspaceType, workspacePlan } = useKaraokeSession()
   const [showHub] = useState(checkNoParams)
   const [redirectingToSaved] = useState(function () {
     return checkNoParams() && !!getSavedRoom()
@@ -51,7 +51,7 @@ export default function Display() {
     if (audioRef.current) {
       audioRef.current.pause()
     }
-    var track = pickRandomTrack()
+    var track = pickTrackForPlan(workspacePlan)
     var audio = new Audio(track)
     audio.loop = true
     audio.volume = 0.35
