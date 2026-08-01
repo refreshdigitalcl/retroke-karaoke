@@ -84,17 +84,17 @@ var STEPS = [
 
 var MODES = [
   {
-    name: 'Bar', accent: '#E8336B',
+    name: 'Bar', accent: '#E8336B', bg: '/landing/bg-bar.jpg',
     desc: 'Para locales que operan karaoke de forma regular y necesitan control sobre múltiples puntos de atención.',
     points: ['Panel de operación en vivo', 'Gestión de múltiples locales', 'Estadísticas por sesión', 'Identidad de marca propia']
   },
   {
-    name: 'DJ', accent: '#8B5CF6',
+    name: 'DJ', accent: '#8B5CF6', bg: '/landing/bg-dj.jpg',
     desc: 'Para animadores y operadores que trabajan en distintos eventos y necesitan un sistema que los acompañe.',
     points: ['Configuración portátil', 'Control total del evento', 'Calificación en tiempo real', 'Sin instalación en el local']
   },
   {
-    name: 'Home', accent: '#4F8AE8',
+    name: 'Home', accent: '#4F8AE8', bg: '/landing/bg-home.jpg',
     desc: 'Para uso doméstico: convierte cualquier televisor en un escenario, sin equipos adicionales.',
     points: ['Funciona desde el navegador', 'El teléfono es el micrófono', 'Sin límite de invitados', 'Análisis vocal — próximamente']
   }
@@ -197,7 +197,11 @@ export default function LandingPage() {
       </header>
 
       {/* PRODUCTO */}
-      <section className="r-section" id="producto">
+      <section className="r-section r-bg-circuit" id="producto">
+        <span className="r-circuit-line l1" aria-hidden="true" />
+        <span className="r-circuit-line l2" aria-hidden="true" />
+        <span className="r-circuit-dot d1" aria-hidden="true" />
+        <span className="r-circuit-dot d2" aria-hidden="true" />
         <Reveal>
           <div className="r-section-inner r-split">
             <div className="r-split-text">
@@ -218,7 +222,9 @@ export default function LandingPage() {
       </section>
 
       {/* COMO FUNCIONA */}
-      <section className="r-section r-section-alt" id="como-funciona">
+      <section className="r-section r-section-alt r-bg-floor" id="como-funciona">
+        <span className="r-floor-grid" aria-hidden="true" />
+        <span className="r-floor-horizon" aria-hidden="true" />
         <Reveal>
           <div className="r-section-inner">
             <p className="r-kicker center">Cómo funciona</p>
@@ -248,6 +254,8 @@ export default function LandingPage() {
               {MODES.map(function (m) {
                 return (
                   <div className="r-mode-card" key={m.name} style={{ '--accent': m.accent }}>
+                    <div className="r-mode-bg" style={{ backgroundImage: 'url(' + m.bg + ')' }} />
+                    <div className="r-mode-bg-fade" />
                     <span className="r-mode-dot" />
                     <p className="r-mode-name">{m.name}</p>
                     <p className="r-mode-desc">{m.desc}</p>
@@ -264,7 +272,8 @@ export default function LandingPage() {
       </section>
 
       {/* PRUEBA VISUAL / DJ */}
-      <section className="r-section r-section-alt">
+      <section className="r-section r-section-alt r-bg-ambient" style={{ backgroundImage: 'url(/landing/bg-publico.jpg)' }}>
+        <span className="r-ambient-fade" aria-hidden="true" />
         <Reveal>
           <div className="r-section-inner r-split reverse">
             <div className="r-split-visual">
@@ -285,7 +294,8 @@ export default function LandingPage() {
       </section>
 
       {/* CONFIANZA */}
-      <section className="r-section" id="confianza">
+      <section className="r-section r-bg-network" id="confianza">
+        <span className="r-network-glow" aria-hidden="true" />
         <Reveal>
           <div className="r-section-inner">
             <p className="r-kicker center">Por qué confiar en Retroke</p>
@@ -408,10 +418,41 @@ export default function LandingPage() {
         .r-stat-divider { width: 1px; height: 28px; background: rgba(255,255,255,0.12); }
 
         /* Sections */
-        .r-section { padding: 110px 6vw; position: relative; }
+        .r-section { padding: 110px 6vw; position: relative; overflow: hidden; }
         .r-section-alt { background: #0c0c10; }
-        .r-section-inner { max-width: 1160px; margin: 0 auto; }
+        .r-section-inner { max-width: 1160px; margin: 0 auto; position: relative; z-index: 2; }
         .center-text { text-align: center; }
+
+        /* Fondo "Por que es diferente": circuito retro sutil */
+        .r-bg-circuit { background: radial-gradient(ellipse 70% 60% at 15% 10%, rgba(232,51,107,0.05), transparent 60%); }
+        .r-circuit-line { position: absolute; background: linear-gradient(90deg, transparent, rgba(232,51,107,0.35), transparent); height: 1px; opacity: 0.5; }
+        .l1 { top: 22%; left: 0; width: 40%; animation: circuitFlow 8s ease-in-out infinite; }
+        .l2 { bottom: 18%; right: 0; width: 32%; background: linear-gradient(90deg, transparent, rgba(76,63,224,0.35), transparent); animation: circuitFlow 8s ease-in-out infinite reverse; animation-delay: -3s; }
+        @keyframes circuitFlow { 0%, 100% { opacity: 0.2; } 50% { opacity: 0.6; } }
+        .r-circuit-dot { position: absolute; width: 5px; height: 5px; border-radius: 999px; background: #e8336b; box-shadow: 0 0 10px 2px rgba(232,51,107,0.7); animation: dotPulse 2.4s ease-in-out infinite; }
+        .d1 { top: 22%; left: 40%; }
+        .d2 { bottom: 18%; right: 32%; background: #4c3fe0; box-shadow: 0 0 10px 2px rgba(76,63,224,0.7); animation-delay: -1.2s; }
+
+        /* Fondo "Como funciona": piso perspectiva synthwave */
+        .r-bg-floor { }
+        .r-floor-grid {
+          position: absolute; left: 0; right: 0; bottom: 0; height: 45%;
+          background-image: linear-gradient(rgba(232,51,107,0.16) 1px, transparent 1px), linear-gradient(90deg, rgba(232,51,107,0.16) 1px, transparent 1px);
+          background-size: 46px 46px;
+          transform: perspective(340px) rotateX(62deg);
+          transform-origin: bottom;
+          mask-image: linear-gradient(to top, black, transparent 85%);
+          opacity: 0.55;
+        }
+        .r-floor-horizon { position: absolute; left: 10%; right: 10%; bottom: 55%; height: 1px; background: linear-gradient(90deg, transparent, rgba(232,51,107,0.5), rgba(76,63,224,0.5), transparent); filter: blur(0.5px); box-shadow: 0 0 20px 2px rgba(232,51,107,0.3); }
+
+        /* Fondo "El publico como protagonista": foto ambiental */
+        .r-bg-ambient { background-size: cover; background-position: center 30%; }
+        .r-ambient-fade { position: absolute; inset: 0; background: linear-gradient(180deg, #0c0c10 0%, rgba(12,12,16,0.86) 35%, rgba(12,12,16,0.86) 65%, #0c0c10 100%); }
+
+        /* Fondo "Confianza": red de nodos */
+        .r-bg-network { background-image: radial-gradient(rgba(255,255,255,0.09) 1px, transparent 1px); background-size: 30px 30px; }
+        .r-network-glow { position: absolute; top: 10%; left: 50%; transform: translateX(-50%); width: 60%; height: 60%; background: radial-gradient(ellipse, rgba(76,63,224,0.14), transparent 65%); animation: heroFloat 14s ease-in-out infinite; }
         .r-kicker { font-size: 13px; font-weight: 600; color: #e8336b; margin-bottom: 14px; letter-spacing: 0.3px; }
         .r-kicker.center { text-align: center; }
         .r-h2 { font-family: 'Space Grotesk', sans-serif; font-size: clamp(1.6rem, 3vw, 2.3rem); font-weight: 600; line-height: 1.25; letter-spacing: -0.01em; margin-bottom: 20px; max-width: 620px; }
@@ -438,8 +479,12 @@ export default function LandingPage() {
         .r-mode-card::before { content: ''; position: absolute; inset: -1px; border-radius: 14px; padding: 1px; background: linear-gradient(135deg, var(--accent), transparent 40%); -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask-composite: exclude; opacity: 0; transition: opacity 0.3s ease; }
         .r-mode-card:hover { transform: translateY(-5px); box-shadow: 0 20px 50px -24px color-mix(in srgb, var(--accent) 60%, transparent); }
         .r-mode-card:hover::before { opacity: 1; }
-        .r-mode-dot { display: block; width: 8px; height: 8px; border-radius: 999px; background: var(--accent); margin-bottom: 20px; box-shadow: 0 0 12px 2px color-mix(in srgb, var(--accent) 70%, transparent); animation: dotPulse 2.4s ease-in-out infinite; }
+        .r-mode-bg { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: 0.16; filter: saturate(1.3) contrast(1.05); transition: opacity 0.35s ease, transform 0.5s ease; transform: scale(1.04); }
+        .r-mode-card:hover .r-mode-bg { opacity: 0.28; transform: scale(1.1); }
+        .r-mode-bg-fade { position: absolute; inset: 0; background: linear-gradient(165deg, rgba(14,14,18,0.55) 0%, #0e0e12 78%), radial-gradient(circle at 85% 0%, color-mix(in srgb, var(--accent) 30%, transparent), transparent 55%); }
+        .r-mode-dot { display: block; width: 8px; height: 8px; border-radius: 999px; background: var(--accent); margin-bottom: 20px; box-shadow: 0 0 12px 2px color-mix(in srgb, var(--accent) 70%, transparent); animation: dotPulse 2.4s ease-in-out infinite; position: relative; z-index: 2; }
         @keyframes dotPulse { 0%, 100% { opacity: 0.7; } 50% { opacity: 1; } }
+        .r-mode-name, .r-mode-desc, .r-mode-points, .r-mode-link { position: relative; z-index: 2; }
         .r-mode-name { font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 18px; margin-bottom: 12px; }
         .r-mode-desc { font-size: 13.5px; color: #a3a3ad; line-height: 1.6; margin-bottom: 22px; }
         .r-mode-points { list-style: none; padding: 0; margin: 0 0 26px; display: flex; flex-direction: column; gap: 10px; }
