@@ -62,20 +62,29 @@ export default function Display() {
 
   // Primer arranque: se dispara en el mismo clic de "activar sonido" (sincrono),
   // asi los navegadores de Smart TV mas estrictos lo permiten igual que al video.
+  // OJO: no condicionamos esto a "isWaiting", porque justo al cargar la pagina
+  // ese dato puede no estar listo todavia (se calcula con datos que llegan de
+  // a poco desde el servidor). Si esperamos a que este listo, el toque real
+  // del usuario ya paso y el navegador bloquea el audio igual. Arrancamos
+  // siempre en el toque; el otro efecto se encarga de pausar mas abajo si
+  // resulta que no correspondia.
   function handleUnlock() {
-    if (isWaiting) {
-      startNewWaitingTrack()
-    }
+    startNewWaitingTrack()
   }
 
   // Transiciones posteriores (volver a la sala de espera despues de una cancion,
   // o pasar de la sala de espera a la presentacion): reaccionan al cambio de estado.
   useEffect(function () {
     if (firstEffectRunRef.current) {
-      // El primer arranque ya lo maneja handleUnlock, disparado por el toque real.
-      // Aqui solo sincronizamos el estado sin volver a llamar play().
       firstEffectRunRef.current = false
       wasWaitingRef.current = isWaiting
+      // Si el desbloqueo ya arranco musica de espera (optimista, por el tema
+      // del gesto del usuario) pero resulta que en realidad no correspondia
+      // esperar, la paramos apenas tengamos el dato real.
+      if (!isWaiting && audioRef.current) {
+        audioRef.current.pause()
+        audioRef.current = null
+      }
       return
     }
     if (isWaiting && !wasWaitingRef.current) {
