@@ -210,6 +210,7 @@ export default function DisplayQueue(props) {
   var musicEnabled = props.musicEnabled
   var session = useKaraokeSession()
   var barName = session.barName
+  var workspacePlan = session.workspacePlan
   var logoUrl = session.hasFeature('custom_branding') ? session.logoUrl : null
   var spaceParam = session.spaceParam
   var sessionCode = session.sessionCode
@@ -282,24 +283,35 @@ export default function DisplayQueue(props) {
       </div>
 
       <header className="flex items-center justify-center gap-2.5 relative z-10 pt-4 pb-1 shrink-0">
-        {logoUrl ? (
+        {workspacePlan !== 'PRO' ? (
           <img
-            src={logoUrl}
-            alt={barName}
-            className="h-10 w-10 rounded-full object-cover border-2"
-            style={{ borderColor: '#F4D03F', boxShadow: '0 0 16px 3px rgba(244, 208, 63, 0.5)' }}
+            src="/landing/retroke-logo.png"
+            alt="Retroke"
+            className="h-11 w-auto"
+            style={{ filter: 'drop-shadow(0 0 14px rgba(233,30,140,0.55))' }}
           />
         ) : (
-          <span className="text-xl">🎤</span>
+          <>
+            {logoUrl ? (
+              <img
+                src={logoUrl}
+                alt={barName}
+                className="h-10 w-10 rounded-full object-cover border-2"
+                style={{ borderColor: '#F4D03F', boxShadow: '0 0 16px 3px rgba(244, 208, 63, 0.5)' }}
+              />
+            ) : (
+              <span className="text-xl">🎤</span>
+            )}
+            <div
+              className="px-5 py-2 rounded-full"
+              style={{ background: 'linear-gradient(90deg, #E91E8C, #8B5CF6)', boxShadow: '0 0 22px -4px rgba(233,30,140,0.7)' }}
+            >
+              <span className="text-sm md:text-base font-extrabold text-white tracking-wide">
+                {barName}
+              </span>
+            </div>
+          </>
         )}
-        <div
-          className="px-5 py-2 rounded-full"
-          style={{ background: 'linear-gradient(90deg, #E91E8C, #8B5CF6)', boxShadow: '0 0 22px -4px rgba(233,30,140,0.7)' }}
-        >
-          <span className="text-sm md:text-base font-extrabold text-white tracking-wide">
-            {barName}
-          </span>
-        </div>
       </header>
 
       <main className="relative z-10 flex-1 min-h-0 grid grid-cols-1 md:grid-cols-2 gap-6 max-w-6xl w-full mx-auto px-6 md:px-8 pb-3 pt-1">

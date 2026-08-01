@@ -13,9 +13,52 @@ export function pickRandomTrack() {
   return WAITING_TRACKS[index]
 }
 
-// En el plan FREE solo suena esta cancion fija. En PRO se elige una
-// aleatoria entre las 5 pistas de siempre.
+// En el plan FREE solo suena esta cancion fija, en loop, sin rotar.
 export function pickTrackForPlan(workspacePlan) {
   if (workspacePlan !== 'PRO') return FREE_TRACK
   return pickRandomTrack()
+}
+
+function shuffle(arr) {
+  var copy = arr.slice()
+  for (var i = copy.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1))
+    var tmp = copy[i]
+    copy[i] = copy[j]
+    copy[j] = tmp
+  }
+  return copy
+}
+
+// Rotacion para el plan PRO: la primera cancion de la sala de espera es
+// siempre la guaracha (guiño de marca), y despues va rotando el resto
+// al azar sin repetir ninguna hasta que pasaron todas ("bolsa" que se
+// vuelve a barajar solo cuando se vacia, y nunca deja que la ultima de
+// una vuelta se repita como primera de la siguiente).
+export function createProRotation() {
+  var bag = []
+  var lastTrack = null
+
+  function refillBag() {
+    var shuffled = shuffle(WAITING_TRACKS)
+    // Si por mala suerte la primera de la nueva vuelta es igual a la
+    // ultima que sono, la mandamos al final para evitar la repeticion.
+    if (shuffled[0] === lastTrack && shuffled.length > 1) {
+      shuffled.push(shuffled.shift())
+    }
+    bag = shuffled
+  }
+
+  return {
+    first: function () {
+      lastTrack = FREE_TRACK
+      return FREE_TRACK
+    },
+    next: function () {
+      if (bag.length === 0) refillBag()
+      var track = bag.shift()
+      lastTrack = track
+      return track
+    }
+  }
 }

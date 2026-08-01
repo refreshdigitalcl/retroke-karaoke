@@ -9,7 +9,7 @@ import DisplayResult from './DisplayResult'
 import SessionLeaderboard from './SessionLeaderboard'
 import SessionHub from './SessionHub'
 import AudioUnlockGate from '../components/AudioUnlockGate'
-import { pickTrackForPlan } from '../lib/waitingMusic'
+import { pickTrackForPlan, createProRotation } from '../lib/waitingMusic'
 import { supabase } from '../lib/supabase'
 
 function checkNoParams() {
@@ -41,23 +41,42 @@ export default function Display() {
   var audioRef = useRef(null)
   var wasWaitingRef = useRef(false)
   var firstEffectRunRef = useRef(true)
+  var rotationRef = useRef(null)
   var mutedState = useState(false)
   var muted = mutedState[0]
   var setMuted = mutedState[1]
 
   var isWaiting = hasActiveSession && WAITING_MODES.indexOf(screenMode) !== -1
 
-  function startNewWaitingTrack() {
+  function playTrack(url, loop, onEnded) {
     if (audioRef.current) {
       audioRef.current.pause()
     }
-    var track = pickTrackForPlan(workspacePlan)
-    var audio = new Audio(track)
-    audio.loop = true
+    var audio = new Audio(url)
+    audio.loop = loop
     audio.volume = 0.35
     audio.muted = muted
+    if (onEnded) audio.addEventListener('ended', onEnded)
     audio.play().catch(function () {})
     audioRef.current = audio
+  }
+
+  function playNextProTrack() {
+    var next = rotationRef.current.next()
+    playTrack(next, false, playNextProTrack)
+  }
+
+  function startNewWaitingTrack() {
+    if (workspacePlan === 'PRO') {
+      // Siempre arranca con la guaracha al entrar a la sala de espera, y
+      // despues va rotando el resto sin repetir ninguna hasta pasarlas todas.
+      if (!rotationRef.current) rotationRef.current = createProRotation()
+      var first = rotationRef.current.first()
+      playTrack(first, false, playNextProTrack)
+    } else {
+      // Plan Free: siempre la misma cancion, en loop.
+      playTrack(pickTrackForPlan(workspacePlan), true, null)
+    }
   }
 
   // Primer arranque: se dispara en el mismo clic de "activar sonido" (sincrono),
