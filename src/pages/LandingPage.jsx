@@ -223,7 +223,7 @@ export default function LandingPage() {
               </p>
             </div>
             <div className="r-split-visual">
-              <img src="/landing/premium-friends.jpg" alt="Participantes accediendo a Retroke desde su teléfono" loading="lazy" />
+              <img src="/landing/premium-friends.jpg" alt="Una cantante interpretando su canción mientras el público reacciona en vivo" loading="lazy" />
             </div>
           </div>
         </Reveal>
