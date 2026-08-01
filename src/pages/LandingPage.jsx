@@ -162,9 +162,13 @@ export default function LandingPage() {
         <div className="r-hero-field" aria-hidden="true">
           <span className="r-hero-glow g1" />
           <span className="r-hero-glow g2" />
+          <span className="r-hero-glow g3" />
           <span className="r-hero-grid" />
+          <span className="r-hero-beam b1" />
+          <span className="r-hero-beam b2" />
         </div>
         <div className="r-hero-inner">
+          <img src="/landing/retroke-logo.png" alt="Retroke" className="r-hero-logo" />
           <p className="r-eyebrow">Plataforma de entretenimiento en vivo</p>
           <h1 className="r-hero-title">
             El escenario, reinventado<br />para cada mesa.
@@ -183,6 +187,11 @@ export default function LandingPage() {
             <div><strong><CountUp target={100} suffix="%" /></strong><span>Basado en navegador</span></div>
             <div className="r-stat-divider" />
             <div><strong>0</strong><span>Instalaciones requeridas</span></div>
+          </div>
+          <div className="r-hero-eq" aria-hidden="true">
+            {Array.from({ length: 20 }).map(function (_, i) {
+              return <span key={i} style={{ animationDelay: (i * 0.08) + 's' }} />
+            })}
           </div>
         </div>
       </header>
@@ -332,13 +341,19 @@ export default function LandingPage() {
         .r-reveal.visible { opacity: 1; transform: translateY(0); }
         .reduced-motion .r-reveal { opacity: 1; transform: none; transition: none; }
         .reduced-motion * { animation: none !important; }
+        .reduced-motion .r-hero-logo { filter: drop-shadow(0 0 40px rgba(232,51,107,0.35)) drop-shadow(0 0 80px rgba(76,63,224,0.25)); }
 
         /* Nav */
         .r-nav { position: sticky; top: 0; z-index: 50; padding: 20px 6vw; transition: background 0.25s ease, border-color 0.25s ease, padding 0.25s ease; border-bottom: 1px solid transparent; }
         .r-nav.scrolled { background: rgba(8,8,11,0.85); backdrop-filter: blur(14px); border-bottom-color: rgba(255,255,255,0.08); padding: 14px 6vw; }
         .r-nav-inner { max-width: 1240px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
-        .r-logo-img { height: 30px; width: auto; display: block; }
-        .r-logo-img.small { height: 26px; margin-bottom: 14px; }
+        .r-logo-img { height: 40px; width: auto; display: block; }
+        .r-logo-img.small { height: 34px; margin-bottom: 14px; }
+        .r-hero-logo { width: min(340px, 62vw); height: auto; display: block; margin: 0 auto 32px; filter: drop-shadow(0 0 40px rgba(232,51,107,0.35)) drop-shadow(0 0 80px rgba(76,63,224,0.25)); animation: heroLogoGlow 4s ease-in-out infinite; }
+        @keyframes heroLogoGlow {
+          0%, 100% { filter: drop-shadow(0 0 40px rgba(232,51,107,0.35)) drop-shadow(0 0 80px rgba(76,63,224,0.25)); }
+          50% { filter: drop-shadow(0 0 56px rgba(232,51,107,0.5)) drop-shadow(0 0 100px rgba(76,63,224,0.4)); }
+        }
         .r-nav-links { display: flex; gap: 32px; font-size: 13.5px; font-weight: 500; color: #a3a3ad; }
         .r-nav-links a { color: inherit; text-decoration: none; transition: color 0.15s ease; }
         .r-nav-links a:hover { color: #fff; }
@@ -362,10 +377,26 @@ export default function LandingPage() {
         /* Hero */
         .r-hero { position: relative; padding: 120px 6vw 90px; overflow: hidden; }
         .r-hero-field { position: absolute; inset: 0; pointer-events: none; }
-        .r-hero-glow { position: absolute; width: 32rem; height: 32rem; border-radius: 999px; filter: blur(120px); opacity: 0.22; }
+        .r-hero-glow { position: absolute; width: 32rem; height: 32rem; border-radius: 999px; filter: blur(120px); opacity: 0.24; animation: heroFloat 12s ease-in-out infinite; }
         .g1 { background: #e8336b; top: -10rem; left: -8rem; }
-        .g2 { background: #4c3fe0; top: -4rem; right: -10rem; }
-        .r-hero-grid { position: absolute; inset: 0; opacity: 0.035; background-image: linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px); background-size: 64px 64px; mask-image: radial-gradient(ellipse 60% 50% at 50% 0%, black, transparent); }
+        .g2 { background: #4c3fe0; top: -4rem; right: -10rem; animation-delay: -4s; }
+        .g3 { background: #22c3e6; bottom: -14rem; left: 30%; width: 26rem; height: 26rem; opacity: 0.14; animation-delay: -8s; }
+        @keyframes heroFloat {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          50% { transform: translate(3%, 4%) scale(1.08); }
+        }
+        .r-hero-grid { position: absolute; inset: 0; opacity: 0.045; background-image: linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px); background-size: 64px 64px; mask-image: radial-gradient(ellipse 60% 50% at 50% 0%, black, transparent); animation: gridDrift 30s linear infinite; }
+        @keyframes gridDrift { from { background-position: 0 0, 0 0; } to { background-position: 64px 64px, 64px 64px; } }
+        .r-hero-beam { position: absolute; top: -10%; width: 2px; height: 55%; background: linear-gradient(180deg, rgba(232,51,107,0.35), transparent); opacity: 0.5; transform-origin: top center; animation: beamSweep 9s ease-in-out infinite; }
+        .b1 { left: 38%; animation-delay: 0s; }
+        .b2 { left: 60%; background: linear-gradient(180deg, rgba(76,63,224,0.35), transparent); animation-delay: -4.5s; }
+        @keyframes beamSweep {
+          0%, 100% { transform: rotate(-6deg); opacity: 0.35; }
+          50% { transform: rotate(6deg); opacity: 0.6; }
+        }
+        .r-hero-eq { display: flex; align-items: flex-end; justify-content: center; gap: 4px; height: 30px; margin-top: 52px; opacity: 0.55; }
+        .r-hero-eq span { width: 3px; border-radius: 2px; background: linear-gradient(180deg, #e8336b, #4c3fe0); height: 6px; animation: eqBounce 1.2s ease-in-out infinite; }
+        @keyframes eqBounce { 0%, 100% { height: 5px; } 50% { height: 26px; } }
         .r-hero-inner { position: relative; z-index: 2; max-width: 740px; margin: 0 auto; text-align: center; }
         .r-eyebrow { font-size: 13px; letter-spacing: 0.5px; color: #8f8f99; margin-bottom: 24px; font-weight: 500; }
         .r-hero-title { font-family: 'Space Grotesk', sans-serif; font-size: clamp(2.1rem, 5vw, 3.6rem); font-weight: 600; line-height: 1.12; letter-spacing: -0.02em; margin-bottom: 24px; }
@@ -403,9 +434,12 @@ export default function LandingPage() {
 
         /* Modes */
         .r-modes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; margin-top: 56px; }
-        .r-mode-card { border-radius: 14px; padding: 32px 28px; background: #0e0e12; border: 1px solid rgba(255,255,255,0.08); transition: border-color 0.2s ease, transform 0.2s ease; }
-        .r-mode-card:hover { border-color: color-mix(in srgb, var(--accent) 50%, transparent); transform: translateY(-3px); }
-        .r-mode-dot { display: block; width: 8px; height: 8px; border-radius: 999px; background: var(--accent); margin-bottom: 20px; }
+        .r-mode-card { position: relative; border-radius: 14px; padding: 32px 28px; background: #0e0e12; border: 1px solid rgba(255,255,255,0.08); transition: border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease; overflow: hidden; }
+        .r-mode-card::before { content: ''; position: absolute; inset: -1px; border-radius: 14px; padding: 1px; background: linear-gradient(135deg, var(--accent), transparent 40%); -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask-composite: exclude; opacity: 0; transition: opacity 0.3s ease; }
+        .r-mode-card:hover { transform: translateY(-5px); box-shadow: 0 20px 50px -24px color-mix(in srgb, var(--accent) 60%, transparent); }
+        .r-mode-card:hover::before { opacity: 1; }
+        .r-mode-dot { display: block; width: 8px; height: 8px; border-radius: 999px; background: var(--accent); margin-bottom: 20px; box-shadow: 0 0 12px 2px color-mix(in srgb, var(--accent) 70%, transparent); animation: dotPulse 2.4s ease-in-out infinite; }
+        @keyframes dotPulse { 0%, 100% { opacity: 0.7; } 50% { opacity: 1; } }
         .r-mode-name { font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 18px; margin-bottom: 12px; }
         .r-mode-desc { font-size: 13.5px; color: #a3a3ad; line-height: 1.6; margin-bottom: 22px; }
         .r-mode-points { list-style: none; padding: 0; margin: 0 0 26px; display: flex; flex-direction: column; gap: 10px; }
@@ -416,7 +450,8 @@ export default function LandingPage() {
 
         /* Trust */
         .r-trust-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; margin-top: 56px; }
-        .r-trust-card { padding: 28px 26px; border-radius: 14px; background: #0e0e12; border: 1px solid rgba(255,255,255,0.08); }
+        .r-trust-card { padding: 28px 26px; border-radius: 14px; background: #0e0e12; border: 1px solid rgba(255,255,255,0.08); transition: border-color 0.25s ease, transform 0.25s ease; }
+        .r-trust-card:hover { transform: translateY(-4px); border-color: rgba(232,51,107,0.4); box-shadow: 0 18px 44px -26px rgba(232,51,107,0.5); }
         .r-trust-title { font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 15.5px; margin-bottom: 10px; }
         .r-trust-desc { font-size: 13px; color: #8f8f99; line-height: 1.65; }
 
