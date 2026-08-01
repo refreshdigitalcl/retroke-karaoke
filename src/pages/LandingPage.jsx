@@ -232,9 +232,15 @@ export default function LandingPage() {
       {/* COMO FUNCIONA */}
       <section className="r-section r-section-alt r-bg-floor" id="como-funciona">
         <span className="r-floor-topglow" aria-hidden="true" />
-        <span className="r-retro-sun sun2" aria-hidden="true" />
         <span className="r-floor-grid" aria-hidden="true" />
-        <span className="r-floor-horizon" aria-hidden="true" />
+        <span className="r-neon-mic" aria-hidden="true">🎤</span>
+        <span className="r-neon-vinyl" aria-hidden="true">
+          <span className="r-vinyl-ring" />
+          <span className="r-vinyl-hole" />
+        </span>
+        <span className="r-note n1" aria-hidden="true">♪</span>
+        <span className="r-note n2" aria-hidden="true">♫</span>
+        <span className="r-note n3" aria-hidden="true">♪</span>
         <Reveal>
           <div className="r-section-inner">
             <p className="r-kicker center">Cómo funciona</p>
@@ -506,7 +512,20 @@ export default function LandingPage() {
         /* Fondo "Como funciona": piso perspectiva synthwave */
         .r-bg-floor { }
         .r-floor-topglow { position: absolute; top: -10%; left: 50%; transform: translateX(-50%); width: 70%; height: 40%; background: radial-gradient(ellipse, rgba(139,60,224,0.22), transparent 70%); }
-        .sun2 { top: auto; bottom: 40%; left: 50%; right: auto; transform: translateX(-50%); width: 220px; height: 220px; opacity: 0.16; }
+
+        .r-neon-mic { position: absolute; top: 12%; right: 9%; font-size: 64px; opacity: 0.5; filter: drop-shadow(0 0 18px rgba(232,51,107,0.7)) drop-shadow(0 0 34px rgba(232,51,107,0.4)); animation: micSway 6s ease-in-out infinite; transform-origin: top center; }
+        @keyframes micSway { 0%, 100% { transform: rotate(-6deg) translateY(0); } 50% { transform: rotate(6deg) translateY(-8px); } }
+
+        .r-neon-vinyl { position: absolute; bottom: 10%; left: 6%; width: 120px; height: 120px; display: block; animation: vinylSpin 12s linear infinite; opacity: 0.4; }
+        @keyframes vinylSpin { to { transform: rotate(360deg); } }
+        .r-vinyl-ring { position: absolute; inset: 0; border-radius: 999px; border: 2px solid rgba(34,195,230,0.6); box-shadow: 0 0 20px 2px rgba(34,195,230,0.4), inset 0 0 0 14px rgba(255,255,255,0.02), inset 0 0 0 15px rgba(34,195,230,0.25), inset 0 0 0 30px rgba(255,255,255,0.02), inset 0 0 0 31px rgba(34,195,230,0.18); }
+        .r-vinyl-hole { position: absolute; top: 50%; left: 50%; width: 12px; height: 12px; border-radius: 999px; background: #22c3e6; transform: translate(-50%, -50%); box-shadow: 0 0 10px 2px rgba(34,195,230,0.8); }
+
+        .r-note { position: absolute; font-family: 'Space Grotesk', sans-serif; opacity: 0.55; animation: noteFloat 5s ease-in-out infinite; }
+        .n1 { top: 20%; left: 14%; font-size: 30px; color: #ff6fa5; text-shadow: 0 0 14px rgba(255,111,165,0.7); animation-delay: 0s; }
+        .n2 { top: 62%; right: 20%; font-size: 24px; color: #8b7bff; text-shadow: 0 0 14px rgba(139,123,255,0.7); animation-delay: -1.8s; }
+        .n3 { bottom: 16%; right: 40%; font-size: 20px; color: #22c3e6; text-shadow: 0 0 14px rgba(34,195,230,0.7); animation-delay: -3.2s; }
+        @keyframes noteFloat { 0%, 100% { transform: translateY(0) rotate(-6deg); } 50% { transform: translateY(-14px) rotate(6deg); } }
         .r-floor-grid {
           position: absolute; left: 0; right: 0; bottom: 0; height: 48%;
           background-image: linear-gradient(rgba(232,51,107,0.28) 1px, transparent 1px), linear-gradient(90deg, rgba(232,51,107,0.28) 1px, transparent 1px);
@@ -516,7 +535,7 @@ export default function LandingPage() {
           mask-image: linear-gradient(to top, black, transparent 85%);
           opacity: 0.75;
         }
-        .r-floor-horizon { position: absolute; left: 10%; right: 10%; bottom: 55%; height: 1px; background: linear-gradient(90deg, transparent, rgba(232,51,107,0.5), rgba(76,63,224,0.5), transparent); filter: blur(0.5px); box-shadow: 0 0 20px 2px rgba(232,51,107,0.3); }
+
 
         /* Fondo "El publico como protagonista": foto ambiental */
         .r-bg-ambient { background-size: cover; background-position: center 30%; }
