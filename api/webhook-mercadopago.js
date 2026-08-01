@@ -46,36 +46,6 @@ export default async function handler(req, res) {
       return
     }
 
-    if (String(externalRef).indexOf('store_order_') === 0) {
-      var orderId = String(externalRef).replace('store_order_', '')
-
-      var existingOrder = await supabaseAdmin
-        .from('store_orders')
-        .select('id, status')
-        .eq('id', orderId)
-        .maybeSingle()
-
-      if (!existingOrder.data) {
-        res.status(200).send('order_not_found')
-        return
-      }
-
-      if (existingOrder.data.status === 'paid') {
-        res.status(200).send('already_processed')
-        return
-      }
-
-      if (payment.status === 'approved') {
-        await supabaseAdmin
-          .from('store_orders')
-          .update({ status: 'paid', mp_payment_id: String(payment.id) })
-          .eq('id', orderId)
-      }
-
-      res.status(200).send('ok')
-      return
-    }
-
     var subResult = await supabaseAdmin
       .from('subscriptions')
       .select('id, workspace_id')
