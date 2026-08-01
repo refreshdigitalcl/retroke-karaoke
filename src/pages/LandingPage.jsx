@@ -175,7 +175,7 @@ export default function LandingPage() {
           </div>
           <p className="r-eyebrow">Plataforma de entretenimiento en vivo</p>
           <h1 className="r-hero-title">
-            El escenario, reinventado<br />para cada mesa.
+            Todos tienen un lugar en el escenario.
           </h1>
           <p className="r-hero-sub">
             Retroke coordina la cola, el escenario y la audiencia en tiempo real,
@@ -202,6 +202,10 @@ export default function LandingPage() {
 
       {/* PRODUCTO */}
       <section className="r-section r-bg-circuit" id="producto">
+        <span className="r-laser r-laser-1" aria-hidden="true" />
+        <span className="r-laser r-laser-2" aria-hidden="true" />
+        <span className="r-laser r-laser-3" aria-hidden="true" />
+        <span className="r-retro-sun" aria-hidden="true" />
         <span className="r-circuit-line l1" aria-hidden="true" />
         <span className="r-circuit-line l2" aria-hidden="true" />
         <span className="r-circuit-dot d1" aria-hidden="true" />
@@ -227,12 +231,14 @@ export default function LandingPage() {
 
       {/* COMO FUNCIONA */}
       <section className="r-section r-section-alt r-bg-floor" id="como-funciona">
+        <span className="r-floor-topglow" aria-hidden="true" />
+        <span className="r-retro-sun sun2" aria-hidden="true" />
         <span className="r-floor-grid" aria-hidden="true" />
         <span className="r-floor-horizon" aria-hidden="true" />
         <Reveal>
           <div className="r-section-inner">
             <p className="r-kicker center">Cómo funciona</p>
-            <h2 className="r-h2 center">Cuatro pasos, sin fricción.</h2>
+            <h2 className="r-h2 center">Todo lo que necesita para vivir la experiencia.</h2>
             <div className="r-steps">
               {STEPS.map(function (s, i) {
                 var colors = ['#e8336b', '#8b3ce0', '#22c3e6', '#4f8ae8']
@@ -286,8 +292,12 @@ export default function LandingPage() {
         <span className="r-ambient-fade" aria-hidden="true" />
         <Reveal>
           <div className="r-section-inner r-split reverse">
-            <div className="r-split-visual">
+            <div className="r-split-visual r-visual-emojis">
               <img src="/landing/premium-dj.jpg" alt="Operador controlando una sesión de Retroke en vivo" loading="lazy" />
+              <span className="r-float-emoji e1" aria-hidden="true">🔥</span>
+              <span className="r-float-emoji e2" aria-hidden="true">🤯</span>
+              <span className="r-float-emoji e3" aria-hidden="true">🫠</span>
+              <span className="r-float-emoji e4" aria-hidden="true">😍</span>
             </div>
             <div className="r-split-text">
               <p className="r-kicker">El público como protagonista</p>
@@ -369,7 +379,22 @@ export default function LandingPage() {
       </section>
 
       <footer className="r-footer">
-        <img src="/landing/retroke-logo.png" alt="Retroke" className="r-logo-img small" />
+        <div className="r-footer-inner">
+          <a href="/inicio" className="r-footer-logo-link">
+            <img src="/landing/retroke-logo.png" alt="Retroke" className="r-logo-img footer" />
+          </a>
+          <nav className="r-footer-links">
+            <a href="#producto">Producto</a>
+            <a href="#modos">Modalidades</a>
+            <a href="#confianza">Confianza</a>
+            <a href="#planes">Planes</a>
+          </nav>
+          <div className="r-footer-actions">
+            <a href="/dj" className="r-link-btn">Iniciar sesión</a>
+            <a href="/precios" className="r-btn r-btn-primary small">Comenzar</a>
+          </div>
+        </div>
+        <div className="r-footer-divider" />
         <p className="r-footer-copy">© {new Date().getFullYear()} Retroke. Todos los derechos reservados.</p>
       </footer>
 
@@ -447,7 +472,8 @@ export default function LandingPage() {
         @keyframes eqBounce { 0%, 100% { height: 5px; } 50% { height: 26px; } }
         .r-hero-inner { position: relative; z-index: 2; max-width: 740px; margin: 0 auto; text-align: center; }
         .r-eyebrow { font-size: 13px; letter-spacing: 0.5px; color: #8f8f99; margin-bottom: 24px; font-weight: 500; }
-        .r-hero-title { font-family: 'Space Grotesk', sans-serif; font-size: clamp(2.1rem, 5vw, 3.6rem); font-weight: 600; line-height: 1.12; letter-spacing: -0.02em; margin-bottom: 24px; background: linear-gradient(100deg, #fff 20%, #ff6fa5 55%, #8b7bff 80%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .r-hero-title { font-family: 'Space Grotesk', sans-serif; font-size: clamp(2.1rem, 5vw, 3.6rem); font-weight: 700; line-height: 1.15; letter-spacing: -0.02em; margin-bottom: 24px; background: linear-gradient(100deg, #fff 10%, #ff6fa5 35%, #8b7bff 60%, #22c3e6 80%, #fff 100%); background-size: 250% auto; -webkit-background-clip: text; background-clip: text; color: transparent; animation: heroTitleShift 8s ease-in-out infinite; }
+        @keyframes heroTitleShift { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
         .r-hero-sub { font-size: 17px; line-height: 1.65; color: #b0b0b8; max-width: 520px; margin: 0 auto 38px; }
         .r-hero-ctas { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-bottom: 56px; }
         .r-hero-stats { display: flex; align-items: center; justify-content: center; gap: 30px; }
@@ -462,7 +488,13 @@ export default function LandingPage() {
         .center-text { text-align: center; }
 
         /* Fondo "Por que es diferente": circuito retro sutil */
-        .r-bg-circuit { background: radial-gradient(ellipse 70% 60% at 15% 10%, rgba(232,51,107,0.05), transparent 60%); }
+        .r-bg-circuit { background: radial-gradient(ellipse 70% 60% at 15% 10%, rgba(232,51,107,0.08), transparent 60%); }
+        .r-laser { position: absolute; height: 1.5px; width: 60%; opacity: 0.55; filter: blur(0.4px); }
+        .r-laser-1 { top: 12%; left: -10%; background: linear-gradient(90deg, transparent, #ff2f78, transparent); transform: rotate(-8deg); box-shadow: 0 0 12px 1px rgba(255,47,120,0.6); animation: laserSweep 7s ease-in-out infinite; }
+        .r-laser-2 { top: 55%; right: -10%; width: 50%; background: linear-gradient(90deg, transparent, #22c3e6, transparent); transform: rotate(6deg); box-shadow: 0 0 12px 1px rgba(34,195,230,0.6); animation: laserSweep 9s ease-in-out infinite reverse; animation-delay: -3s; }
+        .r-laser-3 { bottom: 10%; left: 10%; width: 40%; background: linear-gradient(90deg, transparent, #8b3ce0, transparent); transform: rotate(-4deg); box-shadow: 0 0 12px 1px rgba(139,60,224,0.6); animation: laserSweep 8s ease-in-out infinite; animation-delay: -5s; }
+        @keyframes laserSweep { 0%, 100% { opacity: 0.25; transform: translateY(0) rotate(-8deg); } 50% { opacity: 0.7; transform: translateY(10px) rotate(-4deg); } }
+        .r-retro-sun { position: absolute; top: 8%; right: 6%; width: 180px; height: 180px; border-radius: 999px; background: linear-gradient(180deg, #ff6fa5, #8b3ce0 60%, transparent 60%); opacity: 0.14; background-size: 100% 8px; -webkit-mask-image: repeating-linear-gradient(180deg, black 0px, black 3px, transparent 3px, transparent 6px); mask-image: repeating-linear-gradient(180deg, black 0px, black 3px, transparent 3px, transparent 6px); animation: heroFloat 10s ease-in-out infinite; }
         .r-circuit-line { position: absolute; background: linear-gradient(90deg, transparent, rgba(232,51,107,0.35), transparent); height: 1px; opacity: 0.5; }
         .l1 { top: 22%; left: 0; width: 40%; animation: circuitFlow 8s ease-in-out infinite; }
         .l2 { bottom: 18%; right: 0; width: 32%; background: linear-gradient(90deg, transparent, rgba(76,63,224,0.35), transparent); animation: circuitFlow 8s ease-in-out infinite reverse; animation-delay: -3s; }
@@ -473,14 +505,16 @@ export default function LandingPage() {
 
         /* Fondo "Como funciona": piso perspectiva synthwave */
         .r-bg-floor { }
+        .r-floor-topglow { position: absolute; top: -10%; left: 50%; transform: translateX(-50%); width: 70%; height: 40%; background: radial-gradient(ellipse, rgba(139,60,224,0.22), transparent 70%); }
+        .sun2 { top: auto; bottom: 40%; left: 50%; right: auto; transform: translateX(-50%); width: 220px; height: 220px; opacity: 0.16; }
         .r-floor-grid {
-          position: absolute; left: 0; right: 0; bottom: 0; height: 45%;
-          background-image: linear-gradient(rgba(232,51,107,0.16) 1px, transparent 1px), linear-gradient(90deg, rgba(232,51,107,0.16) 1px, transparent 1px);
+          position: absolute; left: 0; right: 0; bottom: 0; height: 48%;
+          background-image: linear-gradient(rgba(232,51,107,0.28) 1px, transparent 1px), linear-gradient(90deg, rgba(232,51,107,0.28) 1px, transparent 1px);
           background-size: 46px 46px;
           transform: perspective(340px) rotateX(62deg);
           transform-origin: bottom;
           mask-image: linear-gradient(to top, black, transparent 85%);
-          opacity: 0.55;
+          opacity: 0.75;
         }
         .r-floor-horizon { position: absolute; left: 10%; right: 10%; bottom: 55%; height: 1px; background: linear-gradient(90deg, transparent, rgba(232,51,107,0.5), rgba(76,63,224,0.5), transparent); filter: blur(0.5px); box-shadow: 0 0 20px 2px rgba(232,51,107,0.3); }
 
@@ -505,9 +539,10 @@ export default function LandingPage() {
         .dd3 { bottom: 22%; left: 22%; color: #ffd23f; background: #ffd23f; animation-delay: -3s; }
         .dd4 { bottom: 30%; right: 22%; color: #8b7bff; background: #8b7bff; animation-delay: -4.5s; }
         @keyframes discoFloat { 0%, 100% { transform: translateY(0) scale(1); opacity: 0.5; } 50% { transform: translateY(-14px) scale(1.3); opacity: 1; } }
-        .r-kicker { font-size: 13px; font-weight: 600; color: #e8336b; margin-bottom: 14px; letter-spacing: 0.3px; }
-        .r-kicker.center { text-align: center; }
-        .r-h2 { font-family: 'Space Grotesk', sans-serif; font-size: clamp(1.6rem, 3vw, 2.3rem); font-weight: 600; line-height: 1.25; letter-spacing: -0.01em; margin-bottom: 20px; max-width: 620px; }
+        .r-kicker { display: inline-flex; align-items: center; gap: 8px; font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 2px; color: #ff6fa5; margin-bottom: 18px; padding: 6px 14px; border-radius: 999px; border: 1px solid rgba(232,51,107,0.35); background: rgba(232,51,107,0.08); text-shadow: 0 0 12px rgba(232,51,107,0.6); }
+        .r-kicker::before { content: ''; width: 6px; height: 6px; border-radius: 999px; background: currentColor; box-shadow: 0 0 8px 2px currentColor; }
+        .r-kicker.center { margin-left: auto; margin-right: auto; }
+        .r-h2 { font-family: 'Space Grotesk', sans-serif; font-size: clamp(1.6rem, 3vw, 2.3rem); font-weight: 700; line-height: 1.25; letter-spacing: -0.01em; margin-bottom: 20px; max-width: 620px; text-shadow: 0 0 30px rgba(232,51,107,0.18); }
         .r-h2.center { margin-left: auto; margin-right: auto; text-align: center; }
         .r-p { font-size: 15.5px; line-height: 1.75; color: #a3a3ad; max-width: 520px; }
         .r-p.center-p { margin: 0 auto 36px; max-width: 560px; }
@@ -516,6 +551,14 @@ export default function LandingPage() {
         .r-split.reverse .r-split-text { order: 2; }
         .r-split.reverse .r-split-visual { order: 1; }
         .r-split-visual { border-radius: 16px; overflow: hidden; border: 1px solid rgba(232,51,107,0.3); box-shadow: 0 0 0 1px rgba(232,51,107,0.06), 0 30px 70px -30px rgba(232,51,107,0.35); }
+        .r-visual-emojis { position: relative; overflow: visible; }
+        .r-visual-emojis img { border-radius: 16px; }
+        .r-float-emoji { position: absolute; font-size: 34px; filter: drop-shadow(0 6px 14px rgba(0,0,0,0.5)); animation: emojiFloat 4.5s ease-in-out infinite; }
+        .e1 { top: -16px; left: -14px; animation-delay: 0s; }
+        .e2 { top: 14%; right: -18px; font-size: 30px; animation-delay: -1.2s; }
+        .e3 { bottom: 10%; left: -20px; font-size: 32px; animation-delay: -2.4s; }
+        .e4 { bottom: -16px; right: 10%; animation-delay: -3.4s; }
+        @keyframes emojiFloat { 0%, 100% { transform: translateY(0) rotate(-4deg); } 50% { transform: translateY(-12px) rotate(4deg); } }
         .r-split-visual img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
         /* Steps */
@@ -531,9 +574,9 @@ export default function LandingPage() {
         .r-mode-card::before { content: ''; position: absolute; inset: -1px; border-radius: 14px; padding: 1px; background: linear-gradient(135deg, var(--accent), transparent 40%); -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask-composite: exclude; opacity: 0; transition: opacity 0.3s ease; }
         .r-mode-card:hover { transform: translateY(-5px); box-shadow: 0 20px 50px -24px color-mix(in srgb, var(--accent) 60%, transparent); }
         .r-mode-card:hover::before { opacity: 1; }
-        .r-mode-header { position: relative; height: 168px; overflow: hidden; }
-        .r-mode-header img { width: 100%; height: 100%; object-fit: cover; filter: saturate(1.3) contrast(1.05); transition: transform 0.5s ease; transform: scale(1.02); }
-        .r-mode-card:hover .r-mode-header img { transform: scale(1.12); }
+        .r-mode-header { position: relative; height: 168px; overflow: hidden; transform: translateZ(0); }
+        .r-mode-header img { width: 100%; height: 100%; object-fit: cover; filter: saturate(1.3) contrast(1.05); transition: transform 0.5s ease; transform: scale(1.08); backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+        .r-mode-card:hover .r-mode-header img { transform: scale(1.18); }
         .r-mode-header-fade { position: absolute; inset: 0; background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 22%, transparent) 0%, rgba(14,14,18,0.2) 55%, #0e0e12 100%); }
         .r-mode-header-scan { position: absolute; inset: 0; background: linear-gradient(120deg, transparent 40%, color-mix(in srgb, var(--accent) 35%, transparent) 50%, transparent 60%); background-size: 250% 250%; animation: modeScan 5s ease-in-out infinite; opacity: 0.7; }
         @keyframes modeScan { 0% { background-position: 120% 0%; } 100% { background-position: -20% 100%; } }
@@ -574,8 +617,17 @@ export default function LandingPage() {
         .r-final-title { font-family: 'Space Grotesk', sans-serif; font-size: clamp(1.8rem, 3.8vw, 2.8rem); font-weight: 600; line-height: 1.25; letter-spacing: -0.01em; margin-bottom: 34px; background: linear-gradient(100deg, #fff 10%, #ff6fa5 50%, #8b7bff 85%); -webkit-background-clip: text; background-clip: text; color: transparent; }
 
         /* Footer */
-        .r-footer { text-align: center; padding: 40px 6vw 46px; border-top: 1px solid rgba(255,255,255,0.08); }
-        .r-footer-copy { font-size: 12px; color: #6c6c78; }
+        .r-footer { padding: 56px 6vw 40px; border-top: 1px solid rgba(255,255,255,0.08); background: linear-gradient(180deg, transparent, rgba(232,51,107,0.03)); }
+        .r-footer-inner { max-width: 1240px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 24px; padding-bottom: 34px; }
+        .r-footer-logo-link { display: block; }
+        .r-logo-img.footer { height: 54px; width: auto; display: block; filter: drop-shadow(0 0 20px rgba(232,51,107,0.3)); }
+        .r-footer-links { display: flex; gap: 30px; font-size: 13.5px; font-weight: 500; color: #a3a3ad; }
+        .r-footer-links a { color: inherit; text-decoration: none; transition: color 0.15s ease; }
+        .r-footer-links a:hover { color: #fff; }
+        .r-footer-actions { display: flex; align-items: center; gap: 20px; }
+        .r-footer-divider { max-width: 1240px; margin: 0 auto; height: 1px; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent); }
+        .r-footer-copy { font-size: 12px; color: #6c6c78; text-align: center; padding-top: 26px; }
+        @media (max-width: 700px) { .r-footer-inner { flex-direction: column; text-align: center; } }
 
         @media (max-width: 900px) {
           .r-nav-links, .r-nav-actions { display: none; }
