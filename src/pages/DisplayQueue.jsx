@@ -284,12 +284,22 @@ export default function DisplayQueue(props) {
 
       <header className="flex items-center justify-center gap-2.5 relative z-10 pt-4 pb-1 shrink-0">
         {workspacePlan !== 'PRO' ? (
-          <img
-            src="/landing/retroke-logo.png"
-            alt="Retroke"
-            className="h-11 w-auto"
-            style={{ filter: 'drop-shadow(0 0 14px rgba(233,30,140,0.55))' }}
-          />
+          <div
+            className="px-6 py-2.5 rounded-full flex items-center"
+            style={{
+              background: 'rgba(10,6,15,0.72)',
+              backdropFilter: 'blur(6px)',
+              border: '1.5px solid rgba(244,208,63,0.55)',
+              boxShadow: '0 0 28px 4px rgba(233,30,140,0.35), 0 0 0 1px rgba(255,255,255,0.04) inset'
+            }}
+          >
+            <img
+              src="/landing/retroke-logo.png"
+              alt="Retroke"
+              className="h-14 w-auto"
+              style={{ filter: 'drop-shadow(0 0 10px rgba(233,30,140,0.7)) drop-shadow(0 0 20px rgba(139,92,246,0.5))' }}
+            />
+          </div>
         ) : (
           <>
             {logoUrl ? (
