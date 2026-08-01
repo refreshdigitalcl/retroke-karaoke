@@ -47,6 +47,10 @@ export default function Display() {
 
   var isWaiting = hasActiveSession && WAITING_MODES.indexOf(screenMode) !== -1
 
+  var audioDebugState = useState('')
+  var audioDebug = audioDebugState[0]
+  var setAudioDebug = audioDebugState[1]
+
   function startNewWaitingTrack() {
     if (audioRef.current) {
       audioRef.current.pause()
@@ -56,7 +60,16 @@ export default function Display() {
     audio.loop = true
     audio.volume = 0.35
     audio.muted = muted
-    audio.play().catch(function () {})
+    audio.addEventListener('error', function () {
+      var codeMap = { 1: 'ABORTED', 2: 'RED DE RED', 3: 'DECODIFICACION', 4: 'FORMATO/URL NO SOPORTADO' }
+      var code = audio.error ? audio.error.code : '?'
+      setAudioDebug('Error cargando "' + track + '": ' + (codeMap[code] || code))
+    })
+    audio.play().then(function () {
+      setAudioDebug('OK: sonando ' + track)
+    }).catch(function (err) {
+      setAudioDebug('play() rechazado en "' + track + '": ' + err.name + ' - ' + err.message)
+    })
     audioRef.current = audio
   }
 
@@ -129,6 +142,18 @@ export default function Display() {
 
   return (
     <AudioUnlockGate onUnlock={handleUnlock}>
+      {audioDebug && (
+        <div
+          style={{
+            position: 'fixed', bottom: 10, left: 10, right: 10, zIndex: 9999,
+            background: 'rgba(0,0,0,0.85)', color: '#F4D03F', fontSize: 12,
+            padding: '8px 12px', borderRadius: 8, fontFamily: 'monospace',
+            wordBreak: 'break-all'
+          }}
+        >
+          🔊 DEBUG: {audioDebug}
+        </div>
+      )}
       {workspaceType === 'HOME' && <VocalScoreToast sessionId={sessionId} />}
       {!hasActiveSession && lastClosedSession ? (
         <SessionLeaderboard />
