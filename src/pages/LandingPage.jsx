@@ -86,23 +86,23 @@ var MODES = [
   {
     name: 'Bar', accent: '#E8336B', bg: '/landing/bg-bar.jpg',
     desc: 'Para locales que operan karaoke de forma regular y necesitan control sobre múltiples puntos de atención.',
-    points: ['Panel de operación en vivo', 'Gestión de múltiples locales', 'Estadísticas por sesión', 'Identidad de marca propia']
+    points: ['Panel de operación en vivo', 'Gestión de múltiples locales', 'Estadísticas por sesión', 'Identidad de marca propia', 'Reacciones del público en vivo', 'Cola de cantantes sin límite']
   },
   {
     name: 'DJ', accent: '#8B5CF6', bg: '/landing/bg-dj.jpg',
     desc: 'Para animadores y operadores que trabajan en distintos eventos y necesitan un sistema que los acompañe.',
-    points: ['Configuración portátil', 'Control total del evento', 'Calificación en tiempo real', 'Sin instalación en el local']
+    points: ['Configuración portátil', 'Control total del evento', 'Calificación en tiempo real', 'Sin instalación en el local', 'Funciona en cualquier notebook', 'Imagen profesional frente al cliente']
   },
   {
     name: 'Home', accent: '#4F8AE8', bg: '/landing/bg-home.jpg',
     desc: 'Para uso doméstico: convierte cualquier televisor en un escenario, sin equipos adicionales.',
-    points: ['Funciona desde el navegador', 'El teléfono es el micrófono', 'Sin límite de invitados', 'Análisis vocal — próximamente']
+    points: ['Funciona desde el navegador', 'El teléfono es el micrófono', 'Sin límite de invitados', 'Análisis vocal — próximamente', 'Ideal para cumpleaños y juntas', 'Sin costo para comenzar']
   }
 ]
 
 var TRUST_POINTS = [
   { title: 'Procesamiento local', desc: 'El análisis de la voz ocurre en el propio dispositivo del cantante. El audio nunca se transmite a un servidor.' },
-  { title: 'Infraestructura en la nube', desc: 'Construido sobre Supabase y Vercel, con la misma arquitectura que utilizan productos de escala global.' },
+  { title: 'Sin instalaciones', desc: 'Retroke funciona por completo desde el navegador. No requiere descargar ni instalar ninguna aplicación, en ningún dispositivo.' },
   { title: 'Pagos verificados', desc: 'Los cobros se procesan a través de Mercado Pago, con confirmación automática de cada transacción.' }
 ]
 
@@ -168,7 +168,11 @@ export default function LandingPage() {
           <span className="r-hero-beam b2" />
         </div>
         <div className="r-hero-inner">
-          <img src="/landing/retroke-logo.png" alt="Retroke" className="r-hero-logo" />
+          <div className="r-hero-logo-frame">
+            <span className="r-logo-frame-ring" />
+            <span className="r-logo-spark s1" /><span className="r-logo-spark s2" /><span className="r-logo-spark s3" /><span className="r-logo-spark s4" />
+            <img src="/landing/retroke-logo.png" alt="Retroke" className="r-hero-logo" />
+          </div>
           <p className="r-eyebrow">Plataforma de entretenimiento en vivo</p>
           <h1 className="r-hero-title">
             El escenario, reinventado<br />para cada mesa.
@@ -255,15 +259,20 @@ export default function LandingPage() {
               {MODES.map(function (m) {
                 return (
                   <div className="r-mode-card" key={m.name} style={{ '--accent': m.accent }}>
-                    <div className="r-mode-bg" style={{ backgroundImage: 'url(' + m.bg + ')' }} />
-                    <div className="r-mode-bg-fade" />
-                    <span className="r-mode-dot" />
-                    <p className="r-mode-name">{m.name}</p>
-                    <p className="r-mode-desc">{m.desc}</p>
-                    <ul className="r-mode-points">
-                      {m.points.map(function (p) { return <li key={p}>{p}</li> })}
-                    </ul>
-                    <a href="/precios" className="r-mode-link">Ver planes para {m.name} →</a>
+                    <div className="r-mode-header">
+                      <img src={m.bg} alt={'Retroke ' + m.name} loading="lazy" />
+                      <span className="r-mode-header-fade" />
+                      <span className="r-mode-header-scan" />
+                    </div>
+                    <div className="r-mode-body">
+                      <span className="r-mode-dot" />
+                      <p className="r-mode-name">{m.name}</p>
+                      <p className="r-mode-desc">{m.desc}</p>
+                      <ul className="r-mode-points">
+                        {m.points.map(function (p) { return <li key={p}>{p}</li> })}
+                      </ul>
+                      <a href="/precios" className="r-mode-link">Ver planes para {m.name} →</a>
+                    </div>
                   </div>
                 )
               })}
@@ -317,14 +326,21 @@ export default function LandingPage() {
       </section>
 
       {/* PLANES */}
-      <section className="r-section r-section-alt" id="planes">
+      <section className="r-section r-bg-disco" id="planes">
+        <span className="r-disco-beam db1" aria-hidden="true" />
+        <span className="r-disco-beam db2" aria-hidden="true" />
+        <span className="r-disco-beam db3" aria-hidden="true" />
+        <span className="r-disco-dot dd1" aria-hidden="true" />
+        <span className="r-disco-dot dd2" aria-hidden="true" />
+        <span className="r-disco-dot dd3" aria-hidden="true" />
+        <span className="r-disco-dot dd4" aria-hidden="true" />
         <Reveal>
           <div className="r-section-inner center-text">
             <p className="r-kicker center">Planes</p>
-            <h2 className="r-h2 center">Comience sin costo. Escale cuando lo necesite.</h2>
+            <h2 className="r-h2 center">Una solución para cada forma de vivir Retroke.</h2>
             <p className="r-p center-p">
-              Cada modalidad tiene una versión gratuita funcional y una versión
-              profesional con capacidades adicionales. Sin contratos de permanencia.
+              Desde reuniones en casa hasta operaciones profesionales en bares y eventos,
+              encuentre el plan ideal para cada experiencia.
             </p>
             <a href="/precios" className="r-btn r-btn-primary large">Ver planes y precios</a>
           </div>
@@ -336,9 +352,18 @@ export default function LandingPage() {
         <span className="r-final-glow g1" aria-hidden="true" />
         <span className="r-final-glow g2" aria-hidden="true" />
         <Reveal>
-          <div className="r-section-inner center-text">
-            <h2 className="r-final-title">El escenario está listo.<br />Falta usted.</h2>
-            <a href="/precios" className="r-btn r-btn-primary large">Comenzar ahora</a>
+          <div className="r-section-inner r-final-grid">
+            <div className="r-final-text">
+              <h2 className="r-final-title">El escenario es solo el comienzo.<br />La experiencia la crean todos.</h2>
+              <a href="/precios" className="r-btn r-btn-primary large">Comenzar ahora</a>
+            </div>
+            <div className="r-final-phone-wrap">
+              <div className="r-final-phone">
+                <div className="r-phone-notch" />
+                <img src="/landing/iphone-registro.jpg" alt="Registro para cantar en Retroke, desde el celular" />
+              </div>
+              <span className="r-final-phone-glow" aria-hidden="true" />
+            </div>
           </div>
         </Reveal>
       </section>
@@ -363,7 +388,16 @@ export default function LandingPage() {
         .r-nav-inner { max-width: 1240px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
         .r-logo-img { height: 40px; width: auto; display: block; }
         .r-logo-img.small { height: 34px; margin-bottom: 14px; }
-        .r-hero-logo { width: min(340px, 62vw); height: auto; display: block; margin: 0 auto 32px; filter: drop-shadow(0 0 40px rgba(232,51,107,0.35)) drop-shadow(0 0 80px rgba(76,63,224,0.25)); animation: heroLogoGlow 4s ease-in-out infinite; }
+        .r-hero-logo-frame { position: relative; width: min(420px, 78vw); margin: 0 auto 32px; padding: 34px 30px; border-radius: 22px; background: radial-gradient(ellipse at 50% 30%, rgba(139,60,224,0.18), rgba(14,14,18,0.6) 70%); border: 1px solid rgba(255,255,255,0.09); backdrop-filter: blur(6px); }
+        .r-logo-frame-ring { position: absolute; inset: 0; border-radius: 22px; padding: 1.5px; background: linear-gradient(120deg, #e8336b, #8b3ce0, #22c3e6, #e8336b); background-size: 300% 300%; -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: ringChase 6s linear infinite; }
+        @keyframes ringChase { to { background-position: 300% 50%; } }
+        .r-logo-spark { position: absolute; width: 4px; height: 4px; border-radius: 999px; background: #fff; box-shadow: 0 0 8px 2px currentColor; animation: sparkTwinkle 2.6s ease-in-out infinite; }
+        .s1 { top: 14%; left: 10%; color: #ff6fa5; animation-delay: 0s; }
+        .s2 { top: 70%; left: 6%; color: #22c3e6; animation-delay: -0.8s; }
+        .s3 { top: 20%; right: 8%; color: #8b7bff; animation-delay: -1.6s; }
+        .s4 { bottom: 12%; right: 14%; color: #ff6fa5; animation-delay: -2.2s; }
+        @keyframes sparkTwinkle { 0%, 100% { opacity: 0.2; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.4); } }
+        .r-hero-logo { position: relative; width: 100%; height: auto; display: block; filter: drop-shadow(0 0 40px rgba(232,51,107,0.45)) drop-shadow(0 0 90px rgba(76,63,224,0.35)); animation: heroLogoGlow 4s ease-in-out infinite; }
         @keyframes heroLogoGlow {
           0%, 100% { filter: drop-shadow(0 0 40px rgba(232,51,107,0.35)) drop-shadow(0 0 80px rgba(76,63,224,0.25)); }
           50% { filter: drop-shadow(0 0 56px rgba(232,51,107,0.5)) drop-shadow(0 0 100px rgba(76,63,224,0.4)); }
@@ -457,6 +491,20 @@ export default function LandingPage() {
         /* Fondo "Confianza": red de nodos */
         .r-bg-network { background-image: radial-gradient(rgba(255,255,255,0.09) 1px, transparent 1px); background-size: 30px 30px; }
         .r-network-glow { position: absolute; top: 10%; left: 50%; transform: translateX(-50%); width: 60%; height: 60%; background: radial-gradient(ellipse, rgba(76,63,224,0.26), transparent 65%); animation: heroFloat 14s ease-in-out infinite; }
+
+        /* Fondo "Planes": luces de disco */
+        .r-bg-disco { background: #0c0c10; }
+        .r-disco-beam { position: absolute; top: -20%; width: 3px; height: 140%; opacity: 0.35; transform-origin: top center; filter: blur(1px); }
+        .db1 { left: 20%; background: linear-gradient(180deg, rgba(232,51,107,0.6), transparent); animation: discoSweep 10s ease-in-out infinite; }
+        .db2 { left: 50%; background: linear-gradient(180deg, rgba(34,195,230,0.6), transparent); animation: discoSweep 8s ease-in-out infinite reverse; animation-delay: -2s; }
+        .db3 { left: 78%; background: linear-gradient(180deg, rgba(139,60,224,0.6), transparent); animation: discoSweep 11s ease-in-out infinite; animation-delay: -5s; }
+        @keyframes discoSweep { 0%, 100% { transform: rotate(-16deg); opacity: 0.2; } 50% { transform: rotate(16deg); opacity: 0.45; } }
+        .r-disco-dot { position: absolute; width: 6px; height: 6px; border-radius: 999px; box-shadow: 0 0 14px 3px currentColor; animation: discoFloat 6s ease-in-out infinite; }
+        .dd1 { top: 18%; left: 12%; color: #ff6fa5; background: #ff6fa5; animation-delay: 0s; }
+        .dd2 { top: 30%; right: 14%; color: #22c3e6; background: #22c3e6; animation-delay: -1.5s; }
+        .dd3 { bottom: 22%; left: 22%; color: #ffd23f; background: #ffd23f; animation-delay: -3s; }
+        .dd4 { bottom: 30%; right: 22%; color: #8b7bff; background: #8b7bff; animation-delay: -4.5s; }
+        @keyframes discoFloat { 0%, 100% { transform: translateY(0) scale(1); opacity: 0.5; } 50% { transform: translateY(-14px) scale(1.3); opacity: 1; } }
         .r-kicker { font-size: 13px; font-weight: 600; color: #e8336b; margin-bottom: 14px; letter-spacing: 0.3px; }
         .r-kicker.center { text-align: center; }
         .r-h2 { font-family: 'Space Grotesk', sans-serif; font-size: clamp(1.6rem, 3vw, 2.3rem); font-weight: 600; line-height: 1.25; letter-spacing: -0.01em; margin-bottom: 20px; max-width: 620px; }
@@ -479,13 +527,17 @@ export default function LandingPage() {
 
         /* Modes */
         .r-modes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; margin-top: 56px; }
-        .r-mode-card { position: relative; border-radius: 14px; padding: 32px 28px; background: #0e0e12; border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent); transition: border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease; overflow: hidden; box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 8%, transparent), 0 20px 50px -34px color-mix(in srgb, var(--accent) 70%, transparent); }
+        .r-mode-card { position: relative; border-radius: 14px; background: #0e0e12; border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent); transition: border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease; overflow: hidden; box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 8%, transparent), 0 20px 50px -34px color-mix(in srgb, var(--accent) 70%, transparent); }
         .r-mode-card::before { content: ''; position: absolute; inset: -1px; border-radius: 14px; padding: 1px; background: linear-gradient(135deg, var(--accent), transparent 40%); -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask-composite: exclude; opacity: 0; transition: opacity 0.3s ease; }
         .r-mode-card:hover { transform: translateY(-5px); box-shadow: 0 20px 50px -24px color-mix(in srgb, var(--accent) 60%, transparent); }
         .r-mode-card:hover::before { opacity: 1; }
-        .r-mode-bg { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: 0.28; filter: saturate(1.4) contrast(1.05); transition: opacity 0.35s ease, transform 0.5s ease; transform: scale(1.04); }
-        .r-mode-card:hover .r-mode-bg { opacity: 0.42; transform: scale(1.1); }
-        .r-mode-bg-fade { position: absolute; inset: 0; background: linear-gradient(165deg, rgba(14,14,18,0.55) 0%, #0e0e12 78%), radial-gradient(circle at 85% 0%, color-mix(in srgb, var(--accent) 30%, transparent), transparent 55%); }
+        .r-mode-header { position: relative; height: 168px; overflow: hidden; }
+        .r-mode-header img { width: 100%; height: 100%; object-fit: cover; filter: saturate(1.3) contrast(1.05); transition: transform 0.5s ease; transform: scale(1.02); }
+        .r-mode-card:hover .r-mode-header img { transform: scale(1.12); }
+        .r-mode-header-fade { position: absolute; inset: 0; background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 22%, transparent) 0%, rgba(14,14,18,0.2) 55%, #0e0e12 100%); }
+        .r-mode-header-scan { position: absolute; inset: 0; background: linear-gradient(120deg, transparent 40%, color-mix(in srgb, var(--accent) 35%, transparent) 50%, transparent 60%); background-size: 250% 250%; animation: modeScan 5s ease-in-out infinite; opacity: 0.7; }
+        @keyframes modeScan { 0% { background-position: 120% 0%; } 100% { background-position: -20% 100%; } }
+        .r-mode-body { padding: 26px 28px 32px; }
         .r-mode-dot { display: block; width: 8px; height: 8px; border-radius: 999px; background: var(--accent); margin-bottom: 20px; box-shadow: 0 0 12px 2px color-mix(in srgb, var(--accent) 70%, transparent); animation: dotPulse 2.4s ease-in-out infinite; position: relative; z-index: 2; }
         @keyframes dotPulse { 0%, 100% { opacity: 0.7; } 50% { opacity: 1; } }
         .r-mode-name, .r-mode-desc, .r-mode-points, .r-mode-link { position: relative; z-index: 2; }
@@ -505,7 +557,17 @@ export default function LandingPage() {
         .r-trust-desc { font-size: 13px; color: #8f8f99; line-height: 1.65; }
 
         /* Final CTA */
-        .r-final { padding: 130px 6vw; text-align: center; border-top: 1px solid rgba(255,255,255,0.08); position: relative; overflow: hidden; }
+        .r-final { padding: 110px 6vw; border-top: 1px solid rgba(255,255,255,0.08); position: relative; overflow: hidden; }
+        .r-final-grid { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 40px; align-items: center; }
+        .r-final-text { text-align: left; }
+        .r-final-phone-wrap { position: relative; display: flex; justify-content: center; }
+        .r-final-phone { position: relative; width: 220px; border-radius: 34px; padding: 10px; background: #111; border: 1px solid rgba(255,255,255,0.14); box-shadow: 0 0 0 1px rgba(232,51,107,0.15), 0 40px 80px -30px rgba(76,63,224,0.55); animation: phoneFloat 5s ease-in-out infinite; }
+        .r-phone-notch { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); width: 70px; height: 16px; border-radius: 999px; background: #111; z-index: 2; }
+        .r-final-phone img { width: 100%; display: block; border-radius: 24px; }
+        @keyframes phoneFloat { 0%, 100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-16px) rotate(2deg); } }
+        .r-final-phone-glow { position: absolute; bottom: -20px; left: 50%; transform: translateX(-50%); width: 60%; height: 30px; background: radial-gradient(ellipse, rgba(232,51,107,0.5), transparent 70%); filter: blur(10px); animation: phoneGlowPulse 5s ease-in-out infinite; }
+        @keyframes phoneGlowPulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 0.9; } }
+        @media (max-width: 900px) { .r-final-grid { grid-template-columns: 1fr; } .r-final-text { text-align: center; } .r-final-phone-wrap { order: -1; } }
         .r-final-glow { position: absolute; width: 26rem; height: 26rem; border-radius: 999px; filter: blur(110px); opacity: 0.3; }
         .r-final-glow.g1 { background: #e8336b; top: -6rem; left: 5%; }
         .r-final-glow.g2 { background: #4c3fe0; bottom: -8rem; right: 8%; }
