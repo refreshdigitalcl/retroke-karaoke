@@ -460,16 +460,24 @@ function SpeedTestModal(props) {
 
   useEffect(function () {
     var cancelled = false
-    var testBytes = 6 * 1024 * 1024 // 6MB, suficiente para una medicion estable
+    var PARALLEL_CONNECTIONS = 6
+    var BYTES_PER_CONNECTION = 4 * 1024 * 1024 // 4MB cada una, 24MB en total
 
     function runTest() {
       var startTime = performance.now()
-      fetch('https://speed.cloudflare.com/__down?bytes=' + testBytes, { cache: 'no-store' })
-        .then(function (res) { return res.arrayBuffer() })
-        .then(function (buffer) {
+      var requests = []
+      for (var i = 0; i < PARALLEL_CONNECTIONS; i++) {
+        requests.push(
+          fetch('https://speed.cloudflare.com/__down?bytes=' + BYTES_PER_CONNECTION + '&i=' + i, { cache: 'no-store' })
+            .then(function (res) { return res.arrayBuffer() })
+        )
+      }
+      Promise.all(requests)
+        .then(function (buffers) {
           if (cancelled) return
+          var totalBytes = buffers.reduce(function (sum, b) { return sum + b.byteLength }, 0)
           var seconds = (performance.now() - startTime) / 1000
-          var bits = buffer.byteLength * 8
+          var bits = totalBytes * 8
           var result = (bits / seconds) / 1000000
           setMbps(Math.round(result * 10) / 10)
           setStatus('done')
