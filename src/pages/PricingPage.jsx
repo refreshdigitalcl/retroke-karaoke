@@ -20,8 +20,9 @@ var FEATURE_COPY = {
     ],
     PRO: [
       'Participantes ilimitados',
+      'Análisis vocal Retroke Score',
       'Stickers en reacciones',
-      'Música de fondo con rotación',
+      'Música de fondo Retroke Songs',
       'Datos curiosos del artista',
       'Frases de calificación variadas',
       'Logo propio',
@@ -41,7 +42,7 @@ var FEATURE_COPY = {
     ],
     PRO: [
       'Stickers en reacciones',
-      'Música de fondo con rotación',
+      'Música de fondo Retroke Songs',
       'Datos curiosos del artista',
       'Frases de calificación variadas',
       'Logo propio del local',
@@ -62,7 +63,7 @@ var FEATURE_COPY = {
     PRO: [
       'Eventos ilimitados',
       'Stickers en reacciones',
-      'Música de fondo con rotación',
+      'Música de fondo Retroke Songs',
       'Datos curiosos del artista',
       'Frases de calificación variadas',
       'Logo propio',
@@ -82,14 +83,14 @@ var COMPARISON_TABLE = {
     { label: 'Calificación del público', free: true, pro: true },
     { label: 'Reacciones con emojis', free: true, pro: true },
     { label: 'Stickers en reacciones', free: false, pro: true },
-    { label: 'Música de fondo', free: '1 canción fija', pro: 'Rotación sin repetir' },
+    { label: 'Música de fondo', free: '1 canción fija', pro: 'Retroke Songs' },
     { label: 'Datos curiosos del artista', free: false, pro: true },
     { label: 'Frases de calificación variadas', free: false, pro: true },
     { label: 'Logo propio', free: false, pro: true },
     { label: 'Vista previa de video', free: false, pro: true },
     { label: 'Estadísticas avanzadas', free: false, pro: true },
     { label: 'Historial de sesiones', free: false, pro: true },
-    { label: 'Análisis vocal (Retroke Score)', free: false, pro: 'Próximamente' }
+    { label: 'Análisis vocal (Retroke Score)', free: false, pro: true }
   ],
   BAR: [
     { label: 'Precio', free: 'Gratis', pro: '$24.990/mes' },
@@ -98,7 +99,7 @@ var COMPARISON_TABLE = {
     { label: 'Calificación del público', free: true, pro: true },
     { label: 'Reacciones con emojis', free: true, pro: true },
     { label: 'Stickers en reacciones', free: false, pro: true },
-    { label: 'Música de fondo', free: '1 canción fija', pro: 'Rotación sin repetir' },
+    { label: 'Música de fondo', free: '1 canción fija', pro: 'Retroke Songs' },
     { label: 'Datos curiosos del artista', free: false, pro: true },
     { label: 'Frases de calificación variadas', free: false, pro: true },
     { label: 'Logo propio del local', free: false, pro: true },
@@ -115,7 +116,7 @@ var COMPARISON_TABLE = {
     { label: 'Calificación del público', free: true, pro: true },
     { label: 'Reacciones con emojis', free: true, pro: true },
     { label: 'Stickers en reacciones', free: false, pro: true },
-    { label: 'Música de fondo', free: '1 canción fija', pro: 'Rotación sin repetir' },
+    { label: 'Música de fondo', free: '1 canción fija', pro: 'Retroke Songs' },
     { label: 'Datos curiosos del artista', free: false, pro: true },
     { label: 'Frases de calificación variadas', free: false, pro: true },
     { label: 'Logo propio', free: false, pro: true },
