@@ -13,7 +13,7 @@ function resizeToSquareJpeg(file) {
     reader.onload = function (e) {
       var img = new Image()
       img.onload = function () {
-        var size = 320
+        var size = 240
         var canvas = document.createElement('canvas')
         canvas.width = size
         canvas.height = size
@@ -22,7 +22,11 @@ function resizeToSquareJpeg(file) {
         var sx = (img.width - side) / 2
         var sy = (img.height - side) / 2
         ctx.drawImage(img, sx, sy, side, side, 0, 0, size, size)
-        resolve(canvas.toDataURL('image/jpeg', 0.82))
+        // PNG en vez de JPEG: algunos televisores (Smart TV con Chrome
+        // embebido) decodifican mal el JPEG que genera el canvas del
+        // celular y la foto sale con un tono verde. PNG no tiene ese
+        // problema porque no usa compresión por crominancia.
+        resolve(canvas.toDataURL('image/png'))
       }
       img.onerror = reject
       img.src = e.target.result
