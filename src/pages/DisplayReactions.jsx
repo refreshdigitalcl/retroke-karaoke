@@ -370,7 +370,7 @@ export default function DisplayReactions() {
             </div>
           </div>
 
-          {songInfo.barVisible && (
+          {songInfo.barVisible && hasFeature('artist_facts') && (
             <div key={songInfo.factIndex} className="info-bar-toggle absolute bottom-5 left-1/2 -translate-x-1/2 z-20 w-[92%] max-w-[52rem]">
               <div className="flex items-center gap-5 rounded-2xl border border-purple-500/60 bg-neutral-950/35 backdrop-blur-sm px-7 py-5 min-h-[100px]">
                 <div
