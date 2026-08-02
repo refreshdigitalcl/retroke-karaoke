@@ -179,7 +179,8 @@ export default function DisplayRating() {
 
   useEffect(function () {
     if (!currentSinger) return
-    var audio = new Audio('/sounds/vote-start.mp3')
+    var audio = new Audio('/sounds/nota-loop.mp3')
+    audio.loop = true
     audio.play().catch(function () {})
     return function () {
       audio.pause()

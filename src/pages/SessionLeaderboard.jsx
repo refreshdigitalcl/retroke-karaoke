@@ -264,7 +264,7 @@ export default function SessionLeaderboard() {
   useEffect(function () {
     if (list && list.length > 0 && !applausePlayedRef.current) {
       applausePlayedRef.current = true
-      var audio = new Audio('/sounds/applause.mp3')
+      var audio = new Audio('/sounds/podio-aplausos.mp3')
       applauseAudioRef.current = audio
       audio.play().catch(function () {})
     }
