@@ -384,8 +384,34 @@ export function KaraokeSessionProvider({ children }) {
       )
       .subscribe()
 
+    // Respaldo para celulares: cuando el navegador bloquea la pantalla o
+    // cambias de app, el navegador corta la conexion en tiempo real (websocket)
+    // para ahorrar bateria, y no siempre se reconecta sola al volver. Por eso
+    // recargamos la cola y las calificaciones a mano apenas la pantalla vuelve
+    // a estar visible o el celular recupera el foco — asi nunca queda pegada
+    // esperando un recargo manual.
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') {
+        loadQueue(sessionId)
+        loadRatings(sessionId)
+      }
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('focus', onVisible)
+    window.addEventListener('online', onVisible)
+
+    // Respaldo extra: reintenta cada 10s aunque la pantalla nunca se haya
+    // bloqueado, por si el wifi del local corta el websocket sin avisar.
+    const pollInterval = setInterval(() => {
+      loadQueue(sessionId)
+    }, 10000)
+
     return () => {
       supabase.removeChannel(channel)
+      document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('focus', onVisible)
+      window.removeEventListener('online', onVisible)
+      clearInterval(pollInterval)
     }
   }, [sessionId, loadQueue, loadRatings])
 
