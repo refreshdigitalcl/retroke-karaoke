@@ -94,7 +94,7 @@ function ProfileTab(props) {
         // La foto de perfil funciona a la vez como logo del local en la
         // sala de espera, para no tener dos lugares distintos donde
         // subir "lo mismo".
-        if (workspaceType === 'BAR') {
+        if (workspaceType === 'BAR' && session.hasFeature('custom_branding')) {
           chain = chain.then(function () {
             return session.updateLogo(publicUrl)
           })
@@ -187,9 +187,14 @@ function ProfileTab(props) {
                   <input type="file" accept="image/*" onChange={handleAvatarChange} disabled={uploadingAvatar} className="hidden" />
                 </label>
               </div>
-              {workspaceType === 'BAR' && (
+              {workspaceType === 'BAR' && session.hasFeature('custom_branding') && (
                 <p className="text-xs mb-2" style={{ color: 'var(--text-muted)' }}>
                   Esta imagen también se usa como logo de tu local en la sala de espera.
+                </p>
+              )}
+              {workspaceType === 'BAR' && !session.hasFeature('custom_branding') && (
+                <p className="text-xs mb-2" style={{ color: 'var(--accent-yellow)' }}>
+                  Con el plan PRO, esta imagen se muestra también como logo de tu local en la sala de espera.
                 </p>
               )}
 
@@ -995,6 +1000,62 @@ function DjPanelInner() {
     })
   }
 
+  function handleStartAnotherNight() {
+    if (hasActiveSession) {
+      if (!window.confirm('Esto finaliza la noche actual (se mostrara el podio) para poder iniciar una nueva. ¿Continuar?')) return
+      setClosing(true)
+      closeSession().then(function () {
+        setClosing(false)
+      })
+    }
+  }
+
+  function handleGoToRoomSelection() {
+    window.location.href = '/dj'
+  }
+
+  var closingAllState = useState(false)
+  var closingAll = closingAllState[0]
+  var setClosingAll = closingAllState[1]
+
+  function handleCloseAllMyRooms() {
+    if (!window.confirm('Esto finaliza la noche activa en TODOS tus locales, no solo el actual. ¿Estas seguro?')) return
+    setClosingAll(true)
+    supabase
+      .from('bar_members')
+      .select('bar_id')
+      .eq('user_id', auth.session.user.id)
+      .then(function (result) {
+        var barIds = (result.data || []).map(function (r) { return r.bar_id })
+        // Bar: cierra por bar_id (locales del dueño). DJ/Home: las sesiones
+        // se ligan por workspace_id en vez de bar_id, asi que cubrimos ambos
+        // caminos para que el boton funcione sin importar la modalidad.
+        var orParts = []
+        if (barIds.length > 0) {
+          orParts.push('bar_id.in.(' + barIds.join(',') + ')')
+        }
+        if (workspaceId) {
+          orParts.push('workspace_id.eq.' + workspaceId)
+        }
+        if (orParts.length === 0) {
+          setClosingAll(false)
+          return
+        }
+        return supabase
+          .from('sessions')
+          .update({ status: 'closed', closed_at: new Date().toISOString() })
+          .or(orParts.join(','))
+          .eq('status', 'active')
+          .then(function () {
+            setClosingAll(false)
+            window.location.reload()
+          })
+      })
+      .catch(function () {
+        setClosingAll(false)
+      })
+  }
+
   if (auth.loading || barLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-page)' }}>
@@ -1188,6 +1249,29 @@ function DjPanelInner() {
             style={{ borderColor: 'var(--accent-magenta)', color: 'var(--accent-magenta)' }}
           >
             {closing ? 'Finalizando...' : '🏁 Finalizar noche'}
+          </button>
+          <button
+            onClick={handleStartAnotherNight}
+            disabled={closing}
+            className="text-sm px-3 py-2 min-h-9 rounded-lg border disabled:opacity-50 leading-tight text-center"
+            style={{ borderColor: 'var(--accent-purple)', color: 'var(--accent-purple)' }}
+          >
+            🌙 Iniciar otra noche
+          </button>
+          <button
+            onClick={handleGoToRoomSelection}
+            className="text-sm px-3 py-2 min-h-9 rounded-lg border leading-tight text-center"
+            style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}
+          >
+            🚪 Ir a selección de salas
+          </button>
+          <button
+            onClick={handleCloseAllMyRooms}
+            disabled={closingAll}
+            className="text-sm px-3 py-2 min-h-9 rounded-lg border disabled:opacity-50 leading-tight text-center"
+            style={{ borderColor: 'var(--accent-magenta)', color: 'var(--accent-magenta)' }}
+          >
+            {closingAll ? 'Cerrando...' : '🔒 Cerrar todas mis salas'}
           </button>
           <button
             onClick={function () {

@@ -180,6 +180,11 @@ export default function PricingPage() {
                       🎁 {plan.trial_days} días de prueba gratis
                     </p>
                   )}
+                  {!isPro && (
+                    <p className="text-sm font-semibold mb-4" style={{ color: '#7ED957' }}>
+                      🎁 Incluye 24 horas de la versión PRO
+                    </p>
+                  )}
                   <div className="flex flex-col gap-2.5 mt-4 mb-8 flex-1">
                     {features.map(function (f, i) {
                       return (
@@ -198,7 +203,7 @@ export default function PricingPage() {
                       border: isPro ? 'none' : '2px solid rgba(139,92,246,0.5)'
                     }}
                   >
-                    {plan.price_monthly > 0 ? 'Comenzar prueba gratis' : 'Empezar gratis'}
+                    {isPro ? 'Elegir Plan PRO' : 'Empezar gratis'}
                   </a>
                 </div>
               )

@@ -398,11 +398,6 @@ export default function DisplayResult() {
           position: relative;
           border-color: rgba(244, 208, 63, 0.75);
           background: linear-gradient(160deg, rgba(139,92,246,0.16), rgba(10,8,20,0.94) 55%);
-          animation: notaFinalPanelGlow 2.6s ease-in-out infinite;
-        }
-        @keyframes notaFinalPanelGlow {
-          0%, 100% { box-shadow: 0 0 45px -10px rgba(244, 208, 63, 0.7), 0 0 80px -25px rgba(139, 92, 246, 0.6); }
-          50% { box-shadow: 0 0 65px -6px rgba(244, 208, 63, 0.95), 0 0 100px -18px rgba(233, 30, 140, 0.7); }
         }
         .nota-final-number {
           font-size: 6.5rem;

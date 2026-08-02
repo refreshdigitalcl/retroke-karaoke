@@ -210,6 +210,9 @@ export default function DisplayQueue(props) {
   var musicEnabled = props.musicEnabled
   var session = useKaraokeSession()
   var barName = session.barName
+  var speedTestOpenState = useState(false)
+  var speedTestOpen = speedTestOpenState[0]
+  var setSpeedTestOpen = speedTestOpenState[1]
   var workspacePlan = session.workspacePlan
   var logoUrl = session.hasFeature('custom_branding') ? session.logoUrl : null
   var spaceParam = session.spaceParam
@@ -270,6 +273,14 @@ export default function DisplayQueue(props) {
           </button>
         )}
         <button
+          onClick={function () { setSpeedTestOpen(true) }}
+          className="w-11 h-11 rounded-full flex items-center justify-center border-2 transition-colors sound-neon-btn"
+          style={{ borderColor: '#F4D03F', background: 'rgba(15,10,20,0.85)' }}
+          title="Test de velocidad de internet"
+        >
+          <span className="text-lg">📶</span>
+        </button>
+        <button
           onClick={function () {
             try { localStorage.removeItem('retroke_last_room') } catch (e) {}
             window.location.href = '/'
@@ -281,6 +292,8 @@ export default function DisplayQueue(props) {
           <span className="text-lg">🏠</span>
         </button>
       </div>
+
+      {speedTestOpen && <SpeedTestModal onClose={function () { setSpeedTestOpen(false) }} />}
 
       <header className="flex items-center justify-center gap-2.5 relative z-10 pt-4 pb-1 shrink-0">
         {workspacePlan !== 'PRO' ? (
@@ -432,6 +445,100 @@ export default function DisplayQueue(props) {
           <Backstage queue={queue} />
         </div>
       </main>
+    </div>
+  )
+}
+
+function SpeedTestModal(props) {
+  var onClose = props.onClose
+  var statusState = useState('testing')
+  var status = statusState[0]
+  var setStatus = statusState[1]
+  var mbpsState = useState(null)
+  var mbps = mbpsState[0]
+  var setMbps = mbpsState[1]
+
+  useEffect(function () {
+    var cancelled = false
+    var testBytes = 6 * 1024 * 1024 // 6MB, suficiente para una medicion estable
+
+    function runTest() {
+      var startTime = performance.now()
+      fetch('https://speed.cloudflare.com/__down?bytes=' + testBytes, { cache: 'no-store' })
+        .then(function (res) { return res.arrayBuffer() })
+        .then(function (buffer) {
+          if (cancelled) return
+          var seconds = (performance.now() - startTime) / 1000
+          var bits = buffer.byteLength * 8
+          var result = (bits / seconds) / 1000000
+          setMbps(Math.round(result * 10) / 10)
+          setStatus('done')
+        })
+        .catch(function () {
+          if (!cancelled) setStatus('error')
+        })
+    }
+
+    runTest()
+    return function () { cancelled = true }
+  }, [])
+
+  function calidad(v) {
+    if (v === null) return null
+    if (v >= 15) return { label: 'Excelente para video en vivo', color: '#7ED957' }
+    if (v >= 5) return { label: 'Suficiente, sin margen de sobra', color: '#F4D03F' }
+    return { label: 'Puede cortarse el video', color: '#E9544A' }
+  }
+
+  var q = calidad(mbps)
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center px-6"
+      style={{ background: 'rgba(0,0,0,0.75)' }}
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-sm rounded-3xl border-2 px-8 py-9 text-center"
+        style={{ borderColor: '#F4D03F', background: 'rgba(15,10,20,0.96)', boxShadow: '0 0 40px -8px rgba(244,208,63,0.5)' }}
+        onClick={function (e) { e.stopPropagation() }}
+      >
+        <p className="text-2xl font-extrabold text-white mb-1">📶 Test de velocidad</p>
+        <p className="text-sm text-neutral-400 mb-6">Conexión de esta pantalla</p>
+
+        {status === 'testing' && (
+          <>
+            <div className="w-10 h-10 mx-auto rounded-full border-4 border-t-transparent animate-spin mb-5" style={{ borderColor: '#8B5CF6', borderTopColor: 'transparent' }} />
+            <p className="text-neutral-300 text-sm">Midiendo...</p>
+          </>
+        )}
+
+        {status === 'done' && (
+          <>
+            <p className="text-6xl font-extrabold leading-none mb-2" style={{ color: '#F4D03F' }}>
+              {mbps}
+            </p>
+            <p className="text-sm uppercase tracking-widest text-neutral-400 mb-4">Mbps de bajada</p>
+            {q && (
+              <p className="text-base font-bold mb-6" style={{ color: q.color }}>
+                {q.label}
+              </p>
+            )}
+          </>
+        )}
+
+        {status === 'error' && (
+          <p className="text-base text-red-400 mb-6">No se pudo medir la velocidad. Revisa la conexión.</p>
+        )}
+
+        <button
+          onClick={onClose}
+          className="w-full h-11 rounded-xl font-bold text-white"
+          style={{ background: 'linear-gradient(90deg, #E91E8C, #8B5CF6)' }}
+        >
+          Cerrar
+        </button>
+      </div>
     </div>
   )
 }
