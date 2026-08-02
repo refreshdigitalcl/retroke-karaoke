@@ -1,10 +1,16 @@
 export var MEME_REACTIONS = [
-  { id: 'meme-nino-boca', url: '/memes/meme-nino-boca.png', sentiment: 0.9 },
-  { id: 'meme-nino-manos', url: '/memes/meme-nino-manos.png', sentiment: 0.75 },
-  { id: 'meme-nino-triste', url: '/memes/meme-nino-triste.png', sentiment: 0.5 },
-  { id: 'meme-nina', url: '/memes/meme-nina.png', sentiment: 0.35 },
-  { id: 'meme-bebe', url: '/memes/meme-bebe.jpg', sentiment: 0.25 },
-  { id: 'meme-eyeroll', url: '/memes/meme-eyeroll.gif', sentiment: 0.15 }
+  { id: 'sticker-01', url: '/stickers/sticker-01.gif', sentiment: 0.95 },
+  { id: 'sticker-02', url: '/stickers/sticker-02.gif', sentiment: 0.85 },
+  { id: 'sticker-03', url: '/stickers/sticker-03.gif', sentiment: 0.75 },
+  { id: 'sticker-04', url: '/stickers/sticker-04.gif', sentiment: 0.65 },
+  { id: 'sticker-05', url: '/stickers/sticker-05.gif', sentiment: 0.55 },
+  { id: 'sticker-06', url: '/stickers/sticker-06.gif', sentiment: 0.45 },
+  { id: 'sticker-07', url: '/stickers/sticker-07.gif', sentiment: 0.35 },
+  { id: 'sticker-08', url: '/stickers/sticker-08.gif', sentiment: 0.25 },
+  { id: 'sticker-09', url: '/stickers/sticker-09.gif', sentiment: 0.15 },
+  { id: 'sticker-10', url: '/stickers/sticker-10.gif', sentiment: 0.5 },
+  { id: 'sticker-11', url: '/stickers/sticker-11.gif', sentiment: 0.6 },
+  { id: 'sticker-12', url: '/stickers/sticker-12.gif', sentiment: 0.4 }
 ]
 
 export function isMemeReaction(value) {
