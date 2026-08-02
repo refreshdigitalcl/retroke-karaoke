@@ -349,13 +349,13 @@ export default function DisplayQueue(props) {
           </p>
 
           <div className="relative rounded-[1.75rem] px-6 py-4 flex flex-col items-center gap-2.5" style={{ background: 'rgba(12,8,20,0.9)', border: '2.5px solid #F4D03F', boxShadow: '0 0 24px -6px rgba(244,208,63,0.4)' }}>
-            <span className="qr-corner qr-corner-tl" />
-            <span className="qr-corner qr-corner-tr" />
-            <span className="qr-corner qr-corner-bl" />
-            <span className="qr-corner qr-corner-br" />
+            <span className="qr-float-emoji qe-fire" aria-hidden="true">🔥</span>
+            <span className="qr-float-emoji qe-mind" aria-hidden="true">🤯</span>
+            <span className="qr-float-emoji qe-bomb" aria-hidden="true">💣</span>
+            <span className="qr-float-emoji qe-love" aria-hidden="true">😍</span>
             <QRCode url={registerUrl} size={qrSize} />
             <p className="font-bold tracking-wide" style={{ color: '#8B5CF6', fontSize: 'clamp(13px, 1.7vh, 16px)' }}>
-              karaoke.cl/{sessionCode}
+              {barName}
             </p>
           </div>
 
@@ -408,17 +408,21 @@ export default function DisplayQueue(props) {
             .sound-neon-btn {
               box-shadow: 0 0 14px -2px rgba(244, 208, 63, 0.5);
             }
-            .qr-corner {
+            .qr-float-emoji {
               position: absolute;
-              width: 22px;
-              height: 22px;
-              border-color: #8B5CF6;
-              border-style: solid;
+              font-size: clamp(20px, 2.6vh, 30px);
+              filter: drop-shadow(0 4px 10px rgba(0,0,0,0.5));
+              animation: qrEmojiFloat 4s ease-in-out infinite;
+              pointer-events: none;
             }
-            .qr-corner-tl { top: -3px; left: -3px; border-width: 3px 0 0 3px; border-top-left-radius: 12px; }
-            .qr-corner-tr { top: -3px; right: -3px; border-width: 3px 3px 0 0; border-top-right-radius: 12px; }
-            .qr-corner-bl { bottom: -3px; left: -3px; border-width: 0 0 3px 3px; border-bottom-left-radius: 12px; }
-            .qr-corner-br { bottom: -3px; right: -3px; border-width: 0 3px 3px 0; border-bottom-right-radius: 12px; }
+            .qe-fire { top: -14px; left: -16px; animation-delay: 0s; }
+            .qe-mind { top: -14px; right: -16px; animation-delay: -1s; }
+            .qe-bomb { bottom: -14px; left: -16px; animation-delay: -2s; }
+            .qe-love { bottom: -14px; right: -16px; animation-delay: -3s; }
+            @keyframes qrEmojiFloat {
+              0%, 100% { transform: translateY(0) rotate(-6deg); }
+              50% { transform: translateY(-8px) rotate(6deg); }
+            }
           `}</style>
         </div>
 

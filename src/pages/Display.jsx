@@ -47,6 +47,8 @@ export default function Display() {
   var setMuted = mutedState[1]
 
   var isWaiting = hasActiveSession && WAITING_MODES.indexOf(screenMode) !== -1
+  var isWaitingRef = useRef(isWaiting)
+  isWaitingRef.current = isWaiting
 
   function playTrack(url, loop, onEnded) {
     if (audioRef.current) {
@@ -81,14 +83,15 @@ export default function Display() {
 
   // Primer arranque: se dispara en el mismo clic de "activar sonido" (sincrono),
   // asi los navegadores de Smart TV mas estrictos lo permiten igual que al video.
-  // OJO: no condicionamos esto a "isWaiting", porque justo al cargar la pagina
-  // ese dato puede no estar listo todavia (se calcula con datos que llegan de
-  // a poco desde el servidor). Si esperamos a que este listo, el toque real
-  // del usuario ya paso y el navegador bloquea el audio igual. Arrancamos
-  // siempre en el toque; el otro efecto se encarga de pausar mas abajo si
-  // resulta que no correspondia.
+  // Consultamos isWaitingRef (siempre al dia) en vez de isWaiting directo: si en
+  // el instante del toque el dato real ya dice que NO estamos en la sala de
+  // espera (por ejemplo, alguien recargo estando en la pantalla de calificacion),
+  // no arrancamos musica de espera para nada. Si el dato genuinamente no llego
+  // a tiempo, el efecto de abajo la arranca apenas isWaiting pase a true.
   function handleUnlock() {
-    startNewWaitingTrack()
+    if (isWaitingRef.current) {
+      startNewWaitingTrack()
+    }
   }
 
   // Transiciones posteriores (volver a la sala de espera despues de una cancion,
