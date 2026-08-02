@@ -81,21 +81,21 @@ function PodiumColumn(props) {
 
   return (
     <div
-      className="podium-pop relative flex-1 h-full flex flex-col items-center justify-center px-4 border-x"
+      className="podium-pop relative flex-1 h-full flex flex-col items-center justify-center px-4 border-x min-h-0"
       style={{ borderColor: 'rgba(139, 92, 246, 0.25)', animationDelay: delay }}
     >
       {isFirst && <ConfettiBurst />}
 
-      <span className="relative z-10 text-6xl md:text-7xl mb-3">
+      <span className="relative z-10 mb-1" style={{ fontSize: 'clamp(1.6rem, 5vh, 3.5rem)' }}>
         {place === 1 ? '👑' : place === 2 ? '🥈' : '🥉'}
       </span>
 
       <div
-        className="relative z-10 rounded-full overflow-hidden flex items-center justify-center shrink-0 mb-5 border-4"
+        className="relative z-10 rounded-full overflow-hidden flex items-center justify-center shrink-0 mb-2 border-4"
         style={{
-          width: 180,
-          height: 180,
-          fontSize: 80,
+          width: 'clamp(70px, 15vh, 180px)',
+          height: 'clamp(70px, 15vh, 180px)',
+          fontSize: 'clamp(30px, 6.5vh, 80px)',
           background: '#E91E8C',
           borderColor: accent,
           boxShadow: '0 0 40px 10px ' + accent + '70'
@@ -109,16 +109,16 @@ function PodiumColumn(props) {
       </div>
 
       <p
-        className="relative z-10 text-6xl md:text-7xl font-extrabold leading-none mb-4"
-        style={{ color: accent, textShadow: '0 0 20px ' + accent + '80' }}
+        className="relative z-10 font-extrabold leading-none mb-1.5"
+        style={{ color: accent, textShadow: '0 0 20px ' + accent + '80', fontSize: 'clamp(1.6rem, 5vh, 3.5rem)' }}
       >
         {place}
       </p>
 
-      <p className="relative z-10 text-2xl md:text-3xl font-extrabold text-white text-center max-w-[280px] truncate">
+      <p className="relative z-10 font-extrabold text-white text-center max-w-[280px] truncate" style={{ fontSize: 'clamp(0.85rem, 2.2vh, 1.5rem)' }}>
         {entry.name}
       </p>
-      <p className="relative z-10 text-xl md:text-2xl font-bold text-yellow-400 mt-2">
+      <p className="relative z-10 font-bold text-yellow-400 mt-1" style={{ fontSize: 'clamp(0.75rem, 1.8vh, 1.25rem)' }}>
         {entry.average.toFixed(1)}
       </p>
     </div>
@@ -208,15 +208,15 @@ function useNightStats(sessionId, list) {
 
 function StatCard(props) {
   return (
-    <div className="rounded-2xl border-2 border-purple-500/50 bg-neutral-950/85 px-6 py-6 flex flex-col items-center text-center">
-      <span className="text-4xl mb-2">{props.icon}</span>
-      <p className="text-sm uppercase tracking-widest text-yellow-400 font-bold mb-2">
+    <div className="rounded-2xl border-2 border-purple-500/50 bg-neutral-950/85 flex flex-col items-center text-center" style={{ padding: 'clamp(10px, 2vh, 24px) clamp(12px, 2vw, 24px)' }}>
+      <span className="mb-1" style={{ fontSize: 'clamp(1.2rem, 3vh, 2.25rem)' }}>{props.icon}</span>
+      <p className="uppercase tracking-widest text-yellow-400 font-bold mb-1" style={{ fontSize: 'clamp(0.6rem, 1.3vh, 0.875rem)' }}>
         {props.label}
       </p>
-      <p className="text-2xl md:text-3xl font-extrabold text-white leading-tight">
+      <p className="font-extrabold text-white leading-tight" style={{ fontSize: 'clamp(0.9rem, 2.2vh, 1.875rem)' }}>
         {props.value}
       </p>
-      {props.sub && <p className="text-sm text-neutral-400 mt-1">{props.sub}</p>}
+      {props.sub && <p className="text-neutral-400 mt-1" style={{ fontSize: 'clamp(0.65rem, 1.3vh, 0.875rem)' }}>{props.sub}</p>}
     </div>
   )
 }
@@ -299,7 +299,7 @@ export default function SessionLeaderboard() {
   var third = top3[2]
 
   return (
-    <div className="min-h-screen relative overflow-hidden flex flex-col items-center bg-black">
+    <div className="h-screen relative overflow-hidden flex flex-col items-center bg-black">
       <RetroEqualizer />
       <FloatingDecor />
       <FallingParty />
@@ -316,11 +316,11 @@ export default function SessionLeaderboard() {
         <span className="text-lg">🏠</span>
       </button>
 
-      <div className="relative z-10 w-full flex flex-col items-center pt-8 pb-4">
-        <p className="text-sm tracking-[8px] uppercase text-purple-400 mb-2">
+      <div className="relative z-10 w-full flex flex-col items-center shrink-0" style={{ paddingTop: 'clamp(10px, 2.5vh, 32px)', paddingBottom: 'clamp(4px, 1vh, 16px)' }}>
+        <p className="tracking-[6px] uppercase text-purple-400 mb-1" style={{ fontSize: 'clamp(10px, 1.4vh, 14px)' }}>
           {lastClosedSession.name}
         </p>
-        <h1 className="text-3xl md:text-5xl font-extrabold text-white text-center">
+        <h1 className="font-extrabold text-white text-center leading-tight" style={{ fontSize: 'clamp(1.4rem, 4.2vh, 3rem)' }}>
           🏆 Mejores del karaoke
         </h1>
       </div>
@@ -331,7 +331,7 @@ export default function SessionLeaderboard() {
         </p>
       ) : (
         <>
-          <div className="relative z-10 w-full flex-1 flex flex-col md:flex-row">
+          <div className="relative z-10 w-full flex-1 flex flex-col md:flex-row min-h-0">
             {second && (
               <PodiumColumn entry={second} place={2} accent="#C0C0C0" delay="0.15s" />
             )}
@@ -344,7 +344,10 @@ export default function SessionLeaderboard() {
           </div>
 
           {nightStats && hasFeature('advanced_statistics') && (
-            <div className="relative z-10 w-full max-w-4xl grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 mb-10">
+            <div
+              className="relative z-10 w-full max-w-4xl grid grid-cols-1 sm:grid-cols-3 shrink-0"
+              style={{ gap: 'clamp(6px, 1.2vh, 16px)', padding: '0 clamp(10px, 2vw, 16px)', marginBottom: 'clamp(10px, 2.5vh, 40px)' }}
+            >
               <StatCard
                 icon="🎶"
                 label="Genero de la noche"
@@ -367,8 +370,11 @@ export default function SessionLeaderboard() {
           )}
 
           {nightStats && !hasFeature('advanced_statistics') && (
-            <div className="relative z-10 w-full max-w-md rounded-2xl border-2 border-purple-500/40 bg-neutral-950/70 px-6 py-5 mb-10 text-center">
-              <p className="text-sm text-neutral-400">
+            <div
+              className="relative z-10 w-full max-w-md rounded-2xl border-2 border-purple-500/40 bg-neutral-950/70 text-center shrink-0"
+              style={{ padding: 'clamp(10px, 2vh, 20px) clamp(16px, 3vw, 24px)', marginBottom: 'clamp(10px, 2.5vh, 40px)' }}
+            >
+              <p className="text-neutral-400" style={{ fontSize: 'clamp(0.7rem, 1.5vh, 0.875rem)' }}>
                 🔒 Las estadisticas de la noche estan disponibles en el plan <span className="text-yellow-400 font-bold">PRO</span>
               </p>
             </div>
