@@ -4,14 +4,10 @@ import { MEME_REACTIONS } from '../lib/memeReactions'
 import ThemeToggle from '../components/ThemeToggle'
 
 export default function ReactForm() {
-  const { currentSinger, screenMode, addReaction, reactionEmojis, hasFeature, workspaceType, workspacePlan } = useKaraokeSession()
+  const { currentSinger, screenMode, addReaction, reactionEmojis, hasFeature } = useKaraokeSession()
   var memesEnabled = hasFeature('memes')
-  var isHomeFree = workspaceType === 'HOME' && workspacePlan === 'FREE'
-  var showMemesTab = memesEnabled || isHomeFree
-  // showMemesTab decide si la pestaña SE VE. canUseMemes decide si en verdad
-  // se puede tocar. Antes handleReactMeme solo miraba memesEnabled, asi que
-  // Home Free veia la pestaña pero al tocar un sticker no pasaba nada.
-  var canUseMemes = showMemesTab
+  var showMemesTab = memesEnabled
+  var canUseMemes = memesEnabled
 
   var floatersState = useState([])
   var floaters = floatersState[0]
