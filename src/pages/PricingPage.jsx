@@ -12,60 +12,139 @@ var FEATURE_COPY = {
     FREE: [
       'Hasta 10 participantes por sesión',
       'Registro desde el celular',
-      'Reacciones en tiempo real',
+      'Reacciones con emojis',
       'Calificación del público',
       'Cola de participantes',
-      'Display para TV',
-      'Branding de Retroke'
+      'Música de fondo (1 canción fija)',
+      'Display para TV'
     ],
     PRO: [
-      'Todo lo de Home Basic',
-      'Home Mic (el celular como micrófono)',
-      'Vocal Score básico',
-      'Historial de sesiones',
-      'Estadísticas personales',
-      'Sin publicidad',
-      'Acceso prioritario a nuevas funciones'
+      'Participantes ilimitados',
+      'Stickers en reacciones',
+      'Música de fondo con rotación',
+      'Datos curiosos del artista',
+      'Frases de calificación variadas',
+      'Logo propio',
+      'Vista previa de video',
+      'Estadísticas avanzadas',
+      'Historial de sesiones'
     ]
   },
   BAR: {
     FREE: [
-      'Panel DJ',
-      'Display principal',
+      'Participantes ilimitados por sesión',
+      'Panel DJ y display principal',
       'Registro desde QR',
-      'Reacciones',
-      'Calificaciones',
-      'Branding de Retroke'
+      'Reacciones con emojis',
+      'Calificaciones del público',
+      'Música de fondo (1 canción fija)'
     ],
     PRO: [
-      'Todo lo de Bar Free',
-      'Participantes ilimitados',
-      'Multi-Bar (Workspaces)',
-      'Branding del local',
-      'Dashboard profesional',
-      'Estadísticas completas',
-      'Rankings e historial',
-      'Soporte prioritario'
+      'Stickers en reacciones',
+      'Música de fondo con rotación',
+      'Datos curiosos del artista',
+      'Frases de calificación variadas',
+      'Logo propio del local',
+      'Vista previa de video',
+      'Estadísticas y analítica avanzada',
+      'Múltiples locales',
+      'Historial'
     ]
   },
   DJ: {
     FREE: [
-      'Perfil de DJ',
-      'Panel DJ',
-      'Configuración personal',
-      'Crear eventos (número limitado al mes)',
-      'Registro de participantes'
+      'Hasta 2 eventos al mes',
+      'Panel DJ completo',
+      'Reacciones con emojis',
+      'Calificaciones del público',
+      'Música de fondo (1 canción fija)'
     ],
     PRO: [
-      'Todo lo de DJ Free',
       'Eventos ilimitados',
-      'Perfil profesional',
-      'Branding del DJ',
-      'Dashboard y estadísticas',
-      'Historial completo',
-      'Soporte prioritario'
+      'Stickers en reacciones',
+      'Música de fondo con rotación',
+      'Datos curiosos del artista',
+      'Frases de calificación variadas',
+      'Logo propio',
+      'Vista previa de video',
+      'Estadísticas avanzadas'
     ]
   }
+}
+
+// Tabla comparativa detallada: fila por fila, Free vs PRO, para cada modalidad.
+// free/pro pueden ser: true (incluido), false (no incluido), o un texto (valor especifico).
+var COMPARISON_TABLE = {
+  HOME: [
+    { label: 'Precio', free: 'Gratis', pro: '$8.990/mes' },
+    { label: 'Participantes por sesión', free: '10', pro: 'Ilimitados' },
+    { label: 'Cola de canciones', free: true, pro: true },
+    { label: 'Calificación del público', free: true, pro: true },
+    { label: 'Reacciones con emojis', free: true, pro: true },
+    { label: 'Stickers en reacciones', free: false, pro: true },
+    { label: 'Música de fondo', free: '1 canción fija', pro: 'Rotación sin repetir' },
+    { label: 'Datos curiosos del artista', free: false, pro: true },
+    { label: 'Frases de calificación variadas', free: false, pro: true },
+    { label: 'Logo propio', free: false, pro: true },
+    { label: 'Vista previa de video', free: false, pro: true },
+    { label: 'Estadísticas avanzadas', free: false, pro: true },
+    { label: 'Historial de sesiones', free: false, pro: true },
+    { label: 'Análisis vocal (Retroke Score)', free: false, pro: 'Próximamente' }
+  ],
+  BAR: [
+    { label: 'Precio', free: 'Gratis', pro: '$24.990/mes' },
+    { label: 'Participantes por sesión', free: 'Ilimitados', pro: 'Ilimitados' },
+    { label: 'Cola de canciones', free: true, pro: true },
+    { label: 'Calificación del público', free: true, pro: true },
+    { label: 'Reacciones con emojis', free: true, pro: true },
+    { label: 'Stickers en reacciones', free: false, pro: true },
+    { label: 'Música de fondo', free: '1 canción fija', pro: 'Rotación sin repetir' },
+    { label: 'Datos curiosos del artista', free: false, pro: true },
+    { label: 'Frases de calificación variadas', free: false, pro: true },
+    { label: 'Logo propio del local', free: false, pro: true },
+    { label: 'Vista previa de video', free: false, pro: true },
+    { label: 'Estadísticas avanzadas', free: false, pro: true },
+    { label: 'Analítica avanzada', free: false, pro: true },
+    { label: 'Múltiples locales', free: false, pro: true },
+    { label: 'Historial', free: false, pro: true }
+  ],
+  DJ: [
+    { label: 'Precio', free: 'Gratis', pro: '$19.990/mes' },
+    { label: 'Eventos por mes', free: '2', pro: 'Ilimitados' },
+    { label: 'Cola de canciones', free: true, pro: true },
+    { label: 'Calificación del público', free: true, pro: true },
+    { label: 'Reacciones con emojis', free: true, pro: true },
+    { label: 'Stickers en reacciones', free: false, pro: true },
+    { label: 'Música de fondo', free: '1 canción fija', pro: 'Rotación sin repetir' },
+    { label: 'Datos curiosos del artista', free: false, pro: true },
+    { label: 'Frases de calificación variadas', free: false, pro: true },
+    { label: 'Logo propio', free: false, pro: true },
+    { label: 'Vista previa de video', free: false, pro: true },
+    { label: 'Estadísticas avanzadas', free: false, pro: true }
+  ]
+}
+
+function CellValue(props) {
+  var v = props.value
+  var isPro = props.isPro
+  if (v === true) {
+    return (
+      <span
+        className="inline-flex items-center justify-center w-6 h-6 rounded-full"
+        style={{ background: isPro ? 'rgba(126,217,87,0.18)' : 'rgba(139,92,246,0.18)', color: isPro ? '#7ED957' : '#8B5CF6' }}
+      >
+        ✓
+      </span>
+    )
+  }
+  if (v === false) {
+    return <span className="text-neutral-600">—</span>
+  }
+  return (
+    <span className="font-bold" style={{ color: isPro ? '#F4D03F' : '#c9c3d6', fontSize: '13.5px' }}>
+      {v}
+    </span>
+  )
 }
 
 function formatPrice(value) {
@@ -214,6 +293,64 @@ export default function PricingPage() {
         <p className="text-center text-xs text-neutral-500 mt-10">
           Los pagos en línea llegan muy pronto. Escríbenos si quieres activar tu plan Pro ahora.
         </p>
+
+        {/* TABLA COMPARATIVA DETALLADA */}
+        <div className="mt-20">
+          <div className="text-center mb-8">
+            <p className="text-xs md:text-sm tracking-[5px] uppercase font-bold mb-3" style={{ color: '#8B5CF6' }}>
+              ⚡ Todo en detalle
+            </p>
+            <h2 className="text-2xl md:text-4xl font-extrabold text-white">
+              Free vs PRO, sin letra chica
+            </h2>
+          </div>
+
+          <div className="comparison-wrap rounded-3xl overflow-hidden border-2" style={{ borderColor: 'rgba(139,92,246,0.4)' }}>
+            <table className="w-full border-collapse">
+              <thead>
+                <tr>
+                  <th className="comparison-th-label"></th>
+                  <th className="comparison-th">
+                    <span className="text-sm font-extrabold text-white">Free</span>
+                  </th>
+                  <th className="comparison-th comparison-th-pro">
+                    <span
+                      className="inline-flex items-center gap-1.5 text-sm font-extrabold"
+                      style={{ color: '#F4D03F' }}
+                    >
+                      ⭐ PRO
+                    </span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {(COMPARISON_TABLE[activeGroup] || []).map(function (row, i) {
+                  return (
+                    <tr key={i} className="comparison-row">
+                      <td className="comparison-td-label">{row.label}</td>
+                      <td className="comparison-td">
+                        <CellValue value={row.free} isPro={false} />
+                      </td>
+                      <td className="comparison-td comparison-td-pro">
+                        <CellValue value={row.pro} isPro={true} />
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="flex justify-center mt-8">
+            <a
+              href={'/comenzar?plan=' + (groupPlans.find(function (p) { return p.code === 'PRO' }) || {}).id}
+              className="h-12 px-8 rounded-xl font-bold text-white flex items-center justify-center"
+              style={{ background: 'linear-gradient(90deg, #E91E8C, #8B5CF6)', boxShadow: '0 0 30px -8px rgba(233,30,140,0.7)' }}
+            >
+              ⭐ Elegir Plan PRO
+            </a>
+          </div>
+        </div>
       </div>
 
       <style>{`
@@ -235,6 +372,50 @@ export default function PricingPage() {
         @keyframes planCardIn {
           from { opacity: 0; transform: translateY(10px); }
           to { opacity: 1; transform: translateY(0); }
+        }
+
+        .comparison-wrap {
+          background: rgba(12,8,20,0.9);
+          box-shadow: 0 0 50px -14px rgba(139,92,246,0.5);
+        }
+        .comparison-th-label { width: 46%; }
+        .comparison-th {
+          padding: 16px 14px;
+          text-align: center;
+          background: rgba(139,92,246,0.08);
+          border-bottom: 2px solid rgba(139,92,246,0.35);
+        }
+        .comparison-th-pro {
+          background: linear-gradient(180deg, rgba(244,208,63,0.14), rgba(233,30,140,0.08));
+          border-bottom: 2px solid rgba(244,208,63,0.5);
+        }
+        .comparison-row {
+          border-bottom: 1px solid rgba(139,92,246,0.14);
+          transition: background 0.15s ease;
+        }
+        .comparison-row:hover {
+          background: rgba(139,92,246,0.06);
+        }
+        .comparison-row:last-child {
+          border-bottom: none;
+        }
+        .comparison-td-label {
+          padding: 13px 18px;
+          font-size: 13.5px;
+          font-weight: 600;
+          color: #d4cee0;
+        }
+        .comparison-td {
+          padding: 13px 14px;
+          text-align: center;
+        }
+        .comparison-td-pro {
+          background: rgba(244,208,63,0.04);
+          box-shadow: inset 1px 0 0 rgba(244,208,63,0.15);
+        }
+        @media (max-width: 640px) {
+          .comparison-td-label, .comparison-th-label { font-size: 11.5px; }
+          .comparison-td, .comparison-th { padding: 10px 6px; }
         }
       `}</style>
     </div>
