@@ -45,6 +45,9 @@ export default function Display() {
   var mutedState = useState(false)
   var muted = mutedState[0]
   var setMuted = mutedState[1]
+  var audioBlockedState = useState(false)
+  var audioBlocked = audioBlockedState[0]
+  var setAudioBlocked = audioBlockedState[1]
 
   var isWaiting = hasActiveSession && WAITING_MODES.indexOf(screenMode) !== -1
   var isWaitingRef = useRef(isWaiting)
@@ -59,7 +62,14 @@ export default function Display() {
     audio.volume = 0.35
     audio.muted = muted
     if (onEnded) audio.addEventListener('ended', onEnded)
-    audio.play().catch(function () {})
+    audio.play().then(function () {
+      setAudioBlocked(false)
+    }).catch(function () {
+      // Esto solo pasa en navegadores muy estrictos que de verdad exigen
+      // un toque real antes de reproducir sonido con volumen. Ahi si
+      // mostramos un boton chico como respaldo, sin tapar toda la pantalla.
+      setAudioBlocked(true)
+    })
     audioRef.current = audio
   }
 
@@ -151,6 +161,19 @@ export default function Display() {
 
   return (
     <AudioUnlockGate onUnlock={handleUnlock}>
+      {audioBlocked && (
+        <button
+          onClick={function () {
+            setAudioBlocked(false)
+            startNewWaitingTrack()
+          }}
+          className="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 rounded-full border-2 px-5 py-3"
+          style={{ borderColor: '#F4D03F', background: 'rgba(15,10,20,0.92)' }}
+        >
+          <span className="text-lg">🔊</span>
+          <span className="text-sm font-bold text-white">Toca para activar el sonido</span>
+        </button>
+      )}
       {workspaceType === 'HOME' && <VocalScoreToast sessionId={sessionId} />}
       {!hasActiveSession && lastClosedSession ? (
         <SessionLeaderboard />

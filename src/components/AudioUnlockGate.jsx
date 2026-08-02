@@ -1,7 +1,20 @@
+import { useEffect, useRef } from 'react'
 import { VideoPlayerProvider, useVideoPlayer } from '../contexts/VideoPlayerContext'
 
 function GateInner(props) {
   var player = useVideoPlayer()
+  var triedRef = useRef(false)
+
+  useEffect(function () {
+    if (triedRef.current) return
+    triedRef.current = true
+    // El video del reproductor arranca silenciado, y eso los navegadores
+    // siempre lo permiten sin necesidad de un toque real. Por eso ya no
+    // hace falta pedirle a la persona que toque la pantalla: lo activamos
+    // solos apenas carga.
+    if (props.onUnlock) props.onUnlock()
+    player.unlock()
+  }, [])
 
   return (
     <>
@@ -15,29 +28,7 @@ function GateInner(props) {
           left: 0;
         }
       `}</style>
-
-      {!player.unlocked ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black px-8">
-          <button
-            onClick={function () {
-              if (props.onUnlock) props.onUnlock()
-              player.unlock()
-            }}
-            className="flex flex-col items-center gap-4 rounded-3xl border-2 px-12 py-10"
-            style={{ borderColor: '#F4D03F', background: 'rgba(139, 92, 246, 0.08)' }}
-          >
-            <span className="text-6xl">🔊</span>
-            <span className="text-xl md:text-2xl font-extrabold text-white text-center">
-              Toca para activar el sonido
-            </span>
-            <span className="text-sm text-neutral-400 text-center max-w-xs">
-              Solo se hace una vez al preparar la pantalla. Despues, cada cancion se reproducira sola.
-            </span>
-          </button>
-        </div>
-      ) : (
-        <div className="relative z-10">{props.children}</div>
-      )}
+      <div className="relative z-10">{props.children}</div>
     </>
   )
 }
