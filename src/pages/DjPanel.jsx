@@ -539,6 +539,9 @@ function NightEndedPanel(props) {
   var lastClosedSession = props.lastClosedSession
   var loadSessionLeaderboard = props.loadSessionLeaderboard
   var onStartNew = props.onStartNew
+  var onCloseAllRooms = props.onCloseAllRooms
+  var closingAllRooms = props.closingAllRooms
+  var onSignOut = props.onSignOut
 
   var listState = useState(null)
   var list = listState[0]
@@ -611,6 +614,21 @@ function NightEndedPanel(props) {
             style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}
           >
             🎤 Iniciar otra noche aquí
+          </button>
+          <button
+            onClick={onCloseAllRooms}
+            disabled={closingAllRooms}
+            className="h-11 rounded-xl font-medium border disabled:opacity-50"
+            style={{ borderColor: 'var(--accent-magenta)', color: 'var(--accent-magenta)' }}
+          >
+            {closingAllRooms ? 'Cerrando...' : '🔒 Cerrar todas mis sesiones'}
+          </button>
+          <button
+            onClick={onSignOut}
+            className="h-11 rounded-xl font-medium border"
+            style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}
+          >
+            🚪 Salir de Retroke
           </button>
         </div>
       </div>
@@ -1000,20 +1018,6 @@ function DjPanelInner() {
     })
   }
 
-  function handleStartAnotherNight() {
-    if (hasActiveSession) {
-      if (!window.confirm('Esto finaliza la noche actual (se mostrara el podio) para poder iniciar una nueva. ¿Continuar?')) return
-      setClosing(true)
-      closeSession().then(function () {
-        setClosing(false)
-      })
-    }
-  }
-
-  function handleGoToRoomSelection() {
-    window.location.href = '/dj'
-  }
-
   var closingAllState = useState(false)
   var closingAll = closingAllState[0]
   var setClosingAll = closingAllState[1]
@@ -1138,6 +1142,9 @@ function DjPanelInner() {
           lastClosedSession={lastClosedSession}
           loadSessionLeaderboard={loadSessionLeaderboard}
           onStartNew={function () { setForceNewSession(true) }}
+          onCloseAllRooms={handleCloseAllMyRooms}
+          closingAllRooms={closingAll}
+          onSignOut={function () { auth.signOut().then(function () { window.location.href = '/' }) }}
         />
       )
     }
@@ -1249,29 +1256,6 @@ function DjPanelInner() {
             style={{ borderColor: 'var(--accent-magenta)', color: 'var(--accent-magenta)' }}
           >
             {closing ? 'Finalizando...' : '🏁 Finalizar noche'}
-          </button>
-          <button
-            onClick={handleStartAnotherNight}
-            disabled={closing}
-            className="text-sm px-3 py-2 min-h-9 rounded-lg border disabled:opacity-50 leading-tight text-center"
-            style={{ borderColor: 'var(--accent-purple)', color: 'var(--accent-purple)' }}
-          >
-            🌙 Iniciar otra noche
-          </button>
-          <button
-            onClick={handleGoToRoomSelection}
-            className="text-sm px-3 py-2 min-h-9 rounded-lg border leading-tight text-center"
-            style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}
-          >
-            🚪 Ir a selección de salas
-          </button>
-          <button
-            onClick={handleCloseAllMyRooms}
-            disabled={closingAll}
-            className="text-sm px-3 py-2 min-h-9 rounded-lg border disabled:opacity-50 leading-tight text-center"
-            style={{ borderColor: 'var(--accent-magenta)', color: 'var(--accent-magenta)' }}
-          >
-            {closingAll ? 'Cerrando...' : '🔒 Cerrar todas mis salas'}
           </button>
           <button
             onClick={function () {
