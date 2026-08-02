@@ -327,8 +327,14 @@ export default function DisplayQueue(props) {
       <main className="relative z-10 flex-1 min-h-0 grid grid-cols-1 md:grid-cols-2 gap-6 max-w-6xl w-full mx-auto px-6 md:px-8 pb-3 pt-1">
         <div className="flex flex-col items-center justify-center text-center min-h-0" style={{ gap: 'clamp(10px, 2.2vh, 22px)' }}>
           <div>
+            <div className="flex items-center justify-center gap-2.5 relative z-10" style={{ marginBottom: -4 }}>
+              <span className="hero-eyebrow-emoji eyebrow-emoji-1" aria-hidden="true">🔥</span>
+              <span className="hero-eyebrow-emoji eyebrow-emoji-2" aria-hidden="true">🤯</span>
+              <span className="hero-eyebrow-emoji eyebrow-emoji-3" aria-hidden="true">💣</span>
+              <span className="hero-eyebrow-emoji eyebrow-emoji-4" aria-hidden="true">😍</span>
+            </div>
             <p
-              className="tracking-[4px] uppercase font-bold mb-2"
+              className="tracking-[4px] uppercase font-bold mb-2 relative"
               style={{ color: '#F4D03F', fontSize: 'clamp(10px, 1.5vh, 14px)' }}
             >
               ✨ Karaoke en vivo
@@ -349,10 +355,6 @@ export default function DisplayQueue(props) {
           </p>
 
           <div className="relative rounded-[1.75rem] px-6 py-4 flex flex-col items-center gap-2.5" style={{ background: 'rgba(12,8,20,0.9)', border: '2.5px solid #F4D03F', boxShadow: '0 0 24px -6px rgba(244,208,63,0.4)' }}>
-            <span className="qr-float-emoji qe-fire" aria-hidden="true">🔥</span>
-            <span className="qr-float-emoji qe-mind" aria-hidden="true">🤯</span>
-            <span className="qr-float-emoji qe-bomb" aria-hidden="true">💣</span>
-            <span className="qr-float-emoji qe-love" aria-hidden="true">😍</span>
             <QRCode url={registerUrl} size={qrSize} />
             <p className="font-bold tracking-wide" style={{ color: '#8B5CF6', fontSize: 'clamp(13px, 1.7vh, 16px)' }}>
               {barName}
@@ -408,20 +410,20 @@ export default function DisplayQueue(props) {
             .sound-neon-btn {
               box-shadow: 0 0 14px -2px rgba(244, 208, 63, 0.5);
             }
-            .qr-float-emoji {
-              position: absolute;
-              font-size: clamp(20px, 2.6vh, 30px);
-              filter: drop-shadow(0 4px 10px rgba(0,0,0,0.5));
-              animation: qrEmojiFloat 4s ease-in-out infinite;
-              pointer-events: none;
+            .hero-eyebrow-emoji {
+              font-size: 22px;
+              line-height: 1;
+              filter: drop-shadow(0 3px 8px rgba(0,0,0,0.5));
+              animation: eyebrowEmojiFloat 3.2s ease-in-out infinite;
+              display: inline-block;
             }
-            .qe-fire { top: -14px; left: -16px; animation-delay: 0s; }
-            .qe-mind { top: -14px; right: -16px; animation-delay: -1s; }
-            .qe-bomb { bottom: -14px; left: -16px; animation-delay: -2s; }
-            .qe-love { bottom: -14px; right: -16px; animation-delay: -3s; }
-            @keyframes qrEmojiFloat {
-              0%, 100% { transform: translateY(0) rotate(-6deg); }
-              50% { transform: translateY(-8px) rotate(6deg); }
+            .eyebrow-emoji-1 { animation-delay: 0s; }
+            .eyebrow-emoji-2 { animation-delay: -0.8s; }
+            .eyebrow-emoji-3 { animation-delay: -1.6s; }
+            .eyebrow-emoji-4 { animation-delay: -2.4s; }
+            @keyframes eyebrowEmojiFloat {
+              0%, 100% { transform: translateY(0) rotate(-5deg); }
+              50% { transform: translateY(-6px) rotate(5deg); }
             }
           `}</style>
         </div>
