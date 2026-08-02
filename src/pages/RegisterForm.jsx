@@ -461,9 +461,15 @@ export default function RegisterForm() {
   var workspacePlan = session.workspacePlan
   var urlAttempts = session.urlAttempts
   var workspaceType = session.workspaceType
+  var sessionId = session.sessionId
   var currentSinger = session.currentSinger
   var sendPresenceHeartbeat = session.sendPresenceHeartbeat
   var setMicReady = session.setMicReady
+
+  var homeLimitReachedState = useState(false)
+  var homeLimitReached = homeLimitReachedState[0]
+  var setHomeLimitReached = homeLimitReachedState[1]
+  var HOME_FREE_PARTICIPANT_LIMIT = 10
 
   var nameState = useState('')
   var name = nameState[0]
@@ -521,6 +527,27 @@ export default function RegisterForm() {
     e.preventDefault()
     if (!name.trim() || !song.trim()) return
     if (containsProfanity(name)) return
+
+    if (workspaceType === 'HOME' && workspacePlan !== 'PRO' && sessionId) {
+      supabase
+        .from('queue_entries')
+        .select('id', { count: 'exact', head: true })
+        .eq('session_id', sessionId)
+        .then(function (result) {
+          var total = result.count || 0
+          if (total >= HOME_FREE_PARTICIPANT_LIMIT) {
+            setHomeLimitReached(true)
+            return
+          }
+          submitEntry()
+        })
+      return
+    }
+
+    submitEntry()
+  }
+
+  function submitEntry() {
     setOptimisticPosition(queue.length + 1)
     addToQueue({
       name: name.trim(),
@@ -641,6 +668,23 @@ export default function RegisterForm() {
           </p>
           <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
             Recuerda que puedes unirte nuevamente cuando quieras.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  if (homeLimitReached) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-6" style={{ background: 'var(--bg-page)' }}>
+        <div className="max-w-sm w-full rounded-3xl border p-8 text-center" style={{ background: 'var(--bg-card)', borderColor: 'var(--accent-yellow)' }}>
+          <p className="text-3xl mb-3">🔒</p>
+          <p className="text-lg font-bold mb-2" style={{ color: 'var(--text-primary)' }}>
+            Se llegó al límite de {HOME_FREE_PARTICIPANT_LIMIT} participantes
+          </p>
+          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+            El plan Home Free permite hasta {HOME_FREE_PARTICIPANT_LIMIT} personas por sesión. Pídele al anfitrión
+            que suba a Home PRO para participantes ilimitados.
           </p>
         </div>
       </div>

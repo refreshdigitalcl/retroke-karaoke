@@ -385,7 +385,36 @@ function StartSessionGate(props) {
   var barName = props.barName
   var barIsActive = props.barIsActive
   var startSession = props.startSession
+  var workspaceType = props.workspaceType
+  var workspacePlan = props.workspacePlan
+  var workspaceId = props.workspaceId
   var auth = useAuth()
+
+  var isDjFree = workspaceType === 'DJ' && workspacePlan === 'FREE'
+  var DJ_FREE_MONTHLY_LIMIT = 2
+
+  var monthlyCountState = useState(null)
+  var monthlyCount = monthlyCountState[0]
+  var setMonthlyCount = monthlyCountState[1]
+
+  useEffect(function () {
+    if (!isDjFree || !auth.session) {
+      setMonthlyCount(0)
+      return
+    }
+    var now = new Date()
+    var monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+    supabase
+      .from('sessions')
+      .select('id', { count: 'exact', head: true })
+      .eq('created_by', auth.session.user.id)
+      .gte('created_at', monthStart)
+      .then(function (result) {
+        setMonthlyCount(result.count || 0)
+      })
+  }, [isDjFree, auth.session, workspaceId])
+
+  var limitReached = isDjFree && monthlyCount !== null && monthlyCount >= DJ_FREE_MONTHLY_LIMIT
 
   var nameState = useState('Karaoke ' + new Date().toLocaleDateString('es-CL', { weekday: 'long' }))
   var name = nameState[0]
@@ -436,6 +465,30 @@ function StartSessionGate(props) {
     })
   }
 
+  if (limitReached) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-6" style={{ background: 'var(--bg-page)' }}>
+        <div className="max-w-sm w-full rounded-3xl border p-8 text-center" style={{ background: 'var(--bg-card)', borderColor: 'var(--accent-yellow)', boxShadow: '0 2px 20px -6px rgba(244,208,63,0.3)' }}>
+          <p className="text-3xl mb-3">🔒</p>
+          <p className="text-lg font-bold mb-2" style={{ color: 'var(--text-primary)' }}>
+            Ya usaste tus {DJ_FREE_MONTHLY_LIMIT} eventos gratis este mes
+          </p>
+          <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>
+            El plan DJ Free incluye {DJ_FREE_MONTHLY_LIMIT} eventos al mes. Sube a DJ PRO para eventos ilimitados,
+            o espera al próximo mes para seguir usando el plan gratis.
+          </p>
+          <a
+            href="/precios"
+            className="inline-flex items-center justify-center w-full h-12 rounded-xl font-bold text-white"
+            style={{ background: 'linear-gradient(90deg, #E91E8C, #8B5CF6)' }}
+          >
+            ⭐ Ver plan DJ PRO
+          </a>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center px-6" style={{ background: 'var(--bg-page)' }}>
       <div className="max-w-sm w-full rounded-3xl border p-8 text-center" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)', boxShadow: '0 2px 20px -6px rgba(139,92,246,0.25)' }}>
@@ -446,6 +499,11 @@ function StartSessionGate(props) {
         <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>
           Dale un nombre a la sesion de esta noche para empezar
         </p>
+        {isDjFree && monthlyCount !== null && (
+          <p className="text-xs mb-4 font-medium" style={{ color: 'var(--accent-yellow)' }}>
+            Evento {monthlyCount + 1} de {DJ_FREE_MONTHLY_LIMIT} este mes en el plan Free
+          </p>
+        )}
 
         <form onSubmit={handleStart}>
           <input
@@ -1148,7 +1206,7 @@ function DjPanelInner() {
         />
       )
     }
-    return <StartSessionGate barName={barName} barIsActive={barIsActive} startSession={startSession} />
+    return <StartSessionGate barName={barName} barIsActive={barIsActive} startSession={startSession} workspaceType={workspaceType} workspacePlan={workspacePlan} workspaceId={workspaceId} />
   }
 
   return (
