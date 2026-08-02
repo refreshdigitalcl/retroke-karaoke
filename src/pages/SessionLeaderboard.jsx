@@ -304,6 +304,18 @@ export default function SessionLeaderboard() {
       <FloatingDecor />
       <FallingParty />
 
+      <button
+        onClick={function () {
+          try { localStorage.removeItem('retroke_last_room') } catch (e) {}
+          window.location.href = '/'
+        }}
+        className="fixed top-5 right-5 z-30 w-11 h-11 rounded-full flex items-center justify-center border-2"
+        style={{ borderColor: '#F4D03F', background: 'rgba(15,10,20,0.85)' }}
+        title="Ir a selección de salas"
+      >
+        <span className="text-lg">🏠</span>
+      </button>
+
       <div className="relative z-10 w-full flex flex-col items-center pt-8 pb-4">
         <p className="text-sm tracking-[8px] uppercase text-purple-400 mb-2">
           {lastClosedSession.name}

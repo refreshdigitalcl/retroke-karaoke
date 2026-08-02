@@ -1052,7 +1052,7 @@ function DjPanelInner() {
           .eq('status', 'active')
           .then(function () {
             setClosingAll(false)
-            window.location.reload()
+            window.location.href = '/dj'
           })
       })
       .catch(function () {
