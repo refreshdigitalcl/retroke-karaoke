@@ -8,6 +8,10 @@ export default function ReactForm() {
   var memesEnabled = hasFeature('memes')
   var isHomeFree = workspaceType === 'HOME' && workspacePlan === 'FREE'
   var showMemesTab = memesEnabled || isHomeFree
+  // showMemesTab decide si la pestaña SE VE. canUseMemes decide si en verdad
+  // se puede tocar. Antes handleReactMeme solo miraba memesEnabled, asi que
+  // Home Free veia la pestaña pero al tocar un sticker no pasaba nada.
+  var canUseMemes = showMemesTab
 
   var floatersState = useState([])
   var floaters = floatersState[0]
@@ -16,6 +20,13 @@ export default function ReactForm() {
   var pageState = useState(0)
   var page = pageState[0]
   var setPage = pageState[1]
+
+  var stickerPageState = useState(0)
+  var stickerPage = stickerPageState[0]
+  var setStickerPage = stickerPageState[1]
+
+  var visibleStickers = MEME_REACTIONS.slice(stickerPage * 6, stickerPage * 6 + 6)
+  var hasSecondStickerPage = MEME_REACTIONS.length > 6
 
   var touchStartX = useRef(null)
 
@@ -64,7 +75,7 @@ export default function ReactForm() {
   }
 
   function handleReactMeme(memeId, url) {
-    if (!memesEnabled) return
+    if (!canUseMemes) return
     var now = Date.now()
     if (now - lastReactAtRef.current < REACT_COOLDOWN_MS) return
     lastReactAtRef.current = now
@@ -80,6 +91,13 @@ export default function ReactForm() {
   function handleTouchEnd(e) {
     if (touchStartX.current === null) return
     var diff = e.changedTouches[0].clientX - touchStartX.current
+    if (page === 1 && hasSecondStickerPage) {
+      // Dentro de la pestaña de stickers: deslizar mueve entre los 2 grupos de 6.
+      if (diff < -30 && stickerPage === 0) setStickerPage(1)
+      if (diff > 30 && stickerPage === 1) setStickerPage(0)
+      touchStartX.current = null
+      return
+    }
     if (diff < -40 && page === 0 && showMemesTab) setPage(1)
     if (diff > 40 && page === 1) setPage(0)
     touchStartX.current = null
@@ -162,8 +180,8 @@ export default function ReactForm() {
 
             {showMemesTab && (
               <div className="w-full shrink-0 relative">
-                <div className="grid grid-cols-3 gap-2.5 px-0.5" style={{ filter: memesEnabled ? 'none' : 'blur(3px) brightness(0.5)', pointerEvents: memesEnabled ? 'auto' : 'none' }}>
-                  {MEME_REACTIONS.map((meme) => (
+                <div className="grid grid-cols-3 gap-2.5 px-0.5" style={{ filter: canUseMemes ? 'none' : 'blur(3px) brightness(0.5)', pointerEvents: canUseMemes ? 'auto' : 'none' }}>
+                  {visibleStickers.map((meme) => (
                     <button
                       key={meme.id}
                       onClick={() => handleReactMeme(meme.id, meme.url)}
@@ -175,12 +193,26 @@ export default function ReactForm() {
                     </button>
                   ))}
                 </div>
-                {!memesEnabled && (
+                {canUseMemes && hasSecondStickerPage && (
+                  <div className="flex items-center justify-center gap-1.5 mt-2.5">
+                    <button
+                      onClick={function () { setStickerPage(0) }}
+                      className="rounded-full transition-all"
+                      style={{ width: stickerPage === 0 ? 16 : 6, height: 6, background: stickerPage === 0 ? '#F4D03F' : 'var(--border)' }}
+                    />
+                    <button
+                      onClick={function () { setStickerPage(1) }}
+                      className="rounded-full transition-all"
+                      style={{ width: stickerPage === 1 ? 16 : 6, height: 6, background: stickerPage === 1 ? '#F4D03F' : 'var(--border)' }}
+                    />
+                  </div>
+                )}
+                {!canUseMemes && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-3 gap-1.5">
                     <span className="text-2xl">🔒</span>
                     <p className="text-xs font-bold text-white">Funcion PRO</p>
                     <p className="text-[10px] leading-tight" style={{ color: 'var(--text-muted)' }}>
-                      Adquiere el plan PRO o Premium para reaccionar con memes
+                      Adquiere el plan PRO o Premium para reaccionar con stickers
                     </p>
                   </div>
                 )}
@@ -215,7 +247,7 @@ export default function ReactForm() {
                 background: page === 1 ? 'rgba(244,208,63,0.1)' : 'transparent'
               }}
             >
-              {memesEnabled ? '🖼️ Memes' : '🔒 Memes'}
+              {canUseMemes ? '🖼️ Stickers' : '🔒 Stickers'}
             </button>
           </div>
         )}
