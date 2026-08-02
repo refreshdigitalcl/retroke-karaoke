@@ -190,9 +190,12 @@ export default function PricingPage() {
 
       <div className="relative z-10 max-w-6xl mx-auto">
         <div className="text-center mb-10">
-          <p className="text-xs md:text-sm tracking-[6px] uppercase font-bold mb-3" style={{ color: '#F4D03F' }}>
-            ✨ Retroke
-          </p>
+          <img
+            src="/landing/retroke-logo.png"
+            alt="Retroke"
+            className="mx-auto mb-6"
+            style={{ width: 'min(240px, 55vw)', height: 'auto', filter: 'drop-shadow(0 0 24px rgba(233,30,140,0.5)) drop-shadow(0 0 46px rgba(139,92,246,0.35))' }}
+          />
           <h1 className="pricing-title text-3xl md:text-5xl font-extrabold mb-4">
             Elige el plan perfecto para tu karaoke
           </h1>
