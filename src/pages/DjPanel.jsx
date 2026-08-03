@@ -933,6 +933,41 @@ function DjPanelInner() {
   var activeSessionName = session.activeSessionName
   var queue = session.queue
   var currentSinger = session.currentSinger
+
+  // En modo Home, el DJ no deberia poder iniciar la presentacion hasta que
+  // la persona ya haya permitido el microfono en su celular (mic_ready=true
+  // en queue_entries). Esto se pierde a veces al pasar de "queue" a
+  // "currentSinger" en el estado, asi que lo consultamos en vivo aparte.
+  var calledMicReadyState = useState(null)
+  var calledMicReady = calledMicReadyState[0]
+  var setCalledMicReady = calledMicReadyState[1]
+
+  useEffect(function () {
+    if (workspaceType !== 'HOME' || !currentSinger || screenMode !== 'called') {
+      setCalledMicReady(null)
+      return
+    }
+    var cancelled = false
+    setCalledMicReady(null)
+
+    function checkReady() {
+      supabase
+        .from('queue_entries')
+        .select('mic_ready')
+        .eq('id', currentSinger.id)
+        .maybeSingle()
+        .then(function (result) {
+          if (cancelled) return
+          setCalledMicReady(!!(result.data && result.data.mic_ready))
+        })
+    }
+    checkReady()
+    var interval = setInterval(checkReady, 2000)
+    return function () {
+      cancelled = true
+      clearInterval(interval)
+    }
+  }, [workspaceType, currentSinger ? currentSinger.id : null, screenMode])
   var screenMode = session.screenMode
   var removeFromQueue = session.removeFromQueue
   var setQueueEntryVideo = session.setQueueEntryVideo
@@ -1589,7 +1624,25 @@ function DjPanelInner() {
                   {checkStatus === 'checking' ? 'Verificando...' : 'Verificar video'}
                 </button>
               )}
-              {screenMode === 'called' && (
+              {screenMode === 'called' && workspaceType === 'HOME' && !calledMicReady && (
+                <div className="flex items-center gap-2">
+                  <span
+                    className="px-4 h-10 flex items-center gap-1.5 rounded-lg text-sm font-medium"
+                    style={{ background: 'rgba(244,208,63,0.1)', border: '1px solid rgba(244,208,63,0.4)', color: '#F4D03F' }}
+                  >
+                    ⏳ Esperando que {currentSinger.name} permita el micrófono...
+                  </span>
+                  <button
+                    onClick={handleStartPresentation}
+                    className="px-3 h-10 rounded-lg text-xs font-medium border"
+                    style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}
+                    title="Usar solo si la persona ya esta lista pero la señal no llego"
+                  >
+                    Iniciar igual
+                  </button>
+                </div>
+              )}
+              {screenMode === 'called' && (workspaceType !== 'HOME' || calledMicReady) && (
                 <button
                   onClick={handleStartPresentation}
                   className="px-4 h-10 rounded-lg text-sm font-medium text-white"
