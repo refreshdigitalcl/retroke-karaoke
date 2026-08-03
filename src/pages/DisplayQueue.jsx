@@ -313,18 +313,26 @@ export default function DisplayQueue(props) {
               style={{ filter: 'drop-shadow(0 0 10px rgba(233,30,140,0.7)) drop-shadow(0 0 20px rgba(139,92,246,0.5))' }}
             />
           </div>
+        ) : logoUrl ? (
+          <div
+            className="px-6 py-2.5 rounded-full flex items-center"
+            style={{
+              background: 'rgba(10,6,15,0.72)',
+              backdropFilter: 'blur(6px)',
+              border: '1.5px solid rgba(244,208,63,0.55)',
+              boxShadow: '0 0 28px 4px rgba(233,30,140,0.35), 0 0 0 1px rgba(255,255,255,0.04) inset'
+            }}
+          >
+            <img
+              src={logoUrl}
+              alt={barName}
+              className="h-14 w-auto object-contain"
+              style={{ maxWidth: '260px', filter: 'drop-shadow(0 0 10px rgba(233,30,140,0.5)) drop-shadow(0 0 20px rgba(139,92,246,0.35))' }}
+            />
+          </div>
         ) : (
           <>
-            {logoUrl ? (
-              <img
-                src={logoUrl}
-                alt={barName}
-                className="h-10 w-10 rounded-full object-cover border-2"
-                style={{ borderColor: '#F4D03F', boxShadow: '0 0 16px 3px rgba(244, 208, 63, 0.5)' }}
-              />
-            ) : (
-              <span className="text-xl">🎤</span>
-            )}
+            <span className="text-xl">🎤</span>
             <div
               className="px-5 py-2 rounded-full"
               style={{ background: 'linear-gradient(90deg, #E91E8C, #8B5CF6)', boxShadow: '0 0 22px -4px rgba(233,30,140,0.7)' }}
