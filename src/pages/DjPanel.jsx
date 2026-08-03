@@ -1667,13 +1667,23 @@ function DjPanelInner() {
                 </div>
               )}
               {screenMode === 'called' && (workspaceType !== 'HOME' || calledMicReady) && (
-                <button
-                  onClick={handleStartPresentation}
-                  className="px-4 h-10 rounded-lg text-sm font-medium text-white"
-                  style={{ background: 'var(--accent-magenta)' }}
-                >
-                  Iniciar presentacion
-                </button>
+                <div className="flex items-center gap-2">
+                  {workspaceType === 'HOME' && calledMicReady && (
+                    <span
+                      className="px-3 h-10 flex items-center gap-1.5 rounded-lg text-sm font-medium shrink-0"
+                      style={{ background: 'rgba(126,217,87,0.12)', border: '1px solid rgba(126,217,87,0.5)', color: '#7ED957' }}
+                    >
+                      ✅ Micrófono listo
+                    </span>
+                  )}
+                  <button
+                    onClick={handleStartPresentation}
+                    className="px-4 h-10 rounded-lg text-sm font-medium text-white"
+                    style={{ background: 'var(--accent-magenta)' }}
+                  >
+                    Iniciar presentacion
+                  </button>
+                </div>
               )}
               {screenMode === 'countdown' && (
                 <span className="px-4 h-10 flex items-center text-sm" style={{ color: 'var(--text-secondary)' }}>
