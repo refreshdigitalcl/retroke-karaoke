@@ -965,6 +965,7 @@ function DjPanelInner() {
         .maybeSingle()
         .then(function (result) {
           if (cancelled) return
+          if (result.error) return
           var ready = !!(result.data && result.data.mic_ready)
           setCalledMicReady(ready)
           if (ready && !wasMicReadyRef.current) {
@@ -978,7 +979,7 @@ function DjPanelInner() {
         })
     }
     checkReady()
-    var interval = setInterval(checkReady, 2000)
+    var interval = setInterval(checkReady, 1500)
     return function () {
       cancelled = true
       clearInterval(interval)
@@ -1648,42 +1649,47 @@ function DjPanelInner() {
                   {checkStatus === 'checking' ? 'Verificando...' : 'Verificar video'}
                 </button>
               )}
-              {screenMode === 'called' && workspaceType === 'HOME' && !calledMicReady && (
-                <div className="flex items-center gap-2">
+              {screenMode === 'called' && workspaceType === 'HOME' && (
+                <div className="flex items-center gap-2.5">
                   <span
-                    className="px-4 h-10 flex items-center gap-1.5 rounded-lg text-sm font-medium"
-                    style={{ background: 'rgba(244,208,63,0.1)', border: '1px solid rgba(244,208,63,0.4)', color: '#F4D03F' }}
+                    className={'mic-status-icon' + (calledMicReady ? ' mic-ready' : ' mic-waiting')}
+                    title={calledMicReady ? 'Micrófono confirmado' : 'Esperando que ' + currentSinger.name + ' permita el micrófono'}
                   >
-                    ⏳ Esperando que {currentSinger.name} permita el micrófono...
+                    🎤
                   </span>
-                  <button
-                    onClick={handleStartPresentation}
-                    className="px-3 h-10 rounded-lg text-xs font-medium border"
-                    style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}
-                    title="Usar solo si la persona ya esta lista pero la señal no llego"
-                  >
-                    Iniciar igual
-                  </button>
-                </div>
-              )}
-              {screenMode === 'called' && (workspaceType !== 'HOME' || calledMicReady) && (
-                <div className="flex items-center gap-2">
-                  {workspaceType === 'HOME' && calledMicReady && (
-                    <span
-                      className="px-3 h-10 flex items-center gap-1.5 rounded-lg text-sm font-medium shrink-0"
-                      style={{ background: 'rgba(126,217,87,0.12)', border: '1px solid rgba(126,217,87,0.5)', color: '#7ED957' }}
-                    >
-                      ✅ Micrófono listo
+                  {!calledMicReady && (
+                    <span className="text-xs font-medium" style={{ color: '#F4D03F' }}>
+                      Esperando micrófono de {currentSinger.name}...
                     </span>
                   )}
                   <button
                     onClick={handleStartPresentation}
-                    className="px-4 h-10 rounded-lg text-sm font-medium text-white"
+                    disabled={!calledMicReady}
+                    className="px-4 h-10 rounded-lg text-sm font-medium text-white disabled:opacity-40"
                     style={{ background: 'var(--accent-magenta)' }}
                   >
                     Iniciar presentacion
                   </button>
+                  {!calledMicReady && (
+                    <button
+                      onClick={handleStartPresentation}
+                      className="px-3 h-10 rounded-lg text-xs font-medium border shrink-0"
+                      style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}
+                      title="Usar solo si la persona ya esta lista pero la señal no llego"
+                    >
+                      Iniciar igual
+                    </button>
+                  )}
                 </div>
+              )}
+              {screenMode === 'called' && workspaceType !== 'HOME' && (
+                <button
+                  onClick={handleStartPresentation}
+                  className="px-4 h-10 rounded-lg text-sm font-medium text-white"
+                  style={{ background: 'var(--accent-magenta)' }}
+                >
+                  Iniciar presentacion
+                </button>
               )}
               {screenMode === 'countdown' && (
                 <span className="px-4 h-10 flex items-center text-sm" style={{ color: 'var(--text-secondary)' }}>
@@ -2126,6 +2132,35 @@ function VideoPreviewModal(props) {
         @keyframes previewModalIn {
           from { opacity: 0; transform: scale(0.94) translateY(8px); }
           to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .mic-status-icon {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 40px;
+          height: 40px;
+          border-radius: 999px;
+          font-size: 18px;
+          flex-shrink: 0;
+        }
+        .mic-status-icon.mic-waiting {
+          background: rgba(233,30,60,0.12);
+          border: 2px solid #E9203C;
+          color: #E9203C;
+          text-shadow: 0 0 8px #E9203C;
+          box-shadow: 0 0 14px 1px rgba(233,30,60,0.6);
+          animation: micBlinkRed 1s ease-in-out infinite;
+        }
+        @keyframes micBlinkRed {
+          0%, 100% { opacity: 1; box-shadow: 0 0 20px 3px rgba(233,30,60,0.8); }
+          50% { opacity: 0.45; box-shadow: 0 0 6px 0px rgba(233,30,60,0.3); }
+        }
+        .mic-status-icon.mic-ready {
+          background: rgba(126,217,87,0.14);
+          border: 2px solid #7ED957;
+          color: #7ED957;
+          text-shadow: 0 0 8px #7ED957;
+          box-shadow: 0 0 14px 2px rgba(126,217,87,0.6);
         }
       `}</style>
     </div>
