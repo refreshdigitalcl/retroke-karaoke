@@ -528,12 +528,20 @@ export default function RegisterForm() {
     }
     supabase
       .from('queue_entries')
-      .select('id')
+      .select('id, status')
       .eq('id', saved)
       .eq('session_id', sessionId)
       .maybeSingle()
       .then(function (result) {
-        if (result.data) {
+        // Solo tiene sentido restaurar "estas en la cola" si de verdad sigue
+        // esperando su turno. El status pasa a 'completed' recien cuando el
+        // DJ avanza al siguiente cantante — si nadie mas esta en la fila,
+        // puede quedarse en 'result' indefinidamente sin que eso signifique
+        // que sigue esperando. Por eso restauramos solo en los estados donde
+        // "en cola" es realmente cierto.
+        var activeStates = ['waiting', 'called']
+        var stillActive = result.data && activeStates.indexOf(result.data.status) !== -1
+        if (stillActive) {
           setMyEntryId(saved)
           setSubmitted(true)
         } else {
