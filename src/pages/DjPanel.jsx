@@ -1,4 +1,4 @@
-import { Component, useEffect, useState } from 'react'
+import { Component, useEffect, useRef, useState } from 'react'
 import { useKaraokeSession } from '../contexts/KaraokeSessionContext'
 import { useAuth } from '../contexts/AuthContext'
 import { checkYoutubeEmbeddable } from '../components/YouTubePlayer'
@@ -942,13 +942,20 @@ function DjPanelInner() {
   var calledMicReady = calledMicReadyState[0]
   var setCalledMicReady = calledMicReadyState[1]
 
+  var micReadyToastState = useState('')
+  var micReadyToast = micReadyToastState[0]
+  var setMicReadyToast = micReadyToastState[1]
+  var wasMicReadyRef = useRef(false)
+
   useEffect(function () {
     if (workspaceType !== 'HOME' || !currentSinger || screenMode !== 'called') {
       setCalledMicReady(null)
+      wasMicReadyRef.current = false
       return
     }
     var cancelled = false
     setCalledMicReady(null)
+    wasMicReadyRef.current = false
 
     function checkReady() {
       supabase
@@ -958,7 +965,16 @@ function DjPanelInner() {
         .maybeSingle()
         .then(function (result) {
           if (cancelled) return
-          setCalledMicReady(!!(result.data && result.data.mic_ready))
+          var ready = !!(result.data && result.data.mic_ready)
+          setCalledMicReady(ready)
+          if (ready && !wasMicReadyRef.current) {
+            var audio = new Audio('/sounds/vote-start.mp3')
+            audio.volume = 0.4
+            audio.play().catch(function () {})
+            setMicReadyToast(currentSinger.name + ' ya está listo para cantar 🎤')
+            setTimeout(function () { setMicReadyToast('') }, 6000)
+          }
+          wasMicReadyRef.current = ready
         })
     }
     checkReady()
@@ -1246,6 +1262,14 @@ function DjPanelInner() {
 
   return (
     <div className="min-h-screen px-4 sm:px-6 py-6 sm:py-8 relative overflow-hidden" style={{ background: 'var(--bg-page)' }}>
+      {micReadyToast && (
+        <div
+          className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-2xl font-bold text-sm flex items-center gap-2"
+          style={{ background: 'linear-gradient(90deg, #E91E8C, #8B5CF6)', color: '#fff', boxShadow: '0 8px 30px -8px rgba(233,30,140,0.7)' }}
+        >
+          🎤 {micReadyToast}
+        </div>
+      )}
       <div
         className="pointer-events-none fixed inset-0 opacity-[0.07]"
         style={{

@@ -503,6 +503,49 @@ export default function RegisterForm() {
   var myEntryId = myEntryIdState[0]
   var setMyEntryId = myEntryIdState[1]
 
+  var restoringEntryState = useState(true)
+  var restoringEntry = restoringEntryState[0]
+  var setRestoringEntry = restoringEntryState[1]
+
+  // Sin esto, si la persona bloquea la pantalla o recarga (muy comun en
+  // celulares mientras esperan su turno), myEntryId vive solo en memoria y
+  // se pierde: la pagina vuelve a mostrar el formulario en blanco como si
+  // nunca se hubiera inscrito, aunque su turno ya este por llegar. Lo
+  // guardamos en localStorage, atado a esta sesion especifica de la noche,
+  // y lo restauramos apenas carga la pagina.
+  var storageKey = sessionId ? 'retroke_entry_' + sessionId : null
+
+  useEffect(function () {
+    if (!storageKey) {
+      setRestoringEntry(false)
+      return
+    }
+    var saved = null
+    try { saved = localStorage.getItem(storageKey) } catch (e) {}
+    if (!saved) {
+      setRestoringEntry(false)
+      return
+    }
+    supabase
+      .from('queue_entries')
+      .select('id')
+      .eq('id', saved)
+      .eq('session_id', sessionId)
+      .maybeSingle()
+      .then(function (result) {
+        if (result.data) {
+          setMyEntryId(saved)
+          setSubmitted(true)
+        } else {
+          try { localStorage.removeItem(storageKey) } catch (e) {}
+        }
+        setRestoringEntry(false)
+      })
+      .catch(function () {
+        setRestoringEntry(false)
+      })
+  }, [storageKey])
+
   var optimisticPositionState = useState(null)
   var optimisticPosition = optimisticPositionState[0]
   var setOptimisticPosition = optimisticPositionState[1]
@@ -557,7 +600,12 @@ export default function RegisterForm() {
       videoUrl: youtubeUrl.trim(),
       photo: photo
     }).then(function (row) {
-      if (row) setMyEntryId(row.id)
+      if (row) {
+        setMyEntryId(row.id)
+        if (storageKey) {
+          try { localStorage.setItem(storageKey, row.id) } catch (e) {}
+        }
+      }
     })
     setSubmitted(true)
   }
@@ -588,6 +636,14 @@ export default function RegisterForm() {
   useEffect(function () {
     if (itsMyTurn) setShowPerformance(true)
   }, [itsMyTurn])
+
+  if (restoringEntry) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-6" style={{ background: 'var(--bg-page)' }}>
+        <div className="w-8 h-8 rounded-full border-4 border-t-transparent animate-spin" style={{ borderColor: 'var(--accent-purple)', borderTopColor: 'transparent' }} />
+      </div>
+    )
+  }
 
   if (loadTimedOut) {
     return (
