@@ -91,10 +91,12 @@ function ProfileTab(props) {
           .from('profiles')
           .upsert({ id: auth.session.user.id, avatar_url: publicUrl })
 
-        // La foto de perfil funciona a la vez como logo del local en la
-        // sala de espera, para no tener dos lugares distintos donde
-        // subir "lo mismo".
-        if (workspaceType === 'BAR' && session.hasFeature('custom_branding')) {
+        // La foto de perfil funciona a la vez como logo del local/workspace
+        // en la sala de espera, para no tener dos lugares distintos donde
+        // subir "lo mismo". Aplica a Bar, DJ y Home por igual — antes solo
+        // se guardaba para Bar, dejando a DJ y Home sin poder tener su
+        // propio logo aunque su plan lo incluyera.
+        if (session.hasFeature('custom_branding')) {
           chain = chain.then(function () {
             return session.updateLogo(publicUrl)
           })
@@ -187,14 +189,14 @@ function ProfileTab(props) {
                   <input type="file" accept="image/*" onChange={handleAvatarChange} disabled={uploadingAvatar} className="hidden" />
                 </label>
               </div>
-              {workspaceType === 'BAR' && session.hasFeature('custom_branding') && (
+              {session.hasFeature('custom_branding') && (
                 <p className="text-xs mb-2" style={{ color: 'var(--text-muted)' }}>
-                  Esta imagen también se usa como logo de tu local en la sala de espera.
+                  Esta imagen también se usa como logo en la sala de espera.
                 </p>
               )}
-              {workspaceType === 'BAR' && !session.hasFeature('custom_branding') && (
+              {!session.hasFeature('custom_branding') && (
                 <p className="text-xs mb-2" style={{ color: 'var(--accent-yellow)' }}>
-                  Con el plan PRO, esta imagen se muestra también como logo de tu local en la sala de espera.
+                  Con el plan PRO, esta imagen se muestra también como logo en la sala de espera.
                 </p>
               )}
 
@@ -1304,9 +1306,9 @@ function DjPanelInner() {
               boxShadow: '0 0 0 2px var(--bg-page), 0 0 0 4px #F4D03F, 0 0 18px 2px rgba(244, 208, 63, 0.55)'
             }}
           >
-            {(workspaceType === 'BAR' ? session.logoUrl : djAvatarUrl) ? (
+            {(session.hasFeature('custom_branding') && session.logoUrl ? session.logoUrl : djAvatarUrl) ? (
               <img
-                src={workspaceType === 'BAR' ? session.logoUrl : djAvatarUrl}
+                src={session.hasFeature('custom_branding') && session.logoUrl ? session.logoUrl : djAvatarUrl}
                 alt=""
                 className="w-full h-full object-cover"
               />
