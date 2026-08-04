@@ -140,6 +140,10 @@ export default function LandingPage() {
           <div className="r-nav-actions">
             <a href="/dj" className="r-link-btn">Iniciar sesión</a>
             <a href="/precios" className="r-btn r-btn-primary small">Comenzar</a>
+            <a href="/downloads/retroke.apk" download className="apk-nav-btn" title="Descargar la app de Retroke para Android">
+              <img src="/landing/retroke-mic-icon.png" alt="" className="apk-nav-icon" />
+              <span className="apk-nav-text">Descargar APK</span>
+            </a>
           </div>
           <button className="r-nav-burger" aria-label="Abrir menú" onClick={function () { setMenuOpen(!menuOpen) }}>
             <span /><span />
@@ -153,6 +157,10 @@ export default function LandingPage() {
             <a href="#planes" onClick={function () { setMenuOpen(false) }}>Planes</a>
             <a href="/dj" className="r-link-btn">Iniciar sesión</a>
             <a href="/precios" className="r-btn r-btn-primary">Comenzar</a>
+            <a href="/downloads/retroke.apk" download className="apk-nav-btn" title="Descargar la app de Retroke para Android">
+              <img src="/landing/retroke-mic-icon.png" alt="" className="apk-nav-icon" />
+              <span className="apk-nav-text">Descargar APK</span>
+            </a>
           </div>
         )}
       </nav>
@@ -437,6 +445,58 @@ export default function LandingPage() {
         .r-nav-links a { color: inherit; text-decoration: none; transition: color 0.15s ease; }
         .r-nav-links a:hover { color: #fff; }
         .r-nav-actions { display: flex; align-items: center; gap: 22px; }
+
+        .apk-nav-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 7px;
+          padding: 7px 14px 7px 8px;
+          border-radius: 999px;
+          text-decoration: none;
+          background: linear-gradient(160deg, rgba(20,10,30,0.95), rgba(10,6,16,0.95));
+          border: 1.5px solid rgba(233,30,140,0.7);
+          box-shadow: 0 0 12px 1px rgba(233,30,140,0.5), 0 0 22px 3px rgba(139,92,246,0.3);
+          animation: apkNavFloat3d 3.6s ease-in-out infinite;
+          transform-style: preserve-3d;
+          perspective: 500px;
+        }
+        .apk-nav-btn:hover {
+          animation-play-state: paused;
+          transform: translateY(-2px) scale(1.04);
+          box-shadow: 0 0 18px 2px rgba(233,30,140,0.75), 0 0 30px 5px rgba(139,92,246,0.45);
+        }
+        @keyframes apkNavFloat3d {
+          0%, 100% { transform: rotateY(-6deg) rotateX(2deg); }
+          50% { transform: rotateY(6deg) rotateX(-2deg); }
+        }
+        .apk-nav-icon {
+          width: 20px;
+          height: 20px;
+          object-fit: contain;
+          filter: drop-shadow(0 0 4px rgba(233,30,140,0.9));
+          animation: apkIconPulse 2.2s ease-in-out infinite;
+        }
+        .apk-nav-text {
+          font-size: 12px;
+          font-weight: 800;
+          letter-spacing: 0.4px;
+          background: linear-gradient(90deg, #F4D03F, #E91E8C, #8B5CF6, #F4D03F);
+          background-size: 300% auto;
+          -webkit-background-clip: text;
+          background-clip: text;
+          color: transparent;
+          animation: apkTextShimmer 3s linear infinite;
+          white-space: nowrap;
+        }
+        @keyframes apkIconPulse {
+          0%, 100% { filter: drop-shadow(0 0 4px rgba(233,30,140,0.9)); }
+          50% { filter: drop-shadow(0 0 8px rgba(244,208,63,1)); }
+        }
+        @keyframes apkTextShimmer {
+          0% { background-position: 0% center; }
+          100% { background-position: 300% center; }
+        }
+        .r-nav-mobile .apk-nav-btn { align-self: flex-start; }
         .r-link-btn { color: #d4d4dc; text-decoration: none; font-size: 13.5px; font-weight: 500; }
         .r-link-btn:hover { color: #fff; }
         .r-nav-burger { display: none; flex-direction: column; gap: 5px; background: none; border: none; cursor: pointer; padding: 8px; }
