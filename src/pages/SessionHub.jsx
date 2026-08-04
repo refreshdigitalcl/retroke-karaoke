@@ -287,6 +287,22 @@ export default function SessionHub() {
         <PinGate session={selected} onCancel={function () { setSelected(null) }} />
       )}
 
+      <a
+        href="/downloads/retroke.apk"
+        download
+        className="apk-download-btn"
+        title="Descargar la app de Retroke para Android"
+      >
+        <span className="apk-download-inner">
+          <img src="/landing/retroke-mic-icon.png" alt="" className="apk-download-icon" />
+          <span className="apk-download-text">
+            <span className="apk-download-line1">Descarga</span>
+            <span className="apk-download-line2">APK</span>
+          </span>
+        </span>
+        <span className="apk-download-ring" />
+      </a>
+
       <style>{`
         .hub-card {
           animation: hubCardIn 0.4s ease-out both;
@@ -300,6 +316,102 @@ export default function SessionHub() {
         @keyframes hubCardIn {
           from { opacity: 0; transform: translateY(14px); }
           to { opacity: 1; transform: translateY(0); }
+        }
+
+        .apk-download-btn {
+          position: fixed;
+          right: clamp(14px, 3vw, 32px);
+          bottom: clamp(14px, 3vh, 32px);
+          z-index: 40;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 10px 20px 10px 12px;
+          border-radius: 999px;
+          text-decoration: none;
+          background: linear-gradient(160deg, rgba(20,10,30,0.95), rgba(10,6,16,0.95));
+          border: 2px solid rgba(233,30,140,0.7);
+          box-shadow:
+            0 0 18px 2px rgba(233,30,140,0.55),
+            0 0 36px 6px rgba(139,92,246,0.35),
+            0 10px 24px -10px rgba(0,0,0,0.8);
+          animation: apkFloat3d 3.6s ease-in-out infinite;
+          transform-style: preserve-3d;
+          perspective: 600px;
+        }
+        .apk-download-btn:hover {
+          animation-play-state: paused;
+          transform: rotateY(0deg) rotateX(0deg) translateY(-4px) scale(1.05);
+          box-shadow:
+            0 0 26px 4px rgba(233,30,140,0.8),
+            0 0 48px 10px rgba(139,92,246,0.5),
+            0 14px 28px -10px rgba(0,0,0,0.85);
+        }
+        @keyframes apkFloat3d {
+          0%, 100% { transform: rotateY(-8deg) rotateX(3deg) translateY(0px); }
+          25% { transform: rotateY(4deg) rotateX(-2deg) translateY(-6px); }
+          50% { transform: rotateY(8deg) rotateX(3deg) translateY(0px); }
+          75% { transform: rotateY(-4deg) rotateX(-2deg) translateY(-6px); }
+        }
+        .apk-download-inner {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        .apk-download-icon {
+          width: 34px;
+          height: 34px;
+          object-fit: contain;
+          filter: drop-shadow(0 0 6px rgba(233,30,140,0.9));
+          animation: apkIconPulse 2.2s ease-in-out infinite;
+        }
+        @keyframes apkIconPulse {
+          0%, 100% { filter: drop-shadow(0 0 6px rgba(233,30,140,0.9)); }
+          50% { filter: drop-shadow(0 0 12px rgba(244,208,63,1)); }
+        }
+        .apk-download-text {
+          display: flex;
+          flex-direction: column;
+          line-height: 1.05;
+        }
+        .apk-download-line1 {
+          font-size: 10px;
+          font-weight: 700;
+          letter-spacing: 2px;
+          text-transform: uppercase;
+          color: #c3bcd4;
+        }
+        .apk-download-line2 {
+          font-size: 16px;
+          font-weight: 900;
+          letter-spacing: 1px;
+          background: linear-gradient(90deg, #F4D03F, #E91E8C, #8B5CF6, #F4D03F);
+          background-size: 300% auto;
+          -webkit-background-clip: text;
+          background-clip: text;
+          color: transparent;
+          animation: apkTextShimmer 3s linear infinite;
+        }
+        @keyframes apkTextShimmer {
+          0% { background-position: 0% center; }
+          100% { background-position: 300% center; }
+        }
+        .apk-download-ring {
+          position: absolute;
+          inset: -3px;
+          border-radius: 999px;
+          border: 1.5px solid rgba(244,208,63,0.5);
+          pointer-events: none;
+          animation: apkRingPulse 2.2s ease-out infinite;
+        }
+        @keyframes apkRingPulse {
+          0% { opacity: 0.8; transform: scale(1); }
+          100% { opacity: 0; transform: scale(1.18); }
+        }
+        @media (max-width: 480px) {
+          .apk-download-line1 { font-size: 9px; }
+          .apk-download-line2 { font-size: 14px; }
+          .apk-download-icon { width: 28px; height: 28px; }
         }
       `}</style>
     </div>
