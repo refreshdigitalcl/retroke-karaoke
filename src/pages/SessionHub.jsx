@@ -213,6 +213,7 @@ export default function SessionHub() {
     <div className="min-h-screen relative overflow-hidden flex flex-col items-center justify-center px-8 pt-28 pb-12 bg-black">
       <RetroEqualizer />
       <FloatingDecor />
+      <div className="hub-scanlines" aria-hidden="true" />
 
       <nav
         className="fixed top-0 inset-x-0 z-40 flex items-center justify-center gap-6 md:gap-10 px-6 py-4"
@@ -235,18 +236,19 @@ export default function SessionHub() {
       <img
         src="/landing/retroke-logo-oficial-neon.png"
         alt="Retroke"
-        className="relative z-10 w-auto mb-4"
-        style={{
-          height: 'clamp(52px, 8vh, 92px)',
-          filter: 'drop-shadow(0 0 16px rgba(233,30,140,0.55)) drop-shadow(0 0 28px rgba(139,92,246,0.4))'
-        }}
+        className="relative z-10 w-auto mb-5 hub-logo-in"
+        style={{ height: 'clamp(120px, 20vh, 220px)' }}
       />
-      <h1 className="relative z-10 text-3xl md:text-5xl font-extrabold text-white mb-2 text-center">
-        El Karaoke cambió para siempre.
-      </h1>
-      <p className="relative z-10 text-sm text-neutral-400 mb-10 text-center">
-        Toca una sala activa para abrir su pantalla aqui
-      </p>
+
+      <div className="relative z-10 flex flex-col items-center mb-10">
+        <h1 className="hub-title text-3xl md:text-6xl font-extrabold text-white text-center leading-tight">
+          El Karaoke cambió para siempre.
+        </h1>
+        <span className="hub-title-rule" />
+        <p className="text-sm md:text-base text-neutral-400 mt-4 text-center">
+          Toca una sala activa para abrir su pantalla aquí
+        </p>
+      </div>
 
       {sessions === null && (
         <p className="relative z-10 text-neutral-500">Buscando salas activas...</p>
@@ -287,20 +289,31 @@ export default function SessionHub() {
         <div className="relative z-10 w-full max-w-3xl grid grid-cols-1 sm:grid-cols-2 gap-4">
           {filteredSessions.map(function (s, i) {
             var icon = s.kind === 'home' ? '🏠' : s.kind === 'dj' ? '🎧' : '🎤'
+            var accent = s.kind === 'home' ? '#7ED957' : s.kind === 'dj' ? '#F4D03F' : '#E91E8C'
             return (
               <button
                 key={s.id}
                 onClick={function () { handlePick(s) }}
-                className="hub-card rounded-2xl border-2 border-purple-500 bg-neutral-950/85 px-6 py-6 flex items-center gap-4 text-left"
-                style={{ animationDelay: (i * 0.08) + 's' }}
+                className="hub-card rounded-2xl px-6 py-6 flex items-center gap-4 text-left"
+                style={{
+                  animationDelay: (i * 0.08) + 's',
+                  background: 'linear-gradient(135deg, rgba(20,12,28,0.9), rgba(10,6,14,0.9))',
+                  border: '2px solid ' + accent + '55',
+                  boxShadow: '0 0 0 1px rgba(255,255,255,0.03) inset'
+                }}
               >
-                <span className="text-4xl shrink-0">{icon}</span>
+                <span
+                  className="w-14 h-14 rounded-full flex items-center justify-center text-2xl shrink-0"
+                  style={{ background: accent + '1a', border: '1.5px solid ' + accent + 'aa', boxShadow: '0 0 16px -2px ' + accent }}
+                >
+                  {icon}
+                </span>
                 <span className="min-w-0 flex-1">
                   <p className="text-lg font-extrabold text-white truncate">{s.placeName}</p>
-                  <p className="text-sm text-yellow-400 truncate">{s.name}</p>
+                  <p className="text-sm truncate" style={{ color: accent }}>{s.name}</p>
                 </span>
                 {s.pin && <span className="text-lg shrink-0">🔒</span>}
-                <span className="text-2xl text-purple-400 shrink-0">→</span>
+                <span className="text-2xl shrink-0" style={{ color: accent }}>→</span>
               </button>
             )
           })}
@@ -328,6 +341,45 @@ export default function SessionHub() {
       </a>
 
       <style>{`
+        .hub-scanlines {
+          position: absolute;
+          inset: 0;
+          z-index: 1;
+          pointer-events: none;
+          background: repeating-linear-gradient(
+            to bottom,
+            rgba(255,255,255,0.02) 0px,
+            rgba(255,255,255,0.02) 1px,
+            transparent 1px,
+            transparent 3px
+          );
+          mix-blend-mode: overlay;
+        }
+        .hub-logo-in {
+          animation: hubLogoIn 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+        @keyframes hubLogoIn {
+          from { opacity: 0; transform: scale(0.9) translateY(-8px); }
+          to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .hub-title {
+          letter-spacing: 0.5px;
+          text-shadow: 0 2px 24px rgba(0,0,0,0.6), 0 0 26px rgba(233,30,140,0.35);
+          animation: hubTitleGlow 3.2s ease-in-out infinite;
+        }
+        @keyframes hubTitleGlow {
+          0%, 100% { text-shadow: 0 2px 24px rgba(0,0,0,0.6), 0 0 26px rgba(233,30,140,0.35); }
+          50% { text-shadow: 0 2px 24px rgba(0,0,0,0.6), 0 0 40px rgba(139,92,246,0.55); }
+        }
+        .hub-title-rule {
+          display: block;
+          width: 96px;
+          height: 3px;
+          margin-top: 18px;
+          border-radius: 999px;
+          background: linear-gradient(90deg, #E91E8C, #8B5CF6, #F4D03F);
+          box-shadow: 0 0 14px 1px rgba(139,92,246,0.6);
+        }
         .hub-nav-link {
           text-decoration: none;
         }
@@ -337,12 +389,13 @@ export default function SessionHub() {
         }
         .hub-card {
           animation: hubCardIn 0.4s ease-out both;
-          transition: transform 0.15s, box-shadow 0.15s;
+          transition: transform 0.15s, box-shadow 0.15s, filter 0.15s;
           cursor: pointer;
         }
         .hub-card:hover, .hub-card:focus {
           transform: scale(1.02);
-          box-shadow: 0 0 24px 4px rgba(139, 92, 246, 0.4);
+          filter: brightness(1.08);
+          box-shadow: 0 0 28px 4px rgba(255, 255, 255, 0.1);
         }
         @keyframes hubCardIn {
           from { opacity: 0; transform: translateY(14px); }
