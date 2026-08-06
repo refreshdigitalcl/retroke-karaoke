@@ -14,7 +14,6 @@ export default function DisplayCalled() {
   // la canción hasta que el dato esté listo, y se actualiza solo (realtime)
   // cuando se resuelve.
   var artistName = currentSinger.artistName || ''
-  var songLine = artistName ? currentSinger.song + ' — ' + artistName : currentSinger.song
 
   return (
     <div className="h-screen relative overflow-hidden flex flex-col items-center justify-center px-8 bg-black">
@@ -41,11 +40,13 @@ export default function DisplayCalled() {
           </p>
         </div>
 
-        <div className="relative called-avatar-wrap mb-8">
+        <div className="relative called-stage mb-8">
+          <span className="called-spotlight called-spotlight-left" aria-hidden="true" />
+          <span className="called-spotlight called-spotlight-right" aria-hidden="true" />
           <div className="called-ring called-ring-outer" />
           <div className="called-ring called-ring-inner" />
           <div
-            className="relative w-48 h-48 md:w-64 md:h-64 rounded-full overflow-hidden flex items-center justify-center text-8xl"
+            className="relative called-avatar rounded-full overflow-hidden flex items-center justify-center text-8xl"
             style={{ background: 'linear-gradient(135deg, #8B5CF6, #E91E8C)' }}
           >
             {currentSinger.photo ? (
@@ -63,17 +64,14 @@ export default function DisplayCalled() {
           {currentSinger.name}
         </p>
 
-        <div
-          className="mt-5 px-6 py-2.5 rounded-2xl flex items-center gap-2.5"
-          style={{ background: 'rgba(15,10,20,0.8)', border: '1.5px solid rgba(139,92,246,0.5)' }}
-        >
-          <span className="text-base md:text-lg">🎵</span>
-          <p
-            className="font-bold text-center"
-            style={{ color: '#E91E8C', fontSize: 'clamp(1rem, 2.6vh, 1.5rem)' }}
-          >
-            {songLine}
+        <div className="called-song-card mt-6">
+          <span className="called-song-note" aria-hidden="true">♫</span>
+          <p className="called-song-eyebrow">A punto de sonar</p>
+          <p className="called-song-title">{currentSinger.song}</p>
+          <p className="called-song-artist">
+            {artistName || 'Detectando artista...'}
           </p>
+          <span className="called-song-rule" />
         </div>
       </div>
 
@@ -94,18 +92,60 @@ export default function DisplayCalled() {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.55; }
         }
-        .called-avatar-wrap {
+
+        .called-stage {
           width: 12rem;
           height: 12rem;
         }
         @media (min-width: 768px) {
-          .called-avatar-wrap { width: 16rem; height: 16rem; }
+          .called-stage { width: 16rem; height: 16rem; }
         }
+        .called-avatar {
+          position: absolute;
+          inset: 0;
+          z-index: 2;
+        }
+
+        /* Luces de seguimiento blancas detrás del avatar, como el momento
+           justo antes de subir al escenario: dos focos que se mueven en
+           busca del protagonista y convergen sobre él. */
+        .called-spotlight {
+          position: absolute;
+          top: -230px;
+          left: 50%;
+          width: 150px;
+          height: 420px;
+          margin-left: -75px;
+          background: linear-gradient(to bottom, rgba(255,255,255,0.55), rgba(255,255,255,0.08) 55%, rgba(255,255,255,0) 82%);
+          clip-path: polygon(47% 0%, 53% 0%, 100% 100%, 0% 100%);
+          filter: blur(2px);
+          mix-blend-mode: screen;
+          pointer-events: none;
+          z-index: 0;
+          transform-origin: top center;
+        }
+        .called-spotlight-left {
+          animation: spotlightSweepLeft 3.4s ease-in-out infinite;
+        }
+        .called-spotlight-right {
+          animation: spotlightSweepRight 3.4s ease-in-out infinite;
+          animation-delay: -1.7s;
+        }
+        @keyframes spotlightSweepLeft {
+          0%, 100% { transform: rotate(-26deg); opacity: 0.45; }
+          50% { transform: rotate(-6deg); opacity: 0.85; }
+        }
+        @keyframes spotlightSweepRight {
+          0%, 100% { transform: rotate(26deg); opacity: 0.45; }
+          50% { transform: rotate(6deg); opacity: 0.85; }
+        }
+
         .called-ring {
           position: absolute;
           inset: -14px;
           border-radius: 9999px;
           pointer-events: none;
+          z-index: 1;
         }
         .called-ring-outer {
           border: 3px solid rgba(233,30,140,0.55);
@@ -131,6 +171,80 @@ export default function DisplayCalled() {
           0%, 100% { text-shadow: 0 2px 20px rgba(0,0,0,0.6), 0 0 24px rgba(233,30,140,0.4); }
           50% { text-shadow: 0 2px 20px rgba(0,0,0,0.6), 0 0 44px rgba(139,92,246,0.65); }
         }
+
+        /* Tarjeta de cancion/artista: mas creativa que un simple pill,
+           con jerarquia clara (eyebrow -> titulo -> artista) y un acento
+           de nota musical decorativa. */
+        .called-song-card {
+          position: relative;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          padding: 22px 34px 20px;
+          border-radius: 22px;
+          background: linear-gradient(160deg, rgba(20,12,28,0.88), rgba(10,6,14,0.92));
+          border: 1px solid rgba(139,92,246,0.35);
+          box-shadow: 0 0 0 1px rgba(255,255,255,0.03) inset, 0 18px 40px -18px rgba(0,0,0,0.8);
+          overflow: hidden;
+          min-width: 260px;
+          max-width: 90vw;
+        }
+        .called-song-note {
+          position: absolute;
+          top: -18px;
+          right: 4px;
+          font-size: 84px;
+          line-height: 1;
+          color: rgba(139,92,246,0.14);
+          transform: rotate(12deg);
+          pointer-events: none;
+        }
+        .called-song-eyebrow {
+          position: relative;
+          font-size: 10.5px;
+          font-weight: 700;
+          letter-spacing: 3px;
+          text-transform: uppercase;
+          color: #7ED957;
+        }
+        .called-song-title {
+          position: relative;
+          margin-top: 6px;
+          font-weight: 800;
+          text-align: center;
+          color: #ffffff;
+          font-size: clamp(1.15rem, 2.8vh, 1.65rem);
+          text-shadow: 0 0 18px rgba(255,255,255,0.18);
+        }
+        .called-song-artist {
+          position: relative;
+          margin-top: 4px;
+          font-weight: 700;
+          letter-spacing: 0.5px;
+          text-align: center;
+          font-size: clamp(0.85rem, 2vh, 1.05rem);
+          background: linear-gradient(90deg, #E91E8C, #F4D03F, #8B5CF6);
+          background-size: 200% auto;
+          -webkit-background-clip: text;
+          background-clip: text;
+          -webkit-text-fill-color: transparent;
+          color: transparent;
+          animation: calledArtistShimmer 5s ease-in-out infinite;
+        }
+        @keyframes calledArtistShimmer {
+          0%, 100% { background-position: 0% center; }
+          50% { background-position: 100% center; }
+        }
+        .called-song-rule {
+          display: block;
+          width: 46px;
+          height: 2px;
+          margin-top: 14px;
+          border-radius: 999px;
+          background: linear-gradient(90deg, #E91E8C, #8B5CF6, #F4D03F);
+          opacity: 0.8;
+        }
+
         .called-scanlines {
           position: absolute;
           inset: 0;

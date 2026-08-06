@@ -156,8 +156,19 @@ function PinGate(props) {
   )
 }
 
+var HUB_FONTS_HREF = 'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap'
+
 export default function SessionHub() {
   var sessions = useActiveSessions()
+
+  useEffect(function () {
+    if (document.querySelector('link[data-hub-fonts]')) return
+    var link = document.createElement('link')
+    link.rel = 'stylesheet'
+    link.href = HUB_FONTS_HREF
+    link.setAttribute('data-hub-fonts', 'true')
+    document.head.appendChild(link)
+  }, [])
 
   useEffect(function () {
     var played = false
@@ -236,16 +247,15 @@ export default function SessionHub() {
       <img
         src="/landing/retroke-logo-oficial-neon.png"
         alt="Retroke"
-        className="relative z-10 w-auto mb-5 hub-logo-in"
+        className="relative z-10 w-auto mb-3 hub-logo-in"
         style={{ height: 'clamp(120px, 20vh, 220px)' }}
       />
 
       <div className="relative z-10 flex flex-col items-center mb-10">
-        <h1 className="hub-title text-3xl md:text-6xl font-extrabold text-white text-center leading-tight">
-          El Karaoke cambió para siempre.
-        </h1>
-        <span className="hub-title-rule" />
-        <p className="text-sm md:text-base text-neutral-400 mt-4 text-center">
+        <p className="hub-subtitle text-center">
+          El karaoke cambió <span className="hub-subtitle-break">para siempre</span>
+        </p>
+        <p className="text-sm md:text-base text-neutral-400 mt-5 text-center">
           Toca una sala activa para abrir su pantalla aquí
         </p>
       </div>
@@ -362,23 +372,29 @@ export default function SessionHub() {
           from { opacity: 0; transform: scale(0.9) translateY(-8px); }
           to { opacity: 1; transform: scale(1) translateY(0); }
         }
-        .hub-title {
-          letter-spacing: 0.5px;
-          text-shadow: 0 2px 24px rgba(0,0,0,0.6), 0 0 26px rgba(233,30,140,0.35);
-          animation: hubTitleGlow 3.2s ease-in-out infinite;
+        .hub-subtitle {
+          font-family: 'Space Grotesk', 'Inter', sans-serif;
+          font-weight: 700;
+          font-size: clamp(1.15rem, 2.8vw, 1.85rem);
+          letter-spacing: 0.2px;
+          line-height: 1.3;
+          margin: 0;
+          background: linear-gradient(100deg, #fff 12%, #E91E8C 32%, #8B5CF6 55%, #F4D03F 76%, #fff 96%);
+          background-size: 260% auto;
+          -webkit-background-clip: text;
+          background-clip: text;
+          -webkit-text-fill-color: transparent;
+          color: transparent;
+          animation: hubSubtitleShift 7s ease-in-out infinite;
+          filter: drop-shadow(0 2px 14px rgba(0,0,0,0.55));
         }
-        @keyframes hubTitleGlow {
-          0%, 100% { text-shadow: 0 2px 24px rgba(0,0,0,0.6), 0 0 26px rgba(233,30,140,0.35); }
-          50% { text-shadow: 0 2px 24px rgba(0,0,0,0.6), 0 0 40px rgba(139,92,246,0.55); }
+        .hub-subtitle-break {
+          font-weight: 500;
+          opacity: 0.88;
         }
-        .hub-title-rule {
-          display: block;
-          width: 96px;
-          height: 3px;
-          margin-top: 18px;
-          border-radius: 999px;
-          background: linear-gradient(90deg, #E91E8C, #8B5CF6, #F4D03F);
-          box-shadow: 0 0 14px 1px rgba(139,92,246,0.6);
+        @keyframes hubSubtitleShift {
+          0%, 100% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
         }
         .hub-nav-link {
           text-decoration: none;

@@ -24,6 +24,10 @@ export function VideoPlayerProvider(props) {
   var playerRef = useRef(null)
   var readyRef = useRef(false)
   var pendingVideoIdRef = useRef(null)
+  // Callback dinamico registrado por la pantalla que este mostrando el video
+  // en ese momento (DisplayReactions). Se actualiza por cantante, asi que
+  // cuando YouTube reporta ENDED siempre se llama al handler correcto.
+  var onEndedCallbackRef = useRef(null)
 
   var unlockedState = useState(false)
   var unlocked = unlockedState[0]
@@ -33,6 +37,10 @@ export function VideoPlayerProvider(props) {
   var videoError = errorState[0]
   var setVideoError = errorState[1]
 
+  function registerOnEnded(callback) {
+    onEndedCallbackRef.current = callback || null
+  }
+
   function unlock() {
     loadYouTubeApi().then(function (YT) {
       if (!YT || !containerRef.current) return
@@ -40,7 +48,7 @@ export function VideoPlayerProvider(props) {
         width: '100%',
         height: '100%',
         videoId: 'M7lc1UVf-VE',
-        playerVars: { autoplay: 1, controls: 0, playsinline: 1 },
+        playerVars: { autoplay: 1, controls: 0, playsinline: 1, rel: 0, modestbranding: 1, fs: 0 },
         events: {
           onReady: function (e) {
             readyRef.current = true
@@ -55,7 +63,15 @@ export function VideoPlayerProvider(props) {
               playVideoById(pending)
             }
           },
-          onError: function () {}
+          onError: function () {},
+          // Deteccion real de fin de video (mas confiable que solo hacer
+          // polling de getPlayerState desde afuera): YouTube dispara este
+          // evento apenas termina, sin importar en que cantante estemos.
+          onStateChange: function (e) {
+            if (e.data === 0 && onEndedCallbackRef.current) {
+              onEndedCallbackRef.current()
+            }
+          }
         }
       })
     })
@@ -126,6 +142,7 @@ export function VideoPlayerProvider(props) {
     getDuration: getDuration,
     getPlayerState: getPlayerState,
     forcePlay: forcePlay,
+    registerOnEnded: registerOnEnded,
     containerRef: containerRef,
     videoError: videoError
   }

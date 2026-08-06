@@ -547,6 +547,7 @@ export function KaraokeSessionProvider({ children }) {
           name: entry.name,
           avatar: entry.avatar,
           song: entry.song,
+          artist_name: entry.artistName || null,
           youtube_url: entry.youtubeUrl || '',
           photo: entry.photo || null,
           position: nextPosition,

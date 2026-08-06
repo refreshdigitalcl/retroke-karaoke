@@ -4,6 +4,7 @@ import ThemeToggle from '../components/ThemeToggle'
 import { supabase } from '../lib/supabase'
 import { createVocalAnalyzer, getFeedback } from '../lib/vocalAnalysis'
 import { containsProfanity } from '../lib/profanityFilter'
+import { searchSongMatch } from '../lib/songLookup'
 
 const AVATARS = ['🔥', '🦄', '👽', '🐸', '🎤', '🐙', '⭐', '👑', '🍄', '🌊', '🎸', '🦋']
 
@@ -483,6 +484,63 @@ export default function RegisterForm() {
   var song = songState[0]
   var setSong = songState[1]
 
+  // Autocorreccion del nombre de la cancion/artista: cuando la persona
+  // termina de escribir, se busca en iTunes lo que realmente quiso decir
+  // (util sobre todo con errores de tipeo en ingles) y se corrige antes de
+  // que la entrada aparezca en la cola.
+  var detectedArtistState = useState('')
+  var detectedArtist = detectedArtistState[0]
+  var setDetectedArtist = detectedArtistState[1]
+
+  var songWasCorrectedState = useState(false)
+  var songWasCorrected = songWasCorrectedState[0]
+  var setSongWasCorrected = songWasCorrectedState[1]
+
+  var originalSongTextRef = useRef('')
+  var lastResolvedSongRef = useRef('')
+  var songLookupSeqRef = useRef(0)
+
+  useEffect(function () {
+    var raw = song.trim()
+    if (raw.length < 3) {
+      setSongWasCorrected(false)
+      setDetectedArtist('')
+      return
+    }
+    if (raw.toLowerCase() === lastResolvedSongRef.current.toLowerCase()) return
+
+    var mySeq = ++songLookupSeqRef.current
+    var timeoutId = setTimeout(function () {
+      searchSongMatch(raw).then(function (match) {
+        if (songLookupSeqRef.current !== mySeq) return
+        if (!match) {
+          setDetectedArtist('')
+          setSongWasCorrected(false)
+          return
+        }
+        lastResolvedSongRef.current = match.song
+        setDetectedArtist(match.artist)
+        if (match.song.trim().toLowerCase() !== raw.toLowerCase()) {
+          originalSongTextRef.current = raw
+          setSong(match.song)
+          setSongWasCorrected(true)
+        } else {
+          setSongWasCorrected(false)
+        }
+      })
+    }, 700)
+
+    return function () { clearTimeout(timeoutId) }
+  }, [song])
+
+  function revertSongCorrection() {
+    if (!originalSongTextRef.current) return
+    lastResolvedSongRef.current = originalSongTextRef.current
+    setSong(originalSongTextRef.current)
+    setDetectedArtist('')
+    setSongWasCorrected(false)
+  }
+
   var youtubeState = useState('')
   var youtubeUrl = youtubeState[0]
   var setYoutubeUrl = youtubeState[1]
@@ -604,6 +662,7 @@ export default function RegisterForm() {
       name: name.trim(),
       avatar: avatar,
       song: song.trim(),
+      artistName: detectedArtist || '',
       youtubeUrl: youtubeUrl.trim(),
       videoUrl: youtubeUrl.trim(),
       photo: photo
@@ -884,9 +943,33 @@ export default function RegisterForm() {
           onChange={function (e) { setSong(e.target.value) }}
           placeholder="Ej: Bohemian Rhapsody"
           required
-          className="w-full mb-4 h-11 rounded-lg px-3 border outline-none"
+          className="w-full h-11 rounded-lg px-3 border outline-none"
           style={{ background: 'var(--bg-card-alt)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
         />
+        {songWasCorrected ? (
+          <div
+            className="rounded-lg px-3 py-2 mt-1.5 mb-4 flex items-center justify-between gap-2"
+            style={{ background: 'rgba(126,217,87,0.12)', border: '1px solid rgba(126,217,87,0.4)' }}
+          >
+            <p className="text-xs" style={{ color: '#7ED957' }}>
+              ✓ Corregido{detectedArtist ? ' · ' + detectedArtist : ''}
+            </p>
+            <button
+              type="button"
+              onClick={revertSongCorrection}
+              className="text-xs underline shrink-0"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              Usar lo que escribí
+            </button>
+          </div>
+        ) : detectedArtist ? (
+          <p className="text-xs mt-1.5 mb-4" style={{ color: 'var(--text-muted)' }}>
+            🎵 {detectedArtist}
+          </p>
+        ) : (
+          <div className="mb-4" />
+        )}
 
         <label className="text-sm block mb-1.5" style={{ color: 'var(--text-secondary)' }}>
           Link de tu video karaoke en YouTube (opcional)

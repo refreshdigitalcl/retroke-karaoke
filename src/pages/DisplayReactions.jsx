@@ -244,26 +244,40 @@ export default function DisplayReactions() {
   useEffect(function () {
     if (!hasVideo || !currentSinger) return
     autoAdvancedForRef.current = null
+    var singerId = currentSinger.id
+
+    function advanceOnce() {
+      if (autoAdvancedForRef.current === singerId) return
+      autoAdvancedForRef.current = singerId
+      finishCurrentSong()
+    }
+
+    // Deteccion principal: el evento real de YouTube (onStateChange ENDED),
+    // registrado en el player compartido. Es instantaneo y no depende de
+    // sondear cada cierto tiempo.
+    videoPlayer.registerOnEnded(advanceOnce)
+
+    // Respaldo: por si el evento no llega (algun Smart TV/navegador raro),
+    // se sondea el estado real y el tiempo transcurrido casi al borde de la
+    // duracion total. Auto-avance a la pantalla de votación sin esperar que
+    // el DJ lo haga a mano. Solo se dispara una vez por cantante.
     var interval = setInterval(function () {
       var duration = videoPlayer.getDuration()
       var current = videoPlayer.getCurrentTime()
       if (duration > 0) {
         setProgress(Math.min(100, (current / duration) * 100))
       }
-
-      // Auto-avance a la pantalla de votación cuando el video termina, sin
-      // esperar que el DJ lo haga a mano. Se usa el estado real de YouTube
-      // (ENDED = 0) y, como respaldo, el tiempo transcurrido casi al borde
-      // de la duración total (por si el evento de "terminado" no llega a
-      // tiempo en algún Smart TV). Solo se dispara una vez por cantante.
       var state = videoPlayer.getPlayerState()
       var nearEnd = duration > 0 && current >= duration - 0.5
-      if ((state === 0 || nearEnd) && autoAdvancedForRef.current !== currentSinger.id) {
-        autoAdvancedForRef.current = currentSinger.id
-        finishCurrentSong()
+      if (state === 0 || nearEnd) {
+        advanceOnce()
       }
     }, 500)
-    return function () { clearInterval(interval) }
+
+    return function () {
+      clearInterval(interval)
+      videoPlayer.registerOnEnded(null)
+    }
   }, [hasVideo, currentSinger ? currentSinger.id : null])
 
   if (!currentSinger) return null
