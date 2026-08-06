@@ -2,6 +2,34 @@ import { useRef, useState } from 'react'
 import { searchSimilarVideos } from '../lib/videoSearch'
 
 var MAX_RESULTS = 12
+var SEARCH_TIMEOUT_MS = 8000
+
+// La búsqueda nunca debe dejar la UI colgada: si la promesa no responde
+// dentro del plazo (wifi lento, YouTube caído, etc.) se resuelve igual
+// con un resultado vacío para que la pantalla pueda reaccionar.
+function withTimeout(promise, ms) {
+  return new Promise(function (resolve) {
+    var settled = false
+    var timer = setTimeout(function () {
+      if (settled) return
+      settled = true
+      resolve({ items: [], nextPageToken: null })
+    }, ms)
+    promise
+      .then(function (data) {
+        if (settled) return
+        settled = true
+        clearTimeout(timer)
+        resolve(data && data.items ? data : { items: [], nextPageToken: null })
+      })
+      .catch(function () {
+        if (settled) return
+        settled = true
+        clearTimeout(timer)
+        resolve({ items: [], nextPageToken: null })
+      })
+  })
+}
 
 export default function SimilarTrackSearch(props) {
   var query = props.query
@@ -20,11 +48,16 @@ export default function SimilarTrackSearch(props) {
   var scrollRef = useRef(null)
 
   function handleSearch() {
+    if (!query) {
+      setStatus('empty')
+      return
+    }
     setStatus('loading')
-    searchSimilarVideos(query + ' karaoke').then(function (data) {
-      setResults(data.items)
-      nextTokenRef.current = data.nextPageToken
-      setStatus(data.items.length > 0 ? 'done' : 'empty')
+    withTimeout(searchSimilarVideos(query + ' karaoke'), SEARCH_TIMEOUT_MS).then(function (data) {
+      var items = (data && data.items) || []
+      setResults(items)
+      nextTokenRef.current = (data && data.nextPageToken) || null
+      setStatus(items.length > 0 ? 'done' : 'empty')
     })
   }
 
@@ -33,13 +66,16 @@ export default function SimilarTrackSearch(props) {
     if (!nextTokenRef.current) return
     if (results.length >= MAX_RESULTS) return
     loadingMoreRef.current = true
-    searchSimilarVideos(query + ' karaoke', nextTokenRef.current).then(function (data) {
+    withTimeout(searchSimilarVideos(query + ' karaoke', nextTokenRef.current), SEARCH_TIMEOUT_MS).then(function (data) {
+      var items = (data && data.items) || []
       setResults(function (prev) {
         var existingIds = prev.map(function (p) { return p.videoId })
-        var fresh = data.items.filter(function (item) { return existingIds.indexOf(item.videoId) === -1 })
+        var fresh = items.filter(function (item) { return existingIds.indexOf(item.videoId) === -1 })
         return prev.concat(fresh).slice(0, MAX_RESULTS)
       })
-      nextTokenRef.current = data.nextPageToken
+      nextTokenRef.current = (data && data.nextPageToken) || null
+      loadingMoreRef.current = false
+    }).catch(function () {
       loadingMoreRef.current = false
     })
   }

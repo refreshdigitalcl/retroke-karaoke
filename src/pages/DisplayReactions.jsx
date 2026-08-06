@@ -204,7 +204,9 @@ export default function DisplayReactions() {
   var reactions = session.reactions
   var spaceParam = session.spaceParam
   var hasFeature = session.hasFeature
+  var finishCurrentSong = session.finishCurrentSong
   var videoPlayer = useVideoPlayer()
+  var autoAdvancedForRef = useRef(null)
 
   var phrase = useMemo(function () {
     if (!currentSinger) return ''
@@ -240,16 +242,29 @@ export default function DisplayReactions() {
 
 
   useEffect(function () {
-    if (!hasVideo) return
+    if (!hasVideo || !currentSinger) return
+    autoAdvancedForRef.current = null
     var interval = setInterval(function () {
       var duration = videoPlayer.getDuration()
       var current = videoPlayer.getCurrentTime()
       if (duration > 0) {
         setProgress(Math.min(100, (current / duration) * 100))
       }
+
+      // Auto-avance a la pantalla de votación cuando el video termina, sin
+      // esperar que el DJ lo haga a mano. Se usa el estado real de YouTube
+      // (ENDED = 0) y, como respaldo, el tiempo transcurrido casi al borde
+      // de la duración total (por si el evento de "terminado" no llega a
+      // tiempo en algún Smart TV). Solo se dispara una vez por cantante.
+      var state = videoPlayer.getPlayerState()
+      var nearEnd = duration > 0 && current >= duration - 0.5
+      if ((state === 0 || nearEnd) && autoAdvancedForRef.current !== currentSinger.id) {
+        autoAdvancedForRef.current = currentSinger.id
+        finishCurrentSong()
+      }
     }, 500)
     return function () { clearInterval(interval) }
-  }, [hasVideo])
+  }, [hasVideo, currentSinger ? currentSinger.id : null])
 
   if (!currentSinger) return null
 

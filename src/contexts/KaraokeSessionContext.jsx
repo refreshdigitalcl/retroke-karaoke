@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { REACTION_EMOJIS as REACTION_EMOJI_LIST } from '../lib/reactionEmojis'
+import { fetchArtistNameForSong } from '../lib/artistLookup'
 
 export function parseYoutubeId(url) {
   if (!url) return ''
@@ -326,7 +327,8 @@ export function KaraokeSessionProvider({ children }) {
           videoUrl: r.video_url || '',
           videoId: r.video_id || '',
           lastSeenAt: r.last_seen_at || null,
-          micReady: r.mic_ready || false
+          micReady: r.mic_ready || false,
+          artistName: r.artist_name || ''
         }))
       )
     }
@@ -595,12 +597,34 @@ export function KaraokeSessionProvider({ children }) {
             song: entry.song,
             photo: entry.photo,
             videoUrl: entry.videoUrl,
-            videoId: entry.videoId
+            videoId: entry.videoId,
+            artistName: entry.artistName || null
           },
           screen_mode: 'called'
         })
         .eq('id', sessionId)
       await supabase.from('queue_entries').update({ status: 'called' }).eq('id', entryId)
+
+      // Detección automática del artista real (ya no requiere confirmación manual del DJ).
+      if (!entry.artistName) {
+        fetchArtistNameForSong(entry.song)
+          .then(async (autoArtist) => {
+            if (!autoArtist) return
+            const { data } = await supabase
+              .from('sessions')
+              .select('current_singer')
+              .eq('id', sessionId)
+              .maybeSingle()
+            const stillCurrent = data && data.current_singer && data.current_singer.id === entry.id
+            if (!stillCurrent) return
+            await supabase
+              .from('sessions')
+              .update({ current_singer: { ...data.current_singer, artistName: autoArtist } })
+              .eq('id', sessionId)
+            await supabase.from('queue_entries').update({ artist_name: autoArtist }).eq('id', entry.id)
+          })
+          .catch(() => {})
+      }
     },
     [sessionId, queue]
   )

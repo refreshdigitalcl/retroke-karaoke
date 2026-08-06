@@ -348,7 +348,7 @@ export default function DisplayQueue(props) {
       <main className="relative z-10 flex-1 min-h-0 grid grid-cols-1 md:grid-cols-2 gap-6 max-w-6xl w-full mx-auto px-6 md:px-8 pb-3 pt-1">
         <div className="flex flex-col items-center justify-center text-center min-h-0" style={{ gap: 'clamp(10px, 2.2vh, 22px)' }}>
           <div>
-            <div className="flex items-center justify-center gap-2.5 relative z-10" style={{ marginBottom: -4 }}>
+            <div className="flex items-center justify-center gap-2.5 relative z-10" style={{ marginBottom: -4, transform: 'translateY(-10px)' }}>
               <span className="hero-eyebrow-emoji eyebrow-emoji-1" aria-hidden="true">🔥</span>
               <span className="hero-eyebrow-emoji eyebrow-emoji-2" aria-hidden="true">🤯</span>
               <span className="hero-eyebrow-emoji eyebrow-emoji-3" aria-hidden="true">💣</span>
@@ -358,7 +358,7 @@ export default function DisplayQueue(props) {
               className="tracking-[4px] uppercase font-bold mb-2 relative"
               style={{ color: '#F4D03F', fontSize: 'clamp(10px, 1.5vh, 14px)' }}
             >
-              ✨ Karaoke en vivo
+              ✨ La Evolución del Karaoke
             </p>
             <h1
               className="hero-title font-extrabold leading-tight"
@@ -377,7 +377,7 @@ export default function DisplayQueue(props) {
 
           <div className="relative rounded-[1.75rem] px-6 py-4 flex flex-col items-center gap-2.5" style={{ background: 'rgba(12,8,20,0.9)', border: '2.5px solid #F4D03F', boxShadow: '0 0 24px -6px rgba(244,208,63,0.4)' }}>
             <QRCode url={registerUrl} size={qrSize} />
-            <p className="font-bold tracking-wide" style={{ color: '#8B5CF6', fontSize: 'clamp(13px, 1.7vh, 16px)' }}>
+            <p className="font-bold tracking-wide" style={{ color: '#FFFFFF', fontSize: 'clamp(13px, 1.7vh, 16px)' }}>
               {barName}
             </p>
           </div>

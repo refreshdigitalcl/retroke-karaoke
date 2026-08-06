@@ -992,21 +992,6 @@ function DjPanelInner() {
   var setQueueEntryVideo = session.setQueueEntryVideo
   var callSinger = session.callSinger
   var setCurrentSingerVideo = session.setCurrentSingerVideo
-  var setCurrentSingerArtist = session.setCurrentSingerArtist
-
-  var artistInputState = useState('')
-  var artistInput = artistInputState[0]
-  var setArtistInput = artistInputState[1]
-
-  useEffect(function () {
-    setArtistInput((currentSinger && currentSinger.artistName) || '')
-  }, [currentSinger && currentSinger.id])
-
-  function saveArtistInput() {
-    if (!currentSinger) return
-    if ((currentSinger.artistName || '') === artistInput.trim()) return
-    setCurrentSingerArtist(artistInput.trim())
-  }
   var startPlaying = session.startPlaying
   var finishCurrentSong = session.finishCurrentSong
   var submitRating = session.submitRating
@@ -1601,15 +1586,9 @@ function DjPanelInner() {
                 </p>
                 <div className="flex items-center gap-1.5 mt-1.5">
                   <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Artista:</span>
-                  <input
-                    type="text"
-                    value={artistInput}
-                    onChange={function (e) { setArtistInput(e.target.value) }}
-                    onBlur={saveArtistInput}
-                    placeholder="Confirma el artista real"
-                    className="text-xs h-7 px-2 rounded-lg border outline-none w-48"
-                    style={{ background: 'var(--bg-card-alt)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
-                  />
+                  <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                    {currentSinger.artistName ? currentSinger.artistName : 'Detectando automáticamente...'}
+                  </span>
                 </div>
                 {screenMode === 'called' && !currentSinger.videoId && (
                   <p className="text-xs mt-1" style={{ color: 'var(--accent-magenta)' }}>
