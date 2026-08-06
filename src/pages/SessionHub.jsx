@@ -210,15 +210,39 @@ export default function SessionHub() {
   }
 
   return (
-    <div className="min-h-screen relative overflow-hidden flex flex-col items-center justify-center px-8 py-12 bg-black">
+    <div className="min-h-screen relative overflow-hidden flex flex-col items-center justify-center px-8 pt-28 pb-12 bg-black">
       <RetroEqualizer />
       <FloatingDecor />
 
-      <p className="relative z-10 text-xs tracking-[8px] uppercase text-purple-400 mb-3">
-        Retroke Karaoke
-      </p>
+      <nav
+        className="fixed top-0 inset-x-0 z-40 flex items-center justify-center gap-6 md:gap-10 px-6 py-4"
+        style={{ background: 'rgba(8,4,14,0.6)', backdropFilter: 'blur(10px)', borderBottom: '1px solid rgba(139,92,246,0.25)' }}
+      >
+        <a
+          href="/inicio"
+          className="text-xs md:text-sm tracking-[3px] uppercase font-bold text-neutral-300 transition-colors hub-nav-link"
+        >
+          Inicio
+        </a>
+        <a
+          href="/precios"
+          className="text-xs md:text-sm tracking-[3px] uppercase font-bold text-neutral-300 transition-colors hub-nav-link"
+        >
+          Planes y precios
+        </a>
+      </nav>
+
+      <img
+        src="/landing/retroke-logo-oficial-neon.png"
+        alt="Retroke"
+        className="relative z-10 w-auto mb-4"
+        style={{
+          height: 'clamp(52px, 8vh, 92px)',
+          filter: 'drop-shadow(0 0 16px rgba(233,30,140,0.55)) drop-shadow(0 0 28px rgba(139,92,246,0.4))'
+        }}
+      />
       <h1 className="relative z-10 text-3xl md:text-5xl font-extrabold text-white mb-2 text-center">
-        Elige la sala para mostrar
+        El Karaoke cambió para siempre.
       </h1>
       <p className="relative z-10 text-sm text-neutral-400 mb-10 text-center">
         Toca una sala activa para abrir su pantalla aqui
@@ -304,6 +328,13 @@ export default function SessionHub() {
       </a>
 
       <style>{`
+        .hub-nav-link {
+          text-decoration: none;
+        }
+        .hub-nav-link:hover, .hub-nav-link:focus {
+          color: #fff;
+          text-shadow: 0 0 10px rgba(139,92,246,0.7);
+        }
         .hub-card {
           animation: hubCardIn 0.4s ease-out both;
           transition: transform 0.15s, box-shadow 0.15s;
