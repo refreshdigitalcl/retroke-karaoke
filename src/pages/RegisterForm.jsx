@@ -4,7 +4,7 @@ import ThemeToggle from '../components/ThemeToggle'
 import { supabase } from '../lib/supabase'
 import { createVocalAnalyzer, getFeedback } from '../lib/vocalAnalysis'
 import { containsProfanity } from '../lib/profanityFilter'
-import { searchSongMatch } from '../lib/songLookup'
+import { searchSongMatches } from '../lib/songLookup'
 
 const AVATARS = ['🔥', '🦄', '👽', '🐸', '🎤', '🐙', '⭐', '👑', '🍄', '🌊', '🎸', '🦋']
 
@@ -484,61 +484,59 @@ export default function RegisterForm() {
   var song = songState[0]
   var setSong = songState[1]
 
-  // Autocorreccion del nombre de la cancion/artista: cuando la persona
-  // termina de escribir, se busca en iTunes lo que realmente quiso decir
-  // (util sobre todo con errores de tipeo en ingles) y se corrige antes de
-  // que la entrada aparezca en la cola.
+  // Sugerencias de cancion/artista: cuando la persona termina de escribir,
+  // se busca en iTunes hasta 4 posibles coincidencias reales (util sobre
+  // todo con errores de tipeo en ingles) y se muestran como opciones para
+  // elegir. Nunca se reemplaza el texto solo — la persona elige una
+  // sugerencia o sigue escribiendo la suya tal cual.
   var detectedArtistState = useState('')
   var detectedArtist = detectedArtistState[0]
   var setDetectedArtist = detectedArtistState[1]
 
-  var songWasCorrectedState = useState(false)
-  var songWasCorrected = songWasCorrectedState[0]
-  var setSongWasCorrected = songWasCorrectedState[1]
+  var songSuggestionsState = useState([])
+  var songSuggestions = songSuggestionsState[0]
+  var setSongSuggestions = songSuggestionsState[1]
 
-  var originalSongTextRef = useRef('')
+  var suggestionsLoadingState = useState(false)
+  var suggestionsLoading = suggestionsLoadingState[0]
+  var setSuggestionsLoading = suggestionsLoadingState[1]
+
   var lastResolvedSongRef = useRef('')
   var songLookupSeqRef = useRef(0)
 
   useEffect(function () {
     var raw = song.trim()
     if (raw.length < 3) {
-      setSongWasCorrected(false)
-      setDetectedArtist('')
+      setSongSuggestions([])
+      setSuggestionsLoading(false)
       return
     }
     if (raw.toLowerCase() === lastResolvedSongRef.current.toLowerCase()) return
 
+    setDetectedArtist('')
     var mySeq = ++songLookupSeqRef.current
+    setSuggestionsLoading(true)
     var timeoutId = setTimeout(function () {
-      searchSongMatch(raw).then(function (match) {
+      searchSongMatches(raw, 4).then(function (matches) {
         if (songLookupSeqRef.current !== mySeq) return
-        if (!match) {
-          setDetectedArtist('')
-          setSongWasCorrected(false)
-          return
-        }
-        lastResolvedSongRef.current = match.song
-        setDetectedArtist(match.artist)
-        if (match.song.trim().toLowerCase() !== raw.toLowerCase()) {
-          originalSongTextRef.current = raw
-          setSong(match.song)
-          setSongWasCorrected(true)
-        } else {
-          setSongWasCorrected(false)
-        }
+        setSuggestionsLoading(false)
+        setSongSuggestions(matches)
       })
     }, 700)
 
     return function () { clearTimeout(timeoutId) }
   }, [song])
 
-  function revertSongCorrection() {
-    if (!originalSongTextRef.current) return
-    lastResolvedSongRef.current = originalSongTextRef.current
-    setSong(originalSongTextRef.current)
-    setDetectedArtist('')
-    setSongWasCorrected(false)
+  function selectSongSuggestion(match) {
+    lastResolvedSongRef.current = match.song
+    setSong(match.song)
+    setDetectedArtist(match.artist)
+    setSongSuggestions([])
+  }
+
+  function dismissSongSuggestions() {
+    lastResolvedSongRef.current = song.trim()
+    setSongSuggestions([])
   }
 
   var youtubeState = useState('')
@@ -946,28 +944,67 @@ export default function RegisterForm() {
           className="w-full h-11 rounded-lg px-3 border outline-none"
           style={{ background: 'var(--bg-card-alt)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
         />
-        {songWasCorrected ? (
-          <div
-            className="rounded-lg px-3 py-2 mt-1.5 mb-4 flex items-center justify-between gap-2"
-            style={{ background: 'rgba(126,217,87,0.12)', border: '1px solid rgba(126,217,87,0.4)' }}
-          >
-            <p className="text-xs" style={{ color: '#7ED957' }}>
-              ✓ Corregido{detectedArtist ? ' · ' + detectedArtist : ''}
+        {suggestionsLoading && (
+          <p className="text-xs mt-1.5" style={{ color: 'var(--text-muted)' }}>
+            Buscando coincidencias...
+          </p>
+        )}
+
+        {!suggestionsLoading && songSuggestions.length > 0 && (
+          <div className="mt-1.5 mb-4">
+            <p className="text-xs mb-1.5" style={{ color: 'var(--text-muted)' }}>
+              ¿Es alguna de estas? Toca para elegir, o sigue escribiendo la tuya
             </p>
+            <div className="flex flex-col gap-1.5">
+              {songSuggestions.map(function (s) {
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={function () { selectSongSuggestion(s) }}
+                    className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-left border"
+                    style={{ background: 'var(--bg-card-alt)', borderColor: 'var(--border)' }}
+                  >
+                    {s.artwork ? (
+                      <img src={s.artwork} alt="" className="w-9 h-9 rounded shrink-0 object-cover" />
+                    ) : (
+                      <span
+                        className="w-9 h-9 rounded shrink-0 flex items-center justify-center text-sm"
+                        style={{ background: 'var(--bg-card)' }}
+                      >
+                        🎵
+                      </span>
+                    )}
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>
+                        {s.song}
+                      </span>
+                      <span className="block text-xs truncate" style={{ color: 'var(--text-muted)' }}>
+                        {s.artist}
+                      </span>
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
             <button
               type="button"
-              onClick={revertSongCorrection}
-              className="text-xs underline shrink-0"
+              onClick={dismissSongSuggestions}
+              className="text-xs underline mt-2"
               style={{ color: 'var(--text-muted)' }}
             >
-              Usar lo que escribí
+              Ninguna, dejar lo que escribí
             </button>
           </div>
-        ) : detectedArtist ? (
-          <p className="text-xs mt-1.5 mb-4" style={{ color: 'var(--text-muted)' }}>
-            🎵 {detectedArtist}
+        )}
+
+        {!suggestionsLoading && songSuggestions.length === 0 && detectedArtist && (
+          <p className="text-xs mt-1.5 mb-4" style={{ color: '#7ED957' }}>
+            ✓ {detectedArtist}
           </p>
-        ) : (
+        )}
+
+        {!suggestionsLoading && songSuggestions.length === 0 && !detectedArtist && (
           <div className="mb-4" />
         )}
 
