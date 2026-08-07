@@ -35,6 +35,48 @@ function makeSessionId(code) {
   return code.toUpperCase() + '-' + Date.now()
 }
 
+// Fase C: arma la fila de historial permanente para una presentacion que
+// recien termino. Junta el promedio del publico (ratings) y el resultado de
+// IA (vocal_results, solo Home) en un solo registro por presentacion. Si
+// alguna de las dos fuentes no existe, simplemente queda null — no se
+// inventa un dato que no se pudo medir.
+async function recordPerformance(singer, sessionId, barId, workspaceId) {
+  if (!singer || !sessionId) return
+
+  const ratingsResult = await supabase
+    .from('ratings')
+    .select('score')
+    .eq('session_id', sessionId)
+    .eq('singer_id', String(singer.id))
+  const scores = (ratingsResult.data || []).map((r) => r.score)
+  const audienceScore = scores.length
+    ? scores.reduce((a, b) => a + b, 0) / scores.length
+    : null
+
+  const vocalResult = await supabase
+    .from('vocal_results')
+    .select('final_score, confidence')
+    .eq('session_id', sessionId)
+    .eq('queue_entry_id', singer.id)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  await supabase.from('performances').insert({
+    participant_id: singer.participantId || null,
+    session_id: sessionId,
+    queue_entry_id: singer.id,
+    bar_id: barId || null,
+    workspace_id: barId ? null : (workspaceId || null),
+    singer_name: singer.name || null,
+    song: singer.song || null,
+    artist_name: singer.artistName || null,
+    audience_score: audienceScore,
+    vocal_score: vocalResult.data ? vocalResult.data.final_score : null,
+    vocal_confidence: vocalResult.data ? vocalResult.data.confidence : null
+  })
+}
+
 export function KaraokeSessionProvider({ children }) {
   const [directWorkspaceId, setDirectWorkspaceId] = useState(null)
   const [barSlug, setBarSlug] = useState(null)
@@ -328,7 +370,8 @@ export function KaraokeSessionProvider({ children }) {
           videoId: r.video_id || '',
           lastSeenAt: r.last_seen_at || null,
           micReady: r.mic_ready || false,
-          artistName: r.artist_name || ''
+          artistName: r.artist_name || '',
+          participantId: r.participant_id || null
         }))
       )
     }
@@ -600,7 +643,8 @@ export function KaraokeSessionProvider({ children }) {
             photo: entry.photo,
             videoUrl: entry.videoUrl,
             videoId: entry.videoId,
-            artistName: entry.artistName || null
+            artistName: entry.artistName || null,
+            participantId: entry.participantId || null
           },
           screen_mode: 'called'
         })
@@ -730,12 +774,20 @@ export function KaraokeSessionProvider({ children }) {
       const completingStates = ['rating', 'result', 'reactions']
       const nextStatus = completingStates.indexOf(screenMode) !== -1 ? 'completed' : 'waiting'
       await supabase.from('queue_entries').update({ status: nextStatus }).eq('id', currentSinger.id)
+
+      // Fase C: registrar la presentacion en el historial permanente
+      // (performances). Nunca bloquea ni rompe la transicion de pantalla si
+      // esto falla o tarda — es un registro de respaldo, no critico para el
+      // flujo en vivo.
+      if (nextStatus === 'completed') {
+        recordPerformance(currentSinger, sessionId, barId, workspaceId).catch(() => {})
+      }
     }
     await supabase
       .from('sessions')
       .update({ current_singer: null, screen_mode: 'queue' })
       .eq('id', sessionId)
-  }, [sessionId, currentSinger, screenMode])
+  }, [sessionId, currentSinger, screenMode, barId, workspaceId])
 
   const addReaction = useCallback(
     async (emoji) => {
