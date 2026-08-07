@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useCallback, useEffect } from 'rea
 import { supabase } from '../lib/supabase'
 import { REACTION_EMOJIS as REACTION_EMOJI_LIST } from '../lib/reactionEmojis'
 import { fetchArtistNameForSong } from '../lib/artistLookup'
+import { computeLevel, computeNotaFinal, computeXpForPerformance, isGoodPerformance, evaluateNewAchievements } from '../lib/gamification'
 
 export function parseYoutubeId(url) {
   if (!url) return ''
@@ -62,6 +63,9 @@ async function recordPerformance(singer, sessionId, barId, workspaceId) {
     .limit(1)
     .maybeSingle()
 
+  const vocalScore = vocalResult.data ? vocalResult.data.final_score : null
+  const notaFinal = computeNotaFinal(audienceScore, vocalScore)
+
   await supabase.from('performances').insert({
     participant_id: singer.participantId || null,
     session_id: sessionId,
@@ -72,9 +76,72 @@ async function recordPerformance(singer, sessionId, barId, workspaceId) {
     song: singer.song || null,
     artist_name: singer.artistName || null,
     audience_score: audienceScore,
-    vocal_score: vocalResult.data ? vocalResult.data.final_score : null,
-    vocal_confidence: vocalResult.data ? vocalResult.data.confidence : null
+    vocal_score: vocalScore,
+    vocal_confidence: vocalResult.data ? vocalResult.data.confidence : null,
+    nota_final: notaFinal
   })
+
+  // Fase C.2: XP, nivel y logros. Solo aplica si el cantante tiene perfil de
+  // participante (dispositivo identificado, Fase B) — si canto sin eso, su
+  // presentacion queda igual en el historial, solo no suma progreso personal.
+  // Nunca bloquea ni rompe el registro de la presentacion si falla.
+  if (singer.participantId) {
+    applyGamification(singer.participantId, notaFinal, vocalScore).catch(() => {})
+  }
+}
+
+// Fase C.2: lee el progreso actual del participante, calcula el nuevo XP,
+// nivel y racha con las funciones puras de gamification.js, guarda el nuevo
+// estado y desbloquea los logros que correspondan. Fire-and-forget desde
+// recordPerformance — nunca debe interrumpir el show en vivo.
+async function applyGamification(participantId, notaFinal, vocalScore) {
+  const statsResult = await supabase
+    .from('participant_stats')
+    .select('*')
+    .eq('participant_id', participantId)
+    .maybeSingle()
+  const prevStats = statsResult.data || {
+    xp: 0,
+    total_performances: 0,
+    best_score: null,
+    current_streak: 0,
+    best_streak: 0
+  }
+
+  const good = isGoodPerformance(notaFinal)
+  const newStreak = good ? (prevStats.current_streak || 0) + 1 : 0
+  const newXp = (prevStats.xp || 0) + computeXpForPerformance(notaFinal)
+  const levelInfo = computeLevel(newXp)
+
+  const updatedStats = {
+    participant_id: participantId,
+    xp: newXp,
+    level: levelInfo.level,
+    level_name: levelInfo.name,
+    total_performances: (prevStats.total_performances || 0) + 1,
+    best_score:
+      vocalScore !== null && vocalScore !== undefined
+        ? Math.max(prevStats.best_score || 0, vocalScore)
+        : prevStats.best_score,
+    current_streak: newStreak,
+    best_streak: Math.max(prevStats.best_streak || 0, newStreak),
+    updated_at: new Date().toISOString()
+  }
+
+  await supabase.from('participant_stats').upsert(updatedStats)
+
+  const unlockedResult = await supabase
+    .from('participant_achievements')
+    .select('achievement_code')
+    .eq('participant_id', participantId)
+  const alreadyUnlocked = (unlockedResult.data || []).map((r) => r.achievement_code)
+
+  const newlyUnlocked = evaluateNewAchievements(vocalScore, updatedStats, alreadyUnlocked)
+  if (newlyUnlocked.length) {
+    await supabase.from('participant_achievements').insert(
+      newlyUnlocked.map((code) => ({ participant_id: participantId, achievement_code: code }))
+    )
+  }
 }
 
 export function KaraokeSessionProvider({ children }) {
