@@ -6,6 +6,7 @@ import { createVocalAnalyzer, getFeedback } from '../lib/vocalAnalysis'
 import { containsProfanity } from '../lib/profanityFilter'
 import { searchSongMatches } from '../lib/songLookup'
 import { getOrCreateParticipant, touchParticipantProfile } from '../lib/participant'
+import { buildShareUrl, buildShareText, shareResult } from '../lib/shareCard'
 
 const AVATARS = ['🔥', '🦄', '👽', '🐸', '🎤', '🐙', '⭐', '👑', '🍄', '🌊', '🎸', '🦋']
 
@@ -80,6 +81,27 @@ function flushPendingVocalResults() {
   pending.forEach(function (payload) {
     saveVocalResult(payload)
   })
+}
+
+// Fase D: boton de compartir, reutilizado en las pantallas de "gracias por
+// participar" y "ya estas en la cola". Solo aparece una vez que existe una
+// tarjeta de resultado real (performance_id ya generado en el servidor).
+function ShareResultButton(props) {
+  function handleClick() {
+    var url = buildShareUrl(props.performanceId)
+    var text = buildShareText({ song: props.song, artistName: props.artistName || null, notaFinal: null })
+    shareResult({ url: url, text: text, title: 'Mi resultado en Retroke' })
+  }
+  return (
+    <button
+      type="button"
+      onClick={handleClick}
+      className="w-full h-11 rounded-xl font-bold text-white mt-4"
+      style={{ background: 'linear-gradient(90deg, #E91E8C, #8B5CF6)' }}
+    >
+      Compartir mi resultado 🔗
+    </button>
+  )
 }
 
 function YourTurnScreen(props) {
@@ -409,10 +431,13 @@ function YourTurnScreen(props) {
               <p className="text-4xl font-extrabold" style={{ color: '#F4D03F' }}>{results.scores.finalScore}/100</p>
             </div>
             <p className="text-sm mb-5" style={{ color: 'var(--text-primary)' }}>{results.feedback}</p>
+            {props.performanceId && (
+              <ShareResultButton performanceId={props.performanceId} song={song} artistName={props.artistName} />
+            )}
             <button
               onClick={props.onDone}
-              className="w-full h-12 rounded-xl font-bold text-white"
-              style={{ background: 'linear-gradient(90deg, #E91E8C, #8B5CF6)' }}
+              className="w-full h-12 rounded-xl font-bold text-white mt-3"
+              style={{ background: 'var(--bg-card-alt)', color: 'var(--text-primary)' }}
             >
               Listo
             </button>
@@ -601,6 +626,39 @@ export default function RegisterForm() {
   var restoringEntryState = useState(true)
   var restoringEntry = restoringEntryState[0]
   var setRestoringEntry = restoringEntryState[1]
+
+  // Fase D: una vez que el participante termina su ronda, el servidor
+  // registra la presentacion (performances) y anota su id en la fila de la
+  // cola (queue_entries.performance_id). Lo consultamos con un poll liviano
+  // en vez de suscripcion — el dato aparece una sola vez y no vale la pena
+  // mantener un canal realtime abierto solo para esto.
+  var myPerformanceIdState = useState(null)
+  var myPerformanceId = myPerformanceIdState[0]
+  var setMyPerformanceId = myPerformanceIdState[1]
+
+  useEffect(function () {
+    if (!myEntryId || myPerformanceId) return
+    var cancelled = false
+    var intervalId = setInterval(function () {
+      supabase
+        .from('queue_entries')
+        .select('performance_id')
+        .eq('id', myEntryId)
+        .maybeSingle()
+        .then(function (result) {
+          if (cancelled) return
+          if (result.data && result.data.performance_id) {
+            setMyPerformanceId(result.data.performance_id)
+            clearInterval(intervalId)
+          }
+        })
+        .catch(function () {})
+    }, 4000)
+    return function () {
+      cancelled = true
+      clearInterval(intervalId)
+    }
+  }, [myEntryId, myPerformanceId])
 
   // Sin esto, si la persona bloquea la pantalla o recarga (muy comun en
   // celulares mientras esperan su turno), myEntryId vive solo en memoria y
@@ -803,7 +861,9 @@ export default function RegisterForm() {
       <YourTurnScreen
         name={name}
         song={song}
+        artistName={detectedArtist}
         entryId={myEntryId}
+        performanceId={myPerformanceId}
         sessionId={session.sessionId}
         currentSinger={currentSinger}
         screenMode={session.screenMode}
@@ -833,6 +893,9 @@ export default function RegisterForm() {
           <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
             Recuerda que puedes unirte nuevamente cuando quieras.
           </p>
+          {myPerformanceId && (
+            <ShareResultButton performanceId={myPerformanceId} song={song} artistName={detectedArtist} />
+          )}
         </div>
       </div>
     )
@@ -872,6 +935,9 @@ export default function RegisterForm() {
           <p className="text-sm mt-4" style={{ color: 'var(--accent-yellow)' }}>
             Posicion {position} en la cola
           </p>
+          {myPerformanceId && (
+            <ShareResultButton performanceId={myPerformanceId} song={song} artistName={detectedArtist} />
+          )}
         </div>
       </div>
     )
