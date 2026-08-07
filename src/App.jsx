@@ -13,6 +13,8 @@ import PricingPage from './pages/PricingPage'
 import SignupPage from './pages/SignupPage'
 import WelcomePage from './pages/WelcomePage'
 import LandingPage from './pages/LandingPage'
+import SharePerformance from './pages/SharePerformance'
+import Rankings from './pages/Rankings'
 
 export default function App() {
   return (
@@ -50,6 +52,12 @@ export default function App() {
 
             {/* Portal de ventas / landing page */}
             <Route path="/inicio" element={<LandingPage />} />
+
+            {/* Fase D: tarjeta compartible publica de un resultado */}
+            <Route path="/r/:performanceId" element={<SharePerformance />} />
+
+            {/* Fase E.1: rankings global y por sala */}
+            <Route path="/ranking" element={<Rankings />} />
           </Routes>
         </BrowserRouter>
         </KaraokeSessionProvider>
