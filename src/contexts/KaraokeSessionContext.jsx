@@ -66,20 +66,33 @@ async function recordPerformance(singer, sessionId, barId, workspaceId) {
   const vocalScore = vocalResult.data ? vocalResult.data.final_score : null
   const notaFinal = computeNotaFinal(audienceScore, vocalScore)
 
-  await supabase.from('performances').insert({
-    participant_id: singer.participantId || null,
-    session_id: sessionId,
-    queue_entry_id: singer.id,
-    bar_id: barId || null,
-    workspace_id: barId ? null : (workspaceId || null),
-    singer_name: singer.name || null,
-    song: singer.song || null,
-    artist_name: singer.artistName || null,
-    audience_score: audienceScore,
-    vocal_score: vocalScore,
-    vocal_confidence: vocalResult.data ? vocalResult.data.confidence : null,
-    nota_final: notaFinal
-  })
+  const { data: perfRow } = await supabase
+    .from('performances')
+    .insert({
+      participant_id: singer.participantId || null,
+      session_id: sessionId,
+      queue_entry_id: singer.id,
+      bar_id: barId || null,
+      workspace_id: barId ? null : (workspaceId || null),
+      singer_name: singer.name || null,
+      song: singer.song || null,
+      artist_name: singer.artistName || null,
+      audience_score: audienceScore,
+      vocal_score: vocalScore,
+      vocal_confidence: vocalResult.data ? vocalResult.data.confidence : null,
+      nota_final: notaFinal
+    })
+    .select('id')
+    .single()
+
+  // Fase D: deja la presentacion ubicable desde su fila de la cola, para
+  // poder armar la tarjeta compartible (/r/:performanceId) despues.
+  if (perfRow) {
+    await supabase
+      .from('queue_entries')
+      .update({ performance_id: perfRow.id })
+      .eq('id', singer.id)
+  }
 
   // Fase C.2: XP, nivel y logros. Solo aplica si el cantante tiene perfil de
   // participante (dispositivo identificado, Fase B) — si canto sin eso, su
