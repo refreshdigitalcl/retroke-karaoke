@@ -104,6 +104,33 @@ export function createVocalAnalyzer(analyserNode, audioCtx) {
   return { start: start, stop: stop }
 }
 
+// Por debajo de este nivel de RMS se considera que no hubo intento de canto
+// (pausa entre frases, respiro, silencio) — no debe contar en contra de la
+// afinacion. Sin esto, alguien que canta bien pero deja silencios naturales
+// entre versos terminaba con un pitchScore injustamente bajo.
+var SILENCE_RMS_THRESHOLD = 0.015
+
+function computeConfidence(samples, activeSamples) {
+  if (samples.length === 0) {
+    return { confidence: 'baja', confidenceScore: 0 }
+  }
+  var activeRatio = activeSamples.length / samples.length
+  var avgActiveRms = activeSamples.length
+    ? activeSamples.reduce(function (a, s) { return a + s.rms }, 0) / activeSamples.length
+    : 0
+  // Duracion capturada en segundos (tick cada 180ms).
+  var durationSeconds = samples.length * 0.18
+
+  var confidenceScore = Math.round(
+    clamp(activeRatio * 50, 0, 50) +
+    clamp(avgActiveRms * 900, 0, 30) +
+    clamp((durationSeconds / 10) * 20, 0, 20)
+  )
+
+  var confidence = confidenceScore >= 70 ? 'alta' : confidenceScore >= 40 ? 'media' : 'baja'
+  return { confidence: confidence, confidenceScore: confidenceScore }
+}
+
 function computeResults(samples) {
   if (samples.length < 5) {
     return {
@@ -112,12 +139,20 @@ function computeResults(samples) {
       energyScore: 0,
       rhythmScore: 0,
       finalScore: 0,
+      confidence: 'baja',
+      confidenceScore: 0,
       hasEnoughData: false
     }
   }
 
-  var voiced = samples.filter(function (s) { return s.freq > 0 })
-  var voicedRatio = voiced.length / samples.length
+  // Solo cuentan como "intento de canto" las muestras con señal real — asi
+  // los silencios/respiros entre frases no se confunden con problemas de
+  // afinacion (ver SILENCE_RMS_THRESHOLD arriba).
+  var activeSamples = samples.filter(function (s) { return s.rms > SILENCE_RMS_THRESHOLD })
+  var voiced = activeSamples.filter(function (s) { return s.freq > 0 })
+  var voicedRatio = activeSamples.length ? voiced.length / activeSamples.length : 0
+
+  var confidenceResult = computeConfidence(samples, activeSamples)
 
   // AFINACION: proporcion de tiempo con tono claro y detectado + suavidad del recorrido de notas.
   var jumps = []
@@ -166,6 +201,8 @@ function computeResults(samples) {
     energyScore: energyScore,
     rhythmScore: rhythmScore,
     finalScore: finalScore,
+    confidence: confidenceResult.confidence,
+    confidenceScore: confidenceResult.confidenceScore,
     hasEnoughData: true
   }
 }
@@ -173,6 +210,14 @@ function computeResults(samples) {
 export function getFeedback(results) {
   if (!results.hasEnoughData) {
     return '🎤 No captamos suficiente audio esta vez, pero la próxima va a sonar increíble.'
+  }
+
+  // Si la confianza es baja, el problema es probablemente de señal (mic
+  // lejos, volumen bajo, ruido de fondo) y no de la voz en si — no tiene
+  // sentido decirle a alguien que canta bien que "siga practicando" por
+  // culpa de una mala captura de audio.
+  if (results.confidence === 'baja') {
+    return '🎤 Captamos poca señal esta vez (quizás el micrófono estaba lejos o había ruido). El puntaje puede no reflejar tu presentación real — inténtalo de nuevo acercándote más.'
   }
 
   var lines = []

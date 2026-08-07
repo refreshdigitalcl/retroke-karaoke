@@ -325,7 +325,22 @@ export default function DisplayResult() {
 
         {vocalResult && (
           <div className="w-full md:w-72 shrink-0 rounded-3xl border-2 flex flex-col items-center justify-center text-center result-panel-glow-gold" style={{ borderColor: 'rgba(139,92,246,0.55)', background: 'rgba(10,8,20,0.92)', padding: 'clamp(14px, 2.4vh, 32px)' }}>
-            <p className="uppercase tracking-[3px] font-bold" style={{ color: '#F4D03F', fontSize: 'clamp(11px, 1.4vh, 15px)', marginBottom: 'clamp(4px, 1vh, 12px)' }}>🎤 Retroke Score</p>
+            <div className="flex items-center justify-center gap-2" style={{ marginBottom: 'clamp(4px, 1vh, 12px)' }}>
+              <p className="uppercase tracking-[3px] font-bold" style={{ color: '#F4D03F', fontSize: 'clamp(11px, 1.4vh, 15px)' }}>🎤 Retroke Score</p>
+              {vocalResult.confidence && (
+                <span
+                  className="uppercase font-bold rounded-full"
+                  style={{
+                    fontSize: 'clamp(8px, 0.9vh, 11px)',
+                    padding: '2px 8px',
+                    color: vocalResult.confidence === 'alta' ? '#7ED957' : vocalResult.confidence === 'media' ? '#F4D03F' : '#E9544A',
+                    background: 'rgba(255,255,255,0.08)'
+                  }}
+                >
+                  {vocalResult.confidence}
+                </span>
+              )}
+            </div>
             <p className="font-extrabold leading-none" style={{ color: '#F4D03F', textShadow: '0 0 20px rgba(244,208,63,0.6)', fontSize: 'clamp(2.4rem, 8vh, 5rem)' }}>
               {vocalResult.final_score}
             </p>

@@ -185,7 +185,7 @@ function YourTurnScreen(props) {
     finalizedRef.current = true
     var scores = vocalAnalyzerRef.current
       ? vocalAnalyzerRef.current.stop()
-      : { pitchScore: 0, stabilityScore: 0, energyScore: 0, rhythmScore: 0, finalScore: 0, hasEnoughData: false }
+      : { pitchScore: 0, stabilityScore: 0, energyScore: 0, rhythmScore: 0, finalScore: 0, confidence: 'baja', confidenceScore: 0, hasEnoughData: false }
     var feedback = getFeedback(scores)
     setResults({ scores: scores, feedback: feedback })
 
@@ -198,6 +198,8 @@ function YourTurnScreen(props) {
         stability_score: scores.stabilityScore,
         energy_score: scores.energyScore,
         final_score: scores.finalScore,
+        confidence: scores.confidence,
+        confidence_score: scores.confidenceScore,
         feedback: feedback
       }
       saveVocalResult(payload)
@@ -389,7 +391,20 @@ function YourTurnScreen(props) {
               </div>
             </div>
             <div className="rounded-2xl p-4 mb-4" style={{ background: 'linear-gradient(90deg, rgba(233,30,140,0.15), rgba(139,92,246,0.15))', border: '1px solid rgba(244,208,63,0.4)' }}>
-              <p className="text-xs uppercase tracking-wide mb-1" style={{ color: 'var(--text-muted)' }}>⭐ Retroke Score</p>
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <p className="text-xs uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>⭐ Retroke Score</p>
+                {results.scores.confidence && (
+                  <span
+                    className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full"
+                    style={{
+                      color: results.scores.confidence === 'alta' ? '#7ED957' : results.scores.confidence === 'media' ? '#F4D03F' : '#E9544A',
+                      background: 'rgba(255,255,255,0.08)'
+                    }}
+                  >
+                    Confianza {results.scores.confidence}
+                  </span>
+                )}
+              </div>
               <p className="text-4xl font-extrabold" style={{ color: '#F4D03F' }}>{results.scores.finalScore}/100</p>
             </div>
             <p className="text-sm mb-5" style={{ color: 'var(--text-primary)' }}>{results.feedback}</p>
