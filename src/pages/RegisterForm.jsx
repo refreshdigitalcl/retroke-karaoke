@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase'
 import { createVocalAnalyzer, getFeedback } from '../lib/vocalAnalysis'
 import { containsProfanity } from '../lib/profanityFilter'
 import { searchSongMatches } from '../lib/songLookup'
+import { getOrCreateParticipant, touchParticipantProfile } from '../lib/participant'
 
 const AVATARS = ['🔥', '🦄', '👽', '🐸', '🎤', '🐙', '⭐', '👑', '🍄', '🌊', '🎸', '🦋']
 
@@ -495,6 +496,29 @@ export default function RegisterForm() {
   var avatar = avatarState[0]
   var setAvatar = avatarState[1]
 
+  // Identidad liviana de participante (Fase B): no bloquea ni retrasa el
+  // formulario — si esto falla o tarda, la inscripcion sigue funcionando
+  // igual que siempre, solo que sin quedar enlazada a un historial.
+  var participantState = useState(null)
+  var participant = participantState[0]
+  var setParticipant = participantState[1]
+
+  var prefilledFromParticipantRef = useRef(false)
+
+  useEffect(function () {
+    var cancelled = false
+    getOrCreateParticipant(supabase).then(function (p) {
+      if (cancelled || !p) return
+      setParticipant(p)
+      if (!prefilledFromParticipantRef.current) {
+        prefilledFromParticipantRef.current = true
+        if (p.display_name) setName(p.display_name)
+        if (p.avatar) setAvatar(p.avatar)
+      }
+    })
+    return function () { cancelled = true }
+  }, [])
+
   var songState = useState('')
   var song = songState[0]
   var setSong = songState[1]
@@ -671,11 +695,15 @@ export default function RegisterForm() {
 
   function submitEntry() {
     setOptimisticPosition(queue.length + 1)
+    if (participant && participant.id) {
+      touchParticipantProfile(supabase, participant.id, name.trim(), avatar)
+    }
     addToQueue({
       name: name.trim(),
       avatar: avatar,
       song: song.trim(),
       artistName: detectedArtist || '',
+      participantId: participant ? participant.id : null,
       youtubeUrl: youtubeUrl.trim(),
       videoUrl: youtubeUrl.trim(),
       photo: photo
