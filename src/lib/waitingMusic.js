@@ -3,7 +3,8 @@ export var WAITING_TRACKS = [
   '/sounds/waiting/track-2-reggaeton.mp3',
   '/sounds/waiting/track-3-cumbia.mp3',
   '/sounds/waiting/track-4-80s.mp3',
-  '/sounds/waiting/track-5-rock.mp3'
+  '/sounds/waiting/track-5-rock.mp3',
+  '/sounds/waiting/track-6-rap-chileno.mp3'
 ]
 
 export var FREE_TRACK = '/sounds/free-guaracha.mp3'
