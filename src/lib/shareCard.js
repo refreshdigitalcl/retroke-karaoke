@@ -13,6 +13,11 @@
 // 3. useCORS: true es necesario para que la portada de album (que viene de
 //    un dominio externo, itunes) se dibuje en el canvas en vez de quedar
 //    en blanco/tinted.
+// 4. box-shadow (sobre todo "inset") y bordes multiples se rasterizan mal
+//    en algunos casos -> preferir bordes solidos simples en lo que se vaya
+//    a capturar (ver ShareResultCard.jsx).
+
+import { trackEvent } from './analytics'
 
 let html2canvasPromise = null
 
@@ -47,6 +52,21 @@ function waitForImages(node) {
   )
 }
 
+// Fase H: registra en analytics_events que se comparti/descargo la
+// tarjeta. No requiere que quien llama pase contexto (participantId,
+// sessionId, barId, workspaceId) — si no se pasa, el evento igual se
+// guarda, solo queda sin ese detalle adicional.
+function trackCardShared(method, ctx) {
+  const c = ctx || {}
+  trackEvent('card_shared', {
+    participantId: c.participantId || null,
+    sessionId: c.sessionId || null,
+    barId: c.barId || null,
+    workspaceId: c.workspaceId || null,
+    payload: { method: method, song: c.song || null }
+  })
+}
+
 export async function renderCardToBlob(node) {
   if (!node) return { canvas: null, blob: null }
   await waitForImages(node)
@@ -63,7 +83,7 @@ export async function renderCardToBlob(node) {
   return { canvas, blob }
 }
 
-export async function downloadCardAsImage(node, filename) {
+export async function downloadCardAsImage(node, filename, ctx) {
   const { canvas } = await renderCardToBlob(node)
   if (!canvas) return { error: 'No se pudo generar la imagen' }
   const link = document.createElement('a')
@@ -72,10 +92,11 @@ export async function downloadCardAsImage(node, filename) {
   document.body.appendChild(link)
   link.click()
   document.body.removeChild(link)
+  trackCardShared('download', ctx)
   return { method: 'download' }
 }
 
-export async function shareCardAsImage(node, { filename, title, text } = {}) {
+export async function shareCardAsImage(node, { filename, title, text, ctx } = {}) {
   if (!node) return { error: 'No hay tarjeta para compartir' }
   try {
     const { canvas, blob } = await renderCardToBlob(node)
@@ -83,6 +104,7 @@ export async function shareCardAsImage(node, { filename, title, text } = {}) {
     const file = new File([blob], filename || 'retroke-resultado.png', { type: 'image/png' })
     if (typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [file] })) {
       await navigator.share({ files: [file], title: title || 'Retroke', text: text || '' })
+      trackCardShared('share-image', ctx)
       return { method: 'share-image' }
     }
     const dataUrl = canvas.toDataURL('image/png')
@@ -92,6 +114,7 @@ export async function shareCardAsImage(node, { filename, title, text } = {}) {
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
+    trackCardShared('download', ctx)
     return { method: 'download' }
   } catch (err) {
     if (err && err.name === 'AbortError') return { method: 'cancelled' }
@@ -115,16 +138,18 @@ export function buildShareText({ song, artistName, notaFinal }) {
   return text
 }
 
-export async function shareResult({ performanceId, song, artistName, notaFinal }) {
+export async function shareResult({ performanceId, song, artistName, notaFinal, ctx }) {
   const url = buildShareUrl(performanceId)
   const text = buildShareText({ song, artistName, notaFinal })
   try {
     if (typeof navigator !== 'undefined' && navigator.share) {
       await navigator.share({ title: 'Mi resultado en Retroke', text, url })
+      trackCardShared('share-link', Object.assign({ song: song || null }, ctx))
       return { method: 'share' }
     }
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
       await navigator.clipboard.writeText(text + ' ' + url)
+      trackCardShared('clipboard', Object.assign({ song: song || null }, ctx))
       return { method: 'clipboard' }
     }
     return { method: 'none', url }

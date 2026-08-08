@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import { REACTION_EMOJIS as REACTION_EMOJI_LIST } from '../lib/reactionEmojis'
 import { fetchArtistNameForSong } from '../lib/artistLookup'
 import { computeLevel, computeNotaFinal, computeXpForPerformance, isGoodPerformance, evaluateNewAchievements, getPeriodKey, evaluateChallengeUpdate, isChallengeComplete } from '../lib/gamification'
+import { trackEvent } from '../lib/analytics'
 
 export function parseYoutubeId(url) {
   if (!url) return ''
@@ -95,16 +96,37 @@ async function recordPerformance(singer, sessionId, barId, workspaceId) {
       .eq('id', singer.id)
   }
 
+  // Fase H: registra que se completo una presentacion. Se dispara siempre
+  // que el registro en performances funciono, sin importar si el cantante
+  // tiene perfil de participante o no.
+  if (perfRow) {
+    trackEvent('song_completed', {
+      participantId: singer.participantId || null,
+      sessionId,
+      barId,
+      workspaceId,
+      payload: {
+        performanceId: perfRow.id,
+        song: singer.song || null,
+        artistName: singer.artistName || null,
+        notaFinal,
+        vocalScore,
+        audienceScore
+      }
+    })
+  }
+
   // Fase C.2 + E.2: XP, nivel, logros y desafios. Solo aplica si el cantante
   // tiene perfil de participante (dispositivo identificado, Fase B) — si
   // canto sin eso, su presentacion queda igual en el historial, solo no
   // suma progreso personal. Nunca bloquea ni rompe el registro de la
   // presentacion si falla.
   if (singer.participantId) {
-    applyGamification(singer.participantId, notaFinal, vocalScore)
+    const ctx = { sessionId, barId, workspaceId }
+    applyGamification(singer.participantId, notaFinal, vocalScore, ctx)
       .then((updatedStats) => {
         if (!updatedStats) return
-        return applyChallenges(singer.participantId, notaFinal, updatedStats.current_streak)
+        return applyChallenges(singer.participantId, notaFinal, updatedStats.current_streak, ctx)
       })
       .catch(() => {})
   }
@@ -115,7 +137,12 @@ async function recordPerformance(singer, sessionId, barId, workspaceId) {
 // estado y desbloquea los logros que correspondan. Devuelve el nuevo estado
 // para que quien la llama (recordPerformance) pueda encadenar Fase E.2
 // (desafios) sin tener que releer todo de nuevo.
-async function applyGamification(participantId, notaFinal, vocalScore) {
+//
+// Fase H: recibe "ctx" (sessionId/barId/workspaceId) solo para poder anotar
+// los eventos de analitica (subida de nivel, logro desbloqueado) contra el
+// local/workspace correspondiente — no cambia nada de la logica de puntaje.
+async function applyGamification(participantId, notaFinal, vocalScore, ctx) {
+  const eventCtx = ctx || {}
   const statsResult = await supabase
     .from('participant_stats')
     .select('*')
@@ -128,6 +155,7 @@ async function applyGamification(participantId, notaFinal, vocalScore) {
     current_streak: 0,
     best_streak: 0
   }
+  const hadPriorStats = !!statsResult.data
 
   const good = isGoodPerformance(notaFinal)
   const newStreak = good ? (prevStats.current_streak || 0) + 1 : 0
@@ -151,6 +179,19 @@ async function applyGamification(participantId, notaFinal, vocalScore) {
 
   await supabase.from('participant_stats').upsert(updatedStats)
 
+  // Fase H: solo cuenta como "subida de nivel" si ya existia un registro
+  // previo y el nivel efectivamente subio — la primera presentacion de
+  // siempre no es una subida, es el punto de partida.
+  if (hadPriorStats && levelInfo.level > (prevStats.level || 0)) {
+    trackEvent('level_up', {
+      participantId,
+      sessionId: eventCtx.sessionId || null,
+      barId: eventCtx.barId || null,
+      workspaceId: eventCtx.workspaceId || null,
+      payload: { fromLevel: prevStats.level || 0, toLevel: levelInfo.level, levelName: levelInfo.name, xp: newXp }
+    })
+  }
+
   const unlockedResult = await supabase
     .from('participant_achievements')
     .select('achievement_code')
@@ -162,6 +203,15 @@ async function applyGamification(participantId, notaFinal, vocalScore) {
     await supabase.from('participant_achievements').insert(
       newlyUnlocked.map((code) => ({ participant_id: participantId, achievement_code: code }))
     )
+    newlyUnlocked.forEach((code) => {
+      trackEvent('achievement_unlocked', {
+        participantId,
+        sessionId: eventCtx.sessionId || null,
+        barId: eventCtx.barId || null,
+        workspaceId: eventCtx.workspaceId || null,
+        payload: { achievementCode: code }
+      })
+    })
   }
 
   return updatedStats
@@ -172,7 +222,8 @@ async function applyGamification(participantId, notaFinal, vocalScore) {
 // se acaba de completar, otorga el XP de recompensa. Fire-and-forget desde
 // recordPerformance, igual que applyGamification — nunca debe interrumpir
 // el show en vivo.
-async function applyChallenges(participantId, notaFinal, currentStreak) {
+async function applyChallenges(participantId, notaFinal, currentStreak, ctx) {
+  const eventCtx = ctx || {}
   const challengesResult = await supabase.from('challenges').select('*').eq('active', true)
   const challenges = challengesResult.data || []
   if (!challenges.length) return
@@ -216,6 +267,16 @@ async function applyChallenges(participantId, notaFinal, currentStreak) {
         .from('participant_stats')
         .update({ xp: newXp, level: levelInfo.level, level_name: levelInfo.name, updated_at: new Date().toISOString() })
         .eq('participant_id', participantId)
+    }
+
+    if (justCompleted) {
+      trackEvent('challenge_completed', {
+        participantId,
+        sessionId: eventCtx.sessionId || null,
+        barId: eventCtx.barId || null,
+        workspaceId: eventCtx.workspaceId || null,
+        payload: { challengeCode: challenge.code, periodKey, xpReward: challenge.xp_reward || 0 }
+      })
     }
   }
 }
@@ -674,6 +735,13 @@ export function KaraokeSessionProvider({ children }) {
       const { error } = await supabase.from('sessions').insert(insertData)
       if (!error) {
         await refreshActiveSession(barId, barId ? null : workspaceId)
+        // Fase H: registra la apertura de una sesion nueva.
+        trackEvent('session_started', {
+          sessionId: newId,
+          barId: barId || null,
+          workspaceId: barId ? null : (workspaceId || null),
+          payload: { name }
+        })
       }
       return { error: error ? error.message : null, pin: finalPin }
     },
@@ -888,7 +956,7 @@ export function KaraokeSessionProvider({ children }) {
   const submitRating = useCallback(
     async (score, phrase) => {
       if (!sessionId || !currentSinger) return
-      await supabase.from('ratings').insert({
+      const result = await supabase.from('ratings').insert({
         session_id: sessionId,
         singer_id: String(currentSinger.id),
         singer_name: currentSinger.name,
@@ -896,8 +964,17 @@ export function KaraokeSessionProvider({ children }) {
         score,
         phrase: phrase || null
       })
+      // Fase H: registra la calificacion del publico.
+      if (!result.error) {
+        trackEvent('rating_received', {
+          sessionId,
+          barId,
+          workspaceId,
+          payload: { queueEntryId: currentSinger.id, song: currentSinger.song, score, phrase: phrase || null }
+        })
+      }
     },
-    [sessionId, currentSinger]
+    [sessionId, currentSinger, barId, workspaceId]
   )
 
   const setCurrentSingerVideo = useCallback(
@@ -978,10 +1055,21 @@ export function KaraokeSessionProvider({ children }) {
         queue_entry_id: currentSinger ? currentSinger.id : null
       })
       if (result.error) {
-        await supabase.from('reactions').insert({ session_id: sessionId, emoji: emoji })
+        const fallbackResult = await supabase.from('reactions').insert({ session_id: sessionId, emoji: emoji })
+        if (!fallbackResult.error) {
+          trackEvent('reaction_received', { sessionId, barId, workspaceId, payload: { emoji } })
+        }
+        return
       }
+      // Fase H: registra la reaccion (emoji o sticker) recibida.
+      trackEvent('reaction_received', {
+        sessionId,
+        barId,
+        workspaceId,
+        payload: { emoji, queueEntryId: currentSinger ? currentSinger.id : null }
+      })
     },
-    [sessionId, currentSinger]
+    [sessionId, currentSinger, barId, workspaceId]
   )
 
   const value = {
