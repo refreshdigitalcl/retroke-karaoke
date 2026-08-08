@@ -1,0 +1,336 @@
+import { useEffect, useState, useCallback } from 'react'
+import { Link } from 'react-router-dom'
+import { supabase } from '../lib/supabase'
+import { LEVELS, computeLevel } from '../lib/gamification'
+import { getOrCreateParticipant, touchParticipantProfile, signInWithGoogle, signOutParticipant } from '../lib/participant'
+
+// "Esto soy yo, esto he logrado" — el perfil propio del participante.
+// Funciona igual sin login (identidad por dispositivo, Fase B) o con Google
+// conectado (Fase "comunidad") — la unica diferencia es de donde sale el
+// participant_id, todo lo demas se lee/muestra exactamente igual.
+
+var AVATAR_OPTIONS = ['🎤', '🎸', '🎧', '🌟', '🔥', '👑', '😎', '🦄', '💥', '🎶', '🥳', '💃']
+
+function formatDate(iso) {
+  if (!iso) return ''
+  try {
+    return new Date(iso).toLocaleDateString('es-CL', { day: 'numeric', month: 'short', year: 'numeric' })
+  } catch (e) {
+    return ''
+  }
+}
+
+export default function Profile() {
+  var [loading, setLoading] = useState(true)
+  var [authUser, setAuthUser] = useState(null)
+  var [participant, setParticipant] = useState(null)
+  var [stats, setStats] = useState(null)
+  var [achievements, setAchievements] = useState([])
+  var [unlockedMap, setUnlockedMap] = useState({})
+  var [performances, setPerformances] = useState([])
+  var [editingName, setEditingName] = useState(false)
+  var [nameDraft, setNameDraft] = useState('')
+  var [pickingAvatar, setPickingAvatar] = useState(false)
+  var [connectState, setConnectState] = useState('')
+
+  var load = useCallback(function () {
+    setLoading(true)
+    var userResult
+    supabase.auth.getUser()
+      .then(function (result) {
+        userResult = result.data && result.data.user ? result.data.user : null
+        setAuthUser(userResult)
+        return getOrCreateParticipant(supabase, null, null)
+      })
+      .then(function (p) {
+        setParticipant(p)
+        if (!p) {
+          setLoading(false)
+          return
+        }
+        return Promise.all([
+          supabase.from('participant_stats').select('*').eq('participant_id', p.id).maybeSingle(),
+          supabase.from('achievements').select('*').order('sort_order', { ascending: true }),
+          supabase.from('participant_achievements').select('achievement_code, unlocked_at').eq('participant_id', p.id),
+          supabase.from('performances').select('id, song, artist_name, artwork_url, nota_final, vocal_score, created_at').eq('participant_id', p.id).order('created_at', { ascending: false }).limit(50)
+        ]).then(function (results) {
+          var statsResult = results[0]
+          var achievementsResult = results[1]
+          var unlockedResult = results[2]
+          var performancesResult = results[3]
+
+          setStats(statsResult.data || null)
+          setAchievements(achievementsResult.data || [])
+
+          var map = {}
+          ;(unlockedResult.data || []).forEach(function (row) {
+            map[row.achievement_code] = row.unlocked_at
+          })
+          setUnlockedMap(map)
+          setPerformances(performancesResult.data || [])
+          setLoading(false)
+        })
+      })
+      .catch(function () {
+        setLoading(false)
+      })
+  }, [])
+
+  useEffect(function () {
+    load()
+    // Si vuelve de Google recien autenticado, la sesion puede llegar un
+    // instante despues del primer render — este listener recarga todo el
+    // perfil apenas eso pasa, sin que la persona tenga que recargar a mano.
+    var subscription = supabase.auth.onAuthStateChange(function () {
+      load()
+    })
+    return function () {
+      if (subscription && subscription.data && subscription.data.subscription) {
+        subscription.data.subscription.unsubscribe()
+      }
+    }
+  }, [load])
+
+  function handleConnectGoogle() {
+    setConnectState('Redirigiendo...')
+    signInWithGoogle(supabase).then(function (result) {
+      if (result.error) setConnectState('No se pudo conectar: ' + result.error)
+    })
+  }
+
+  function handleSignOut() {
+    signOutParticipant(supabase).then(function () {
+      load()
+    })
+  }
+
+  function startEditName() {
+    setNameDraft(participant ? (participant.display_name || '') : '')
+    setEditingName(true)
+  }
+
+  function saveName() {
+    if (!participant) return
+    var trimmed = nameDraft.trim()
+    if (!trimmed) {
+      setEditingName(false)
+      return
+    }
+    touchParticipantProfile(supabase, participant.id, trimmed, participant.avatar).then(function () {
+      setParticipant(function (prev) { return prev ? { ...prev, display_name: trimmed } : prev })
+      setEditingName(false)
+    })
+  }
+
+  function chooseAvatar(emoji) {
+    if (!participant) return
+    touchParticipantProfile(supabase, participant.id, participant.display_name, emoji).then(function () {
+      setParticipant(function (prev) { return prev ? { ...prev, avatar: emoji } : prev })
+      setPickingAvatar(false)
+    })
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-page)', color: '#fff' }}>
+        Cargando tu perfil...
+      </div>
+    )
+  }
+
+  if (!participant) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-3 px-6 text-center" style={{ background: 'var(--bg-page)', color: '#fff' }}>
+        <p>No pudimos cargar tu perfil.</p>
+        <Link to="/" className="underline">Ir a Retroke</Link>
+      </div>
+    )
+  }
+
+  var xp = stats ? stats.xp || 0 : 0
+  var levelInfo = computeLevel(xp)
+  var levelIndex = LEVELS.findIndex(function (l) { return l.level === levelInfo.level })
+  var nextLevel = levelIndex >= 0 && levelIndex < LEVELS.length - 1 ? LEVELS[levelIndex + 1] : null
+  var progressPct = nextLevel
+    ? Math.max(0, Math.min(100, ((xp - levelInfo.minXp) / (nextLevel.minXp - levelInfo.minXp)) * 100))
+    : 100
+
+  return (
+    <div className="min-h-screen px-5 py-8" style={{ background: 'var(--bg-page)', color: '#fff' }}>
+      <style>{`
+        .profile-wrap { max-width: 560px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+        .profile-card { border-radius: 20px; padding: 20px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); }
+        .profile-avatar-btn { width: 84px; height: 84px; border-radius: 9999px; font-size: 40px; display: flex; align-items: center; justify-content: center; background: rgba(233,30,140,0.15); border: 2px solid rgba(244,208,79,0.55); cursor: pointer; }
+        .profile-avatar-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-top: 10px; }
+        .profile-avatar-option { font-size: 26px; padding: 8px; border-radius: 12px; background: rgba(255,255,255,0.06); text-align: center; cursor: pointer; border: none; }
+        .profile-name-input { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.25); border-radius: 10px; padding: 8px 12px; color: #fff; font-size: 18px; font-weight: 700; }
+        .profile-progress-track { width: 100%; height: 10px; border-radius: 999px; background: rgba(255,255,255,0.1); overflow: hidden; margin-top: 8px; }
+        .profile-progress-fill { height: 100%; background: linear-gradient(90deg, #E91E8C, #8B5CF6); }
+        .profile-stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+        .profile-stat-box { padding: 10px 12px; border-radius: 12px; background: rgba(255,255,255,0.05); }
+        .profile-stat-label { font-size: 11px; color: rgba(255,255,255,0.55); text-transform: uppercase; letter-spacing: 0.05em; }
+        .profile-stat-value { font-size: 20px; font-weight: 700; margin-top: 2px; color: #F4D03F; }
+        .profile-achv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; margin-top: 10px; }
+        .profile-achv { border-radius: 14px; padding: 12px 10px; text-align: center; background: rgba(255,255,255,0.05); }
+        .profile-achv.locked { opacity: 0.35; }
+        .profile-achv-icon { font-size: 26px; }
+        .profile-achv-name { font-size: 12px; font-weight: 600; margin-top: 6px; }
+        .profile-achv-date { font-size: 10px; color: rgba(255,255,255,0.5); margin-top: 2px; }
+        .profile-history-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.08); }
+        .profile-history-art { width: 44px; height: 44px; border-radius: 10px; object-fit: cover; flex-shrink: 0; background: rgba(255,255,255,0.07); display: flex; align-items: center; justify-content: center; font-size: 18px; }
+        .profile-history-text { min-width: 0; flex: 1; }
+        .profile-history-song { font-weight: 700; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .profile-history-meta { font-size: 12px; color: rgba(255,255,255,0.5); }
+        .profile-history-nota { font-weight: 700; color: #F4D03F; flex-shrink: 0; }
+        .profile-connect-banner { border-radius: 16px; padding: 14px 16px; background: rgba(139,92,246,0.15); border: 1px solid rgba(139,92,246,0.4); display: flex; flex-direction: column; gap: 8px; }
+      `}</style>
+
+      <div className="profile-wrap">
+        <div className="profile-card" style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+          <button type="button" className="profile-avatar-btn" onClick={function () { setPickingAvatar(!pickingAvatar) }}>
+            {participant.avatar || '🎤'}
+          </button>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            {editingName ? (
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input
+                  className="profile-name-input"
+                  value={nameDraft}
+                  onChange={function (e) { setNameDraft(e.target.value) }}
+                  autoFocus
+                />
+                <button type="button" onClick={saveName} style={{ color: '#F4D03F', fontWeight: 700 }}>Guardar</button>
+              </div>
+            ) : (
+              <div onClick={startEditName} style={{ fontSize: 22, fontWeight: 700, cursor: 'pointer' }}>
+                {participant.display_name || 'Cantante Retroke'} <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>✏️</span>
+              </div>
+            )}
+            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', marginTop: 4 }}>🏅 {levelInfo.name}</div>
+          </div>
+        </div>
+
+        {pickingAvatar && (
+          <div className="profile-card">
+            <div className="profile-avatar-grid">
+              {AVATAR_OPTIONS.map(function (emoji) {
+                return (
+                  <button key={emoji} type="button" className="profile-avatar-option" onClick={function () { chooseAvatar(emoji) }}>
+                    {emoji}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        {!authUser && (
+          <div className="profile-connect-banner">
+            <div style={{ fontWeight: 700 }}>Conecta tu cuenta para no perder tu progreso</div>
+            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)' }}>
+              Hoy tu perfil vive solo en este celular. Si conectas Google, lo vas a poder recuperar aunque cambies de dispositivo.
+            </div>
+            <button
+              type="button"
+              onClick={handleConnectGoogle}
+              className="w-full h-11 rounded-xl font-bold text-white"
+              style={{ background: 'linear-gradient(90deg, #E91E8C, #8B5CF6)' }}
+            >
+              Conectar con Google {connectState && '· ' + connectState}
+            </button>
+          </div>
+        )}
+
+        {authUser && (
+          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>Conectado como {authUser.email}</span>
+            <button type="button" onClick={handleSignOut} className="underline">Cerrar sesión</button>
+          </div>
+        )}
+
+        <div className="profile-card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+            <span>{xp} XP</span>
+            <span style={{ color: 'rgba(255,255,255,0.5)' }}>{nextLevel ? nextLevel.minXp + ' XP para ' + nextLevel.name : 'Nivel máximo 🎉'}</span>
+          </div>
+          <div className="profile-progress-track">
+            <div className="profile-progress-fill" style={{ width: progressPct + '%' }} />
+          </div>
+
+          <div className="profile-stats-grid">
+            <div className="profile-stat-box">
+              <div className="profile-stat-label">Presentaciones</div>
+              <div className="profile-stat-value">{stats ? stats.total_performances || 0 : 0}</div>
+            </div>
+            <div className="profile-stat-box">
+              <div className="profile-stat-label">Mejor puntaje</div>
+              <div className="profile-stat-value">{stats && stats.best_score !== null && stats.best_score !== undefined ? stats.best_score + '/100' : '—'}</div>
+            </div>
+            <div className="profile-stat-box">
+              <div className="profile-stat-label">Racha actual</div>
+              <div className="profile-stat-value">{stats ? stats.current_streak || 0 : 0} 🔥</div>
+            </div>
+            <div className="profile-stat-box">
+              <div className="profile-stat-label">Mejor racha</div>
+              <div className="profile-stat-value">{stats ? stats.best_streak || 0 : 0}</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="profile-card">
+          <div style={{ fontWeight: 700, marginBottom: 4 }}>Logros</div>
+          <div className="profile-achv-grid">
+            {achievements.map(function (a) {
+              var unlockedAt = unlockedMap[a.code]
+              return (
+                <div key={a.code} className={'profile-achv' + (unlockedAt ? '' : ' locked')} title={a.description || ''}>
+                  <div className="profile-achv-icon">{a.icon || '🏅'}</div>
+                  <div className="profile-achv-name">{a.name}</div>
+                  {unlockedAt ? (
+                    <div className="profile-achv-date">{formatDate(unlockedAt)}</div>
+                  ) : (
+                    <div className="profile-achv-date">Bloqueado</div>
+                  )}
+                </div>
+              )
+            })}
+            {achievements.length === 0 && <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>Aún no hay logros configurados.</div>}
+          </div>
+        </div>
+
+        <div className="profile-card">
+          <div style={{ fontWeight: 700, marginBottom: 4 }}>Historial</div>
+          {performances.length === 0 && (
+            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', marginTop: 8 }}>
+              Todavía no has cantado — ¡anímate la próxima vez que veas el QR!
+            </div>
+          )}
+          {performances.map(function (p) {
+            return (
+              <div key={p.id} className="profile-history-row">
+                {p.artwork_url ? (
+                  <img src={p.artwork_url} alt="" className="profile-history-art" />
+                ) : (
+                  <div className="profile-history-art">🎵</div>
+                )}
+                <div className="profile-history-text">
+                  <div className="profile-history-song">{p.song || 'Canción'}</div>
+                  <div className="profile-history-meta">
+                    {p.artist_name ? p.artist_name + ' · ' : ''}{formatDate(p.created_at)}
+                  </div>
+                </div>
+                <div className="profile-history-nota">
+                  {p.nota_final !== null && p.nota_final !== undefined ? Number(p.nota_final).toFixed(1) : '—'}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        <Link to="/" className="text-center text-sm underline" style={{ color: 'rgba(255,255,255,0.5)' }}>
+          Volver a Retroke
+        </Link>
+      </div>
+    </div>
+  )
+}

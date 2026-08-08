@@ -16,6 +16,7 @@ import LandingPage from './pages/LandingPage'
 import SharePerformance from './pages/SharePerformance'
 import Rankings from './pages/Rankings'
 import Challenges from './pages/Challenges'
+import Profile from './pages/Profile'
 
 export default function App() {
   return (
@@ -54,14 +55,17 @@ export default function App() {
             {/* Portal de ventas / landing page */}
             <Route path="/inicio" element={<LandingPage />} />
 
-            {/* Fase D: tarjeta compartible publica de un resultado */}
+            {/* Fase D: link publico de la tarjeta compartible de un resultado */}
             <Route path="/r/:performanceId" element={<SharePerformance />} />
 
-            {/* Fase E.1: rankings global y por sala */}
+            {/* Fase E.1: rankings locales/semanales */}
             <Route path="/ranking" element={<Rankings />} />
 
-            {/* Fase E.2: desafios y progreso del participante */}
+            {/* Fase E.2: desafios activos */}
             <Route path="/desafios" element={<Challenges />} />
+
+            {/* Fase "comunidad": perfil propio del participante (historial, stats, logros) */}
+            <Route path="/perfil" element={<Profile />} />
           </Routes>
         </BrowserRouter>
         </KaraokeSessionProvider>
