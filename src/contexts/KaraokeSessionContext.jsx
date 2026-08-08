@@ -77,6 +77,7 @@ async function recordPerformance(singer, sessionId, barId, workspaceId) {
       singer_name: singer.name || null,
       song: singer.song || null,
       artist_name: singer.artistName || null,
+      artwork_url: singer.artworkUrl || null,
       audience_score: audienceScore,
       vocal_score: vocalScore,
       vocal_confidence: vocalResult.data ? vocalResult.data.confidence : null,
@@ -540,6 +541,7 @@ export function KaraokeSessionProvider({ children }) {
           lastSeenAt: r.last_seen_at || null,
           micReady: r.mic_ready || false,
           artistName: r.artist_name || '',
+          artworkUrl: r.artwork_url || '',
           participantId: r.participant_id || null
         }))
       )
@@ -760,6 +762,7 @@ export function KaraokeSessionProvider({ children }) {
           avatar: entry.avatar,
           song: entry.song,
           artist_name: entry.artistName || null,
+          artwork_url: entry.artworkUrl || null,
           participant_id: entry.participantId || null,
           youtube_url: entry.youtubeUrl || '',
           photo: entry.photo || null,
@@ -813,6 +816,7 @@ export function KaraokeSessionProvider({ children }) {
             videoUrl: entry.videoUrl,
             videoId: entry.videoId,
             artistName: entry.artistName || null,
+            artworkUrl: entry.artworkUrl || null,
             participantId: entry.participantId || null
           },
           screen_mode: 'called'
@@ -820,11 +824,12 @@ export function KaraokeSessionProvider({ children }) {
         .eq('id', sessionId)
       await supabase.from('queue_entries').update({ status: 'called' }).eq('id', entryId)
 
-      // Detección automática del artista real (ya no requiere confirmación manual del DJ).
+      // Detección automática del artista real y portada del album (ya no
+      // requiere confirmación manual del DJ).
       if (!entry.artistName) {
         fetchArtistNameForSong(entry.song)
-          .then(async (autoArtist) => {
-            if (!autoArtist) return
+          .then(async (info) => {
+            if (!info || !info.artistName) return
             const { data } = await supabase
               .from('sessions')
               .select('current_singer')
@@ -832,11 +837,17 @@ export function KaraokeSessionProvider({ children }) {
               .maybeSingle()
             const stillCurrent = data && data.current_singer && data.current_singer.id === entry.id
             if (!stillCurrent) return
+            const singerPatch = { artistName: info.artistName }
+            const entryPatch = { artist_name: info.artistName }
+            if (info.artworkUrl) {
+              singerPatch.artworkUrl = info.artworkUrl
+              entryPatch.artwork_url = info.artworkUrl
+            }
             await supabase
               .from('sessions')
-              .update({ current_singer: { ...data.current_singer, artistName: autoArtist } })
+              .update({ current_singer: { ...data.current_singer, ...singerPatch } })
               .eq('id', sessionId)
-            await supabase.from('queue_entries').update({ artist_name: autoArtist }).eq('id', entry.id)
+            await supabase.from('queue_entries').update(entryPatch).eq('id', entry.id)
           })
           .catch(() => {})
       }

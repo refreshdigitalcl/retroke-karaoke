@@ -4,8 +4,8 @@ import { supabase } from '../lib/supabase'
 import ShareResultCard from '../components/ShareResultCard'
 import { buildShareUrl, buildShareText, shareResult, downloadCardAsImage } from '../lib/shareCard'
 
-// Fase D: pagina publica (sin login) que muestra el resultado de una
-// presentacion como tarjeta compartible. Pensada para que el link viaje por
+// Pagina publica (sin login) que muestra el resultado de una presentacion
+// como tarjeta compartible. Pensada para que el link viaje por
 // WhatsApp/Instagram y cualquiera que lo abra vea algo bonito, sin tener que
 // entrar a una sala de Retroke. Usa las mismas politicas de lectura publica
 // que ya existen para performances/participants/participant_stats.
@@ -61,6 +61,7 @@ export default function SharePerformance() {
         singerName: perf.singer_name,
         song: perf.song,
         artistName: perf.artist_name,
+        artworkUrl: perf.artwork_url,
         notaFinal: perf.nota_final,
         confidence: perf.vocal_confidence,
         avatar,

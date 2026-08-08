@@ -6,7 +6,9 @@ import { createVocalAnalyzer, getFeedback } from '../lib/vocalAnalysis'
 import { containsProfanity } from '../lib/profanityFilter'
 import { searchSongMatches } from '../lib/songLookup'
 import { getOrCreateParticipant, touchParticipantProfile } from '../lib/participant'
-import { buildShareUrl, buildShareText, shareResult } from '../lib/shareCard'
+import { buildShareUrl, buildShareText, shareResult, shareCardAsImage } from '../lib/shareCard'
+import { computeNotaFinal } from '../lib/gamification'
+import ShareResultCard from '../components/ShareResultCard'
 
 const AVATARS = ['🔥', '🦄', '👽', '🐸', '🎤', '🐙', '⭐', '👑', '🍄', '🌊', '🎸', '🦋']
 
@@ -134,6 +136,31 @@ function YourTurnScreen(props) {
   var resultsState = useState(null)
   var results = resultsState[0]
   var setResults = resultsState[1]
+
+  // Tarjeta compartible en vivo: se muestra apenas hay resultado, para que
+  // se pueda repostear como imagen a una historia de Instagram/WhatsApp/
+  // TikTok sin tener que esperar a que termine toda la ronda (calificacion
+  // del publico, XP, logros — eso llega despues via el link de /r/:id).
+  var shareCardRef = useRef(null)
+  var shareImageStateHook = useState('')
+  var shareImageState = shareImageStateHook[0]
+  var setShareImageState = shareImageStateHook[1]
+
+  function handleShareCardImage() {
+    setShareImageState('Generando...')
+    var previewNota = results ? computeNotaFinal(null, results.scores.finalScore) : null
+    var text = buildShareText({ song: song, artistName: props.artistName || null, notaFinal: previewNota })
+    shareCardAsImage(shareCardRef.current, {
+      filename: 'retroke-' + (name || 'resultado') + '.png',
+      title: 'Mi resultado en Retroke',
+      text: text
+    }).then(function (result) {
+      if (result.error) setShareImageState('No se pudo compartir')
+      else if (result.method === 'download') setShareImageState('Descargada ✓')
+      else setShareImageState('')
+      setTimeout(function () { setShareImageState('') }, 2500)
+    })
+  }
 
   useEffect(function () {
     flushPendingVocalResults()
@@ -431,9 +458,28 @@ function YourTurnScreen(props) {
               <p className="text-4xl font-extrabold" style={{ color: '#F4D03F' }}>{results.scores.finalScore}/100</p>
             </div>
             <p className="text-sm mb-5" style={{ color: 'var(--text-primary)' }}>{results.feedback}</p>
-            {props.performanceId && (
-              <ShareResultButton performanceId={props.performanceId} song={song} artistName={props.artistName} />
-            )}
+
+            <div className="flex justify-center mb-4">
+              <ShareResultCard
+                ref={shareCardRef}
+                singerName={name}
+                avatar={props.avatar}
+                song={song}
+                artistName={props.artistName}
+                artworkUrl={props.artworkUrl}
+                notaFinal={computeNotaFinal(null, results.scores.finalScore)}
+                confidence={results.scores.confidence}
+              />
+            </div>
+            <button
+              type="button"
+              onClick={handleShareCardImage}
+              className="w-full h-12 rounded-xl font-bold text-white"
+              style={{ background: 'linear-gradient(90deg, #E91E8C, #8B5CF6)' }}
+            >
+              Compartir tarjeta 📲 {shareImageState && '· ' + shareImageState}
+            </button>
+
             <button
               onClick={props.onDone}
               className="w-full h-12 rounded-xl font-bold text-white mt-3"
@@ -557,6 +603,12 @@ export default function RegisterForm() {
   var detectedArtist = detectedArtistState[0]
   var setDetectedArtist = detectedArtistState[1]
 
+  // Portada de album, para la tarjeta compartible — viene de la misma
+  // sugerencia de iTunes que ya trae el artista.
+  var detectedArtworkState = useState('')
+  var detectedArtwork = detectedArtworkState[0]
+  var setDetectedArtwork = detectedArtworkState[1]
+
   var songSuggestionsState = useState([])
   var songSuggestions = songSuggestionsState[0]
   var setSongSuggestions = songSuggestionsState[1]
@@ -578,6 +630,7 @@ export default function RegisterForm() {
     if (raw.toLowerCase() === lastResolvedSongRef.current.toLowerCase()) return
 
     setDetectedArtist('')
+    setDetectedArtwork('')
     var mySeq = ++songLookupSeqRef.current
     setSuggestionsLoading(true)
     var timeoutId = setTimeout(function () {
@@ -595,6 +648,7 @@ export default function RegisterForm() {
     lastResolvedSongRef.current = match.song
     setSong(match.song)
     setDetectedArtist(match.artist)
+    setDetectedArtwork(match.artwork || '')
     setSongSuggestions([])
   }
 
@@ -769,6 +823,7 @@ export default function RegisterForm() {
       avatar: avatar,
       song: song.trim(),
       artistName: detectedArtist || '',
+      artworkUrl: detectedArtwork || '',
       participantId: participant ? participant.id : null,
       youtubeUrl: youtubeUrl.trim(),
       videoUrl: youtubeUrl.trim(),
@@ -868,8 +923,10 @@ export default function RegisterForm() {
     return (
       <YourTurnScreen
         name={name}
+        avatar={avatar}
         song={song}
         artistName={detectedArtist}
+        artworkUrl={detectedArtwork}
         entryId={myEntryId}
         performanceId={myPerformanceId}
         sessionId={session.sessionId}

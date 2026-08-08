@@ -1,11 +1,14 @@
 import { forwardRef, useEffect } from 'react'
 
-// Fase D: tarjeta visual del resultado, retro-neon, pensada para verse bien
-// tanto en la pagina publica /r/:id como convertida a imagen para compartir.
-// Reutiliza la misma paleta y tecnicas (scanlines, texto con degradado
-// animado) ya establecidas en SessionHub.jsx y DisplayCalled.jsx.
+// Tarjeta visual del resultado, retro-neon, pensada para verse bien tanto
+// en la pagina publica /r/:id como convertida a imagen para compartir
+// (Fase D), y ahora tambien incrustada en vivo en la pantalla de resultado
+// del celular apenas termina de cantar. Reutiliza la misma paleta y
+// tecnicas (scanlines, texto con degradado animado) ya establecidas en
+// SessionHub.jsx y DisplayCalled.jsx.
 
 const FONT_HREF = 'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap'
+const LOGO_SRC = '/landing/retroke-logo-oficial-neon.png'
 
 function useCardFont() {
   useEffect(() => {
@@ -19,7 +22,7 @@ function useCardFont() {
 }
 
 const ShareResultCard = forwardRef(function ShareResultCard(
-  { singerName, avatar, song, artistName, notaFinal, levelName, achievementIcons, confidence },
+  { singerName, avatar, song, artistName, artworkUrl, notaFinal, levelName, achievementIcons, confidence },
   ref
 ) {
   useCardFont()
@@ -55,12 +58,10 @@ const ShareResultCard = forwardRef(function ShareResultCard(
           background: repeating-linear-gradient(0deg, rgba(255,255,255,0.035) 0px, rgba(255,255,255,0.035) 1px, transparent 1px, transparent 3px);
           pointer-events: none;
         }
-        .share-card-brand {
-          font-size: 13px;
-          letter-spacing: 0.32em;
-          text-transform: uppercase;
-          color: rgba(255,255,255,0.65);
-          font-weight: 600;
+        .share-card-logo {
+          height: 30px;
+          width: auto;
+          object-fit: contain;
         }
         .share-card-avatar {
           font-size: 76px;
@@ -119,20 +120,52 @@ const ShareResultCard = forwardRef(function ShareResultCard(
         }
         .share-card-song-card {
           width: 100%;
-          text-align: center;
-          padding: 16px 14px;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 12px 14px;
           border-radius: 16px;
           background: rgba(255,255,255,0.05);
           border: 1px solid rgba(255,255,255,0.12);
+          text-align: left;
+        }
+        .share-card-artwork {
+          width: 56px;
+          height: 56px;
+          border-radius: 10px;
+          object-fit: cover;
+          flex-shrink: 0;
+          box-shadow: 0 0 0 1px rgba(255,255,255,0.15);
+        }
+        .share-card-artwork-fallback {
+          width: 56px;
+          height: 56px;
+          border-radius: 10px;
+          flex-shrink: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 22px;
+          background: rgba(255,255,255,0.06);
+          box-shadow: 0 0 0 1px rgba(255,255,255,0.12);
+        }
+        .share-card-song-text {
+          min-width: 0;
         }
         .share-card-song {
-          font-size: 18px;
+          font-size: 17px;
           font-weight: 700;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
         .share-card-artist {
-          margin-top: 4px;
-          font-size: 14px;
+          margin-top: 3px;
+          font-size: 13px;
           color: rgba(255,255,255,0.6);
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
         .share-card-achievements {
           margin-top: 16px;
@@ -157,7 +190,7 @@ const ShareResultCard = forwardRef(function ShareResultCard(
         }
       `}</style>
 
-      <div className="share-card-brand">RETROKE</div>
+      <img src={LOGO_SRC} alt="Retroke" className="share-card-logo" />
 
       <div className="share-card-avatar">{avatar || '🎤'}</div>
       <div className="share-card-name">{singerName || 'Cantante Retroke'}</div>
@@ -172,8 +205,15 @@ const ShareResultCard = forwardRef(function ShareResultCard(
       </div>
 
       <div className="share-card-song-card">
-        <div className="share-card-song">{song || 'Canción'}</div>
-        {artistName && <div className="share-card-artist">{artistName}</div>}
+        {artworkUrl ? (
+          <img src={artworkUrl} alt="" className="share-card-artwork" />
+        ) : (
+          <div className="share-card-artwork-fallback">🎵</div>
+        )}
+        <div className="share-card-song-text">
+          <div className="share-card-song">{song || 'Canción'}</div>
+          {artistName && <div className="share-card-artist">{artistName}</div>}
+        </div>
       </div>
 
       {achievementIcons && achievementIcons.length > 0 && (
