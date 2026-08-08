@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useCallback, useEffect } from 'rea
 import { supabase } from '../lib/supabase'
 import { REACTION_EMOJIS as REACTION_EMOJI_LIST } from '../lib/reactionEmojis'
 import { fetchArtistNameForSong } from '../lib/artistLookup'
-import { computeLevel, computeNotaFinal, computeXpForPerformance, isGoodPerformance, evaluateNewAchievements } from '../lib/gamification'
+import { computeLevel, computeNotaFinal, computeXpForPerformance, isGoodPerformance, evaluateNewAchievements, getPeriodKey, evaluateChallengeUpdate, isChallengeComplete } from '../lib/gamification'
 
 export function parseYoutubeId(url) {
   if (!url) return ''
@@ -94,19 +94,26 @@ async function recordPerformance(singer, sessionId, barId, workspaceId) {
       .eq('id', singer.id)
   }
 
-  // Fase C.2: XP, nivel y logros. Solo aplica si el cantante tiene perfil de
-  // participante (dispositivo identificado, Fase B) — si canto sin eso, su
-  // presentacion queda igual en el historial, solo no suma progreso personal.
-  // Nunca bloquea ni rompe el registro de la presentacion si falla.
+  // Fase C.2 + E.2: XP, nivel, logros y desafios. Solo aplica si el cantante
+  // tiene perfil de participante (dispositivo identificado, Fase B) — si
+  // canto sin eso, su presentacion queda igual en el historial, solo no
+  // suma progreso personal. Nunca bloquea ni rompe el registro de la
+  // presentacion si falla.
   if (singer.participantId) {
-    applyGamification(singer.participantId, notaFinal, vocalScore).catch(() => {})
+    applyGamification(singer.participantId, notaFinal, vocalScore)
+      .then((updatedStats) => {
+        if (!updatedStats) return
+        return applyChallenges(singer.participantId, notaFinal, updatedStats.current_streak)
+      })
+      .catch(() => {})
   }
 }
 
 // Fase C.2: lee el progreso actual del participante, calcula el nuevo XP,
 // nivel y racha con las funciones puras de gamification.js, guarda el nuevo
-// estado y desbloquea los logros que correspondan. Fire-and-forget desde
-// recordPerformance — nunca debe interrumpir el show en vivo.
+// estado y desbloquea los logros que correspondan. Devuelve el nuevo estado
+// para que quien la llama (recordPerformance) pueda encadenar Fase E.2
+// (desafios) sin tener que releer todo de nuevo.
 async function applyGamification(participantId, notaFinal, vocalScore) {
   const statsResult = await supabase
     .from('participant_stats')
@@ -154,6 +161,61 @@ async function applyGamification(participantId, notaFinal, vocalScore) {
     await supabase.from('participant_achievements').insert(
       newlyUnlocked.map((code) => ({ participant_id: participantId, achievement_code: code }))
     )
+  }
+
+  return updatedStats
+}
+
+// Fase E.2: revisa cada desafio activo, actualiza el progreso del
+// participante en el periodo correspondiente (semana/mes/permanente) y, si
+// se acaba de completar, otorga el XP de recompensa. Fire-and-forget desde
+// recordPerformance, igual que applyGamification — nunca debe interrumpir
+// el show en vivo.
+async function applyChallenges(participantId, notaFinal, currentStreak) {
+  const challengesResult = await supabase.from('challenges').select('*').eq('active', true)
+  const challenges = challengesResult.data || []
+  if (!challenges.length) return
+
+  for (const challenge of challenges) {
+    const periodKey = getPeriodKey(challenge.period)
+    const progressResult = await supabase
+      .from('participant_challenge_progress')
+      .select('progress, completed_at')
+      .eq('participant_id', participantId)
+      .eq('challenge_code', challenge.code)
+      .eq('period_key', periodKey)
+      .maybeSingle()
+
+    const existing = progressResult.data
+    if (existing && existing.completed_at) continue // ya se gano este periodo
+
+    const prevProgress = existing ? existing.progress : 0
+    const newProgress = evaluateChallengeUpdate(challenge, prevProgress, { notaFinal, currentStreak })
+    const justCompleted = !isChallengeComplete(challenge, prevProgress) && isChallengeComplete(challenge, newProgress)
+
+    await supabase.from('participant_challenge_progress').upsert({
+      participant_id: participantId,
+      challenge_code: challenge.code,
+      period_key: periodKey,
+      progress: newProgress,
+      completed_at: justCompleted ? new Date().toISOString() : (existing ? existing.completed_at : null),
+      updated_at: new Date().toISOString()
+    })
+
+    if (justCompleted && challenge.xp_reward) {
+      const statsResult = await supabase
+        .from('participant_stats')
+        .select('xp')
+        .eq('participant_id', participantId)
+        .maybeSingle()
+      const currentXp = statsResult.data ? statsResult.data.xp : 0
+      const newXp = currentXp + challenge.xp_reward
+      const levelInfo = computeLevel(newXp)
+      await supabase
+        .from('participant_stats')
+        .update({ xp: newXp, level: levelInfo.level, level_name: levelInfo.name, updated_at: new Date().toISOString() })
+        .eq('participant_id', participantId)
+    }
   }
 }
 

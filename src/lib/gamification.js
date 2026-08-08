@@ -1,4 +1,4 @@
-// Fase C.2: sistema de XP, niveles y logros.
+// Fase C.2 / E.2: sistema de XP, niveles, logros y desafios.
 // Funciones puras — no tocan Supabase ni la red. Reciben datos ya calculados
 // (nota final, score vocal, estadisticas actuales) y devuelven que hacer.
 // Quien las llama (KaraokeSessionContext) es responsable de leer y guardar.
@@ -78,4 +78,53 @@ export function evaluateNewAchievements(vocalScore, updatedStats, alreadyUnlocke
   if (updatedStats.current_streak >= 10) unlock('STREAK_10')
 
   return newly
+}
+
+// --- Fase E.2: desafios ---------------------------------------------------
+
+function pad2(n) {
+  return n < 10 ? '0' + n : String(n)
+}
+
+// Semana ISO (lunes a domingo), igual criterio que se usa en calendarios.
+function isoWeekKey(date) {
+  const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()))
+  const dayNum = d.getUTCDay() || 7
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum)
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1))
+  const weekNo = Math.ceil(((d - yearStart) / 86400000 + 1) / 7)
+  return d.getUTCFullYear() + '-W' + pad2(weekNo)
+}
+
+// Identifica el "periodo" al que pertenece una presentacion, para saber en
+// que fila de progreso acumular. 'ongoing' siempre devuelve la misma clave
+// (el desafio nunca se reinicia solo).
+export function getPeriodKey(period, date) {
+  const d = date || new Date()
+  if (period === 'weekly') return isoWeekKey(d)
+  if (period === 'monthly') return d.getUTCFullYear() + '-' + pad2(d.getUTCMonth() + 1)
+  return 'ongoing'
+}
+
+// Calcula el nuevo progreso de un desafio tras una presentacion. No decide
+// si el desafio ya estaba completo (eso lo revisa quien llama, para poder
+// congelar el progreso una vez logrado).
+export function evaluateChallengeUpdate(challenge, existingProgress, ctx) {
+  const current = existingProgress || 0
+  if (challenge.metric === 'performances_count') {
+    return current + 1
+  }
+  if (challenge.metric === 'good_performances_count') {
+    const threshold = challenge.min_nota !== null && challenge.min_nota !== undefined ? challenge.min_nota : 7
+    const qualifies = ctx.notaFinal !== null && ctx.notaFinal !== undefined && ctx.notaFinal >= threshold
+    return qualifies ? current + 1 : current
+  }
+  if (challenge.metric === 'streak') {
+    return Math.max(current, ctx.currentStreak || 0)
+  }
+  return current
+}
+
+export function isChallengeComplete(challenge, progress) {
+  return (progress || 0) >= challenge.target_value
 }
