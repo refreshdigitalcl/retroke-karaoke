@@ -15,6 +15,7 @@ import WelcomePage from './pages/WelcomePage'
 import LandingPage from './pages/LandingPage'
 import SharePerformance from './pages/SharePerformance'
 import Rankings from './pages/Rankings'
+import Challenges from './pages/Challenges'
 
 export default function App() {
   return (
@@ -58,6 +59,9 @@ export default function App() {
 
             {/* Fase E.1: rankings global y por sala */}
             <Route path="/ranking" element={<Rankings />} />
+
+            {/* Fase E.2: desafios y progreso del participante */}
+            <Route path="/desafios" element={<Challenges />} />
           </Routes>
         </BrowserRouter>
         </KaraokeSessionProvider>
