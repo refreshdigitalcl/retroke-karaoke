@@ -6,7 +6,7 @@ import { supabase } from '../lib/supabase'
 import { createVocalAnalyzer, getFeedback } from '../lib/vocalAnalysis'
 import { containsProfanity } from '../lib/profanityFilter'
 import { searchSongMatches } from '../lib/songLookup'
-import { getOrCreateParticipant, touchParticipantProfile } from '../lib/participant'
+import { getOrCreateParticipant, touchParticipantProfile, signInWithGoogle } from '../lib/participant'
 import { buildShareUrl, buildShareText, shareResult, shareCardAsImage } from '../lib/shareCard'
 import { computeNotaFinal, LEVELS } from '../lib/gamification'
 import ShareResultCard from '../components/ShareResultCard'
@@ -651,7 +651,51 @@ export default function RegisterForm() {
 
   var prefilledFromParticipantRef = useRef(false)
 
+  // Pantalla previa "Iniciar sesion con Google / Cantar como invitado":
+  // solo se muestra la PRIMERA vez que este celular usa Retroke. Si ya
+  // existe un id de dispositivo guardado (ya canto antes aca) o ya hay una
+  // sesion de Google activa, se salta directo al formulario — no tiene
+  // sentido volver a preguntar cada vez que alguien escanea el QR.
+  var entryChoiceState = useState(function () {
+    try {
+      if (localStorage.getItem('retroke_device_id')) return 'skip'
+    } catch (e) {}
+    return 'pending'
+  })
+  var entryChoice = entryChoiceState[0]
+  var setEntryChoice = entryChoiceState[1]
+
+  var googleConnectingState = useState(false)
+  var googleConnecting = googleConnectingState[0]
+  var setGoogleConnecting = googleConnectingState[1]
+
   useEffect(function () {
+    if (entryChoice !== 'pending') return
+    var cancelled = false
+    supabase.auth.getUser().then(function (result) {
+      if (cancelled) return
+      if (result.data && result.data.user) setEntryChoice('skip')
+    })
+    var subscription = supabase.auth.onAuthStateChange(function (_event, session) {
+      if (session) setEntryChoice('skip')
+    })
+    return function () {
+      cancelled = true
+      if (subscription && subscription.data && subscription.data.subscription) {
+        subscription.data.subscription.unsubscribe()
+      }
+    }
+  }, [entryChoice])
+
+  function handleGoogleFromEntry() {
+    setGoogleConnecting(true)
+    signInWithGoogle(supabase, window.location.href).then(function (result) {
+      if (result.error) setGoogleConnecting(false)
+    })
+  }
+
+  useEffect(function () {
+    if (entryChoice === 'pending') return
     var cancelled = false
     getOrCreateParticipant(supabase).then(function (p) {
       if (cancelled || !p) return
@@ -663,7 +707,7 @@ export default function RegisterForm() {
       }
     })
     return function () { cancelled = true }
-  }, [])
+  }, [entryChoice])
 
   var songState = useState('')
   var song = songState[0]
@@ -940,6 +984,169 @@ export default function RegisterForm() {
   useEffect(function () {
     if (itsMyTurn) setShowPerformance(true)
   }, [itsMyTurn])
+
+  if (entryChoice === 'pending') {
+    return (
+      <div className="entry-choice-page min-h-screen flex items-center justify-center px-5 py-10" style={{ background: 'var(--bg-page)' }}>
+        <style>{`
+          .entry-choice-page { position: relative; overflow: hidden; }
+          .entry-choice-card {
+            position: relative;
+            width: 100%;
+            max-width: 26rem;
+            border-radius: 28px;
+            overflow: hidden;
+            background: radial-gradient(circle at 50% 0%, #2c1440 0%, #14081f 55%, #05030a 100%);
+            border: 2px solid rgba(233, 30, 140, 0.55);
+            box-shadow: 0 0 0 1px rgba(139,92,246,0.2), 0 0 60px -10px rgba(233,30,140,0.45);
+            padding: clamp(28px, 6vw, 44px) clamp(22px, 6vw, 36px) clamp(26px, 6vw, 34px);
+            text-align: center;
+          }
+          .entry-choice-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: repeating-linear-gradient(0deg, rgba(255,255,255,0.03) 0px, rgba(255,255,255,0.03) 1px, transparent 1px, transparent 3px);
+            pointer-events: none;
+          }
+          .entry-choice-card::after {
+            content: '';
+            position: absolute;
+            top: -35%;
+            left: -15%;
+            width: 130%;
+            height: 55%;
+            background: radial-gradient(ellipse at center, rgba(139,92,246,0.28) 0%, transparent 70%);
+            pointer-events: none;
+          }
+          .entry-choice-mic {
+            position: relative;
+            font-size: clamp(40px, 10vw, 52px);
+            line-height: 1;
+            filter: drop-shadow(0 0 18px rgba(233, 30, 140, 0.65));
+            animation: entryMicFloat 3.2s ease-in-out infinite;
+          }
+          @keyframes entryMicFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-6px); }
+          }
+          .entry-choice-title {
+            position: relative;
+            font-size: clamp(22px, 5.5vw, 28px);
+            font-weight: 800;
+            margin-top: 10px;
+            background: linear-gradient(90deg, #F4D03F, #E91E8C 55%, #8B5CF6);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: 0.01em;
+          }
+          .entry-choice-sub {
+            position: relative;
+            font-size: clamp(13px, 3.6vw, 14.5px);
+            color: rgba(255,255,255,0.68);
+            margin-top: 8px;
+            margin-bottom: clamp(22px, 6vw, 30px);
+            line-height: 1.5;
+          }
+          .entry-choice-google-btn {
+            position: relative;
+            width: 100%;
+            height: 52px;
+            border-radius: 14px;
+            background: #fff;
+            color: #1f1f1f;
+            font-weight: 700;
+            font-size: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: 0 0 0 1px rgba(255,255,255,0.08), 0 8px 24px -8px rgba(0,0,0,0.5);
+            transition: transform 0.15s ease;
+          }
+          .entry-choice-google-btn:active { transform: scale(0.98); }
+          .entry-choice-guest-btn {
+            position: relative;
+            width: 100%;
+            height: 52px;
+            border-radius: 14px;
+            margin-top: 12px;
+            font-weight: 800;
+            font-size: 15px;
+            color: #fff;
+            background: linear-gradient(90deg, #E91E8C, #8B5CF6);
+            box-shadow: 0 0 24px -6px rgba(233,30,140,0.6);
+            transition: transform 0.15s ease;
+          }
+          .entry-choice-guest-btn:active { transform: scale(0.98); }
+          .entry-choice-divider {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 16px 0;
+            color: rgba(255,255,255,0.35);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+          }
+          .entry-choice-divider::before, .entry-choice-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: rgba(255,255,255,0.12);
+          }
+          .entry-choice-footnote {
+            position: relative;
+            font-size: 11.5px;
+            color: rgba(255,255,255,0.4);
+            margin-top: 18px;
+            line-height: 1.5;
+          }
+        `}</style>
+
+        <div className="entry-choice-card">
+          <p className="entry-choice-mic">🎤</p>
+          <p className="entry-choice-title">¡Bienvenido a Retroke!</p>
+          <p className="entry-choice-sub">
+            Conecta tu cuenta para guardar tu nivel, tus logros y tu historial aunque cambies de celular. O si prefieres, entra directo a cantar.
+          </p>
+
+          <button
+            type="button"
+            onClick={handleGoogleFromEntry}
+            disabled={googleConnecting}
+            className="entry-choice-google-btn"
+          >
+            {!googleConnecting && (
+              <svg width="19" height="19" viewBox="0 0 48 48" aria-hidden="true">
+                <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 8 2.9l6-6C34.9 5.1 29.7 3 24 3 12.4 3 3 12.4 3 24s9.4 21 21 21 21-9.4 21-21c0-1.4-.1-2.7-.4-3.5z" />
+                <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 15.9 18.9 13 24 13c3.1 0 5.8 1.1 8 2.9l6-6C34.9 5.1 29.7 3 24 3c-7.6 0-14.1 4.3-17.7 10.7z" />
+                <path fill="#4CAF50" d="M24 45c5.6 0 10.7-1.9 14.7-5.2l-6.8-5.7C29.7 35.6 27 36.5 24 36.5c-5.3 0-9.7-3.3-11.3-7.9l-6.7 5.2C9.8 40.6 16.4 45 24 45z" />
+                <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.2-4.3 5.6l6.8 5.7C40.2 37 44 31.4 44 24c0-1.4-.1-2.7-.4-3.5z" />
+              </svg>
+            )}
+            {googleConnecting ? 'Conectando...' : 'Continuar con Google'}
+          </button>
+
+          <div className="entry-choice-divider">o</div>
+
+          <button
+            type="button"
+            onClick={function () { setEntryChoice('skip') }}
+            className="entry-choice-guest-btn"
+          >
+            Cantar como invitado 🎤
+          </button>
+
+          <p className="entry-choice-footnote">
+            Sin cuenta igual puedes cantar y compartir tu tarjeta — solo que si cambias de celular, empiezas de nuevo. Puedes conectar tu cuenta más tarde desde tu perfil.
+          </p>
+        </div>
+      </div>
+    )
+  }
 
   if (restoringEntry) {
     return (
