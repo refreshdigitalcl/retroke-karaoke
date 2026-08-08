@@ -474,6 +474,15 @@ export function KaraokeSessionProvider({ children }) {
     }
   }, [urlResolved, barSlug, directWorkspaceId, refreshActiveSession, retryCount])
 
+  // Fase: respaldo de reconexion para current_singer / screen_mode. En
+  // celulares, cuando la pantalla se bloquea o el navegador pasa a segundo
+  // plano, el sistema operativo puede suspender el websocket de Supabase sin
+  // avisar y no siempre se reconecta solo al volver — antes solo la cola y
+  // las calificaciones tenian este respaldo, pero no la sesion misma. Eso
+  // dejaba a quien esperaba su turno en Home sin enterarse nunca de que ya
+  // lo habian llamado, porque su pantalla nunca se actualizaba. Por eso
+  // ahora tambien refrescamos la sesion a mano al volver a estar visible, al
+  // recuperar el foco o la conexion, y ademas cada 8s como respaldo extra.
   useEffect(() => {
     if (!barId && !workspaceId) return
     const channelName = barId ? 'bar-sessions-' + barId : 'ws-sessions-' + workspaceId
@@ -486,8 +495,26 @@ export function KaraokeSessionProvider({ children }) {
         () => refreshActiveSession(barId, barId ? null : workspaceId)
       )
       .subscribe()
+
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') {
+        refreshActiveSession(barId, barId ? null : workspaceId)
+      }
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('focus', onVisible)
+    window.addEventListener('online', onVisible)
+
+    const pollInterval = setInterval(() => {
+      refreshActiveSession(barId, barId ? null : workspaceId)
+    }, 8000)
+
     return () => {
       supabase.removeChannel(channel)
+      document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('focus', onVisible)
+      window.removeEventListener('online', onVisible)
+      clearInterval(pollInterval)
     }
   }, [barId, workspaceId, refreshActiveSession])
 

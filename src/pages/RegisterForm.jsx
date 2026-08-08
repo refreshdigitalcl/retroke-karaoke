@@ -694,14 +694,14 @@ export default function RegisterForm() {
       .eq('session_id', sessionId)
       .maybeSingle()
       .then(function (result) {
-        // Solo tiene sentido restaurar "estas en la cola" si de verdad sigue
-        // esperando su turno. El status pasa a 'completed' recien cuando el
-        // DJ avanza al siguiente cantante — si nadie mas esta en la fila,
-        // puede quedarse en 'result' indefinidamente sin que eso signifique
-        // que sigue esperando. Por eso restauramos solo en los estados donde
-        // "en cola" es realmente cierto.
-        var activeStates = ['waiting', 'called']
-        var stillActive = result.data && activeStates.indexOf(result.data.status) !== -1
+        // Restauramos mientras la ronda no haya terminado ('completed' es el
+        // unico estado final). Antes solo se restauraba en 'waiting'/'called',
+        // lo que perdia el vinculo con la ronda si el celular se reconectaba
+        // ya en 'reactions'/'playing'/'rating'/'result' (por ejemplo, si la
+        // pantalla se bloqueo justo cuando el DJ lo llamo) — y sin ese
+        // vinculo, itsMyTurn nunca podia volver a calcularse, asi que el
+        // aviso de "activa tu microfono" no le llegaba nunca a esa persona.
+        var stillActive = result.data && result.data.status !== 'completed'
         if (stillActive) {
           setMyEntryId(saved)
           setSubmitted(true)
