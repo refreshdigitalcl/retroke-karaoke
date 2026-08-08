@@ -1,11 +1,16 @@
 import { forwardRef, useEffect } from 'react'
 
 // Tarjeta visual del resultado, retro-neon, pensada para verse bien tanto
-// en la pagina publica /r/:id como convertida a imagen para compartir
-// (Fase D), y ahora tambien incrustada en vivo en la pantalla de resultado
-// del celular apenas termina de cantar. Reutiliza la misma paleta y
-// tecnicas (scanlines, texto con degradado animado) ya establecidas en
+// en la pagina publica /r/:id como convertida a imagen para compartir, y
+// tambien incrustada en vivo en la pantalla de resultado del celular apenas
+// termina de cantar. Reutiliza la misma paleta ya establecida en
 // SessionHub.jsx y DisplayCalled.jsx.
+//
+// OJO con el numero de la nota: NO usar la tecnica de texto con degradado
+// (-webkit-background-clip: text) aqui. Se ve genial en pantalla, pero
+// html2canvas (la libreria que convierte esta tarjeta en imagen para
+// compartir) no la soporta bien y el numero sale cortado/mal ubicado en la
+// imagen final. Por eso el numero va en un color solido.
 
 const FONT_HREF = 'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap'
 const LOGO_SRC = '/landing/retroke-logo-oficial-neon.png'
@@ -36,19 +41,19 @@ const ShareResultCard = forwardRef(function ShareResultCard(
           width: 100%;
           max-width: 440px;
           aspect-ratio: 9 / 16;
-          border-radius: 28px;
+          border-radius: 30px;
           position: relative;
           overflow: hidden;
-          background: radial-gradient(circle at 50% 0%, #2a1240 0%, #12081f 55%, #05030a 100%);
-          border: 2px solid rgba(233, 30, 140, 0.55);
-          box-shadow: 0 0 40px rgba(233, 30, 140, 0.35), 0 0 90px rgba(139, 92, 246, 0.25);
+          background: radial-gradient(circle at 50% 0%, #33174d 0%, #14081f 55%, #05030a 100%);
+          border: 2px solid rgba(233, 30, 140, 0.6);
+          box-shadow: 0 0 0 1px rgba(139,92,246,0.25), 0 0 50px rgba(233, 30, 140, 0.4), 0 0 110px rgba(139, 92, 246, 0.3);
           font-family: 'Space Grotesk', system-ui, sans-serif;
           color: #fff;
           display: flex;
           flex-direction: column;
           align-items: center;
           justify-content: space-between;
-          padding: 34px 26px 26px;
+          padding: 32px 26px 26px;
           box-sizing: border-box;
         }
         .share-card::before {
@@ -58,69 +63,95 @@ const ShareResultCard = forwardRef(function ShareResultCard(
           background: repeating-linear-gradient(0deg, rgba(255,255,255,0.035) 0px, rgba(255,255,255,0.035) 1px, transparent 1px, transparent 3px);
           pointer-events: none;
         }
+        .share-card::after {
+          content: '';
+          position: absolute;
+          top: -40%;
+          left: -20%;
+          width: 140%;
+          height: 60%;
+          background: radial-gradient(ellipse at center, rgba(233,30,140,0.25) 0%, transparent 70%);
+          pointer-events: none;
+        }
         .share-card-logo {
-          height: 30px;
+          height: 43px;
           width: auto;
           object-fit: contain;
+          position: relative;
+          z-index: 1;
+        }
+        .share-card-avatar-wrap {
+          position: relative;
+          width: 118px;
+          height: 118px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin: 16px 0 8px;
+        }
+        .share-card-avatar-glow {
+          position: absolute;
+          inset: 0;
+          border-radius: 9999px;
+          background: radial-gradient(circle, rgba(233,30,140,0.35) 0%, rgba(139,92,246,0.22) 55%, transparent 78%);
+        }
+        .share-card-avatar-ring {
+          position: absolute;
+          inset: 6px;
+          border-radius: 9999px;
+          border: 2px solid rgba(244,208,79,0.55);
         }
         .share-card-avatar {
-          font-size: 76px;
+          position: relative;
+          font-size: 62px;
           line-height: 1;
-          margin: 18px 0 6px;
-          filter: drop-shadow(0 0 18px rgba(233, 30, 140, 0.6));
+          filter: drop-shadow(0 0 14px rgba(233, 30, 140, 0.7));
         }
         .share-card-name {
-          font-size: 24px;
+          font-size: 25px;
           font-weight: 700;
           text-align: center;
         }
         .share-card-level {
-          margin-top: 4px;
-          font-size: 12px;
-          padding: 4px 14px;
+          margin-top: 6px;
+          font-size: 12.5px;
+          font-weight: 600;
+          padding: 5px 16px;
           border-radius: 999px;
-          border: 1px solid rgba(244, 208, 79, 0.6);
+          border: 1px solid rgba(244, 208, 79, 0.65);
           color: #F4D03F;
-          background: rgba(244, 208, 79, 0.08);
-          letter-spacing: 0.04em;
+          background: rgba(244, 208, 79, 0.1);
+          letter-spacing: 0.03em;
         }
         .share-card-score-box {
           width: 100%;
           display: flex;
           flex-direction: column;
           align-items: center;
-          margin: 20px 0;
-          padding: 20px 16px 18px;
-          border-radius: 22px;
-          background: linear-gradient(135deg, rgba(233,30,140,0.18), rgba(139,92,246,0.18));
-          border: 1px solid rgba(244,208,79,0.45);
+          margin: 18px 0;
+          padding: 18px 16px 16px;
+          border-radius: 24px;
+          background: linear-gradient(135deg, rgba(233,30,140,0.22), rgba(139,92,246,0.22));
+          border: 1.5px solid rgba(244,208,79,0.55);
+          box-shadow: inset 0 0 30px rgba(233,30,140,0.12);
           box-sizing: border-box;
         }
         .share-card-nota-label {
           font-size: 12px;
           letter-spacing: 0.28em;
           text-transform: uppercase;
-          color: rgba(255,255,255,0.6);
-          margin-bottom: 4px;
+          color: rgba(255,255,255,0.65);
+          margin-bottom: 2px;
         }
         .share-card-nota {
-          font-size: 76px;
+          font-size: 78px;
           font-weight: 700;
-          line-height: 1;
-          background: linear-gradient(100deg, #fff 8%, #E91E8C 34%, #8B5CF6 58%, #F4D03F 82%, #fff 100%);
-          background-size: 240% auto;
-          -webkit-background-clip: text;
-          background-clip: text;
-          -webkit-text-fill-color: transparent;
-          animation: shareNotaShift 6s ease-in-out infinite;
-        }
-        @keyframes shareNotaShift {
-          0% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
+          line-height: 1.15;
+          color: #F4D03F;
+          text-shadow: 0 0 24px rgba(244,208,79,0.5);
         }
         .share-card-confidence {
-          margin-top: 4px;
+          margin-top: 2px;
           font-size: 11px;
           color: rgba(255,255,255,0.5);
         }
@@ -131,29 +162,29 @@ const ShareResultCard = forwardRef(function ShareResultCard(
           gap: 12px;
           padding: 12px 14px;
           border-radius: 16px;
-          background: rgba(255,255,255,0.05);
-          border: 1px solid rgba(255,255,255,0.12);
+          background: rgba(255,255,255,0.06);
+          border: 1px solid rgba(255,255,255,0.14);
           text-align: left;
         }
         .share-card-artwork {
-          width: 56px;
-          height: 56px;
-          border-radius: 10px;
+          width: 58px;
+          height: 58px;
+          border-radius: 11px;
           object-fit: cover;
           flex-shrink: 0;
-          box-shadow: 0 0 0 1px rgba(255,255,255,0.15);
+          box-shadow: 0 0 0 1px rgba(255,255,255,0.18);
         }
         .share-card-artwork-fallback {
-          width: 56px;
-          height: 56px;
-          border-radius: 10px;
+          width: 58px;
+          height: 58px;
+          border-radius: 11px;
           flex-shrink: 0;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 22px;
-          background: rgba(255,255,255,0.06);
-          box-shadow: 0 0 0 1px rgba(255,255,255,0.12);
+          font-size: 24px;
+          background: rgba(255,255,255,0.07);
+          box-shadow: 0 0 0 1px rgba(255,255,255,0.14);
         }
         .share-card-song-text {
           min-width: 0;
@@ -168,13 +199,13 @@ const ShareResultCard = forwardRef(function ShareResultCard(
         .share-card-artist {
           margin-top: 3px;
           font-size: 13px;
-          color: rgba(255,255,255,0.6);
+          color: rgba(255,255,255,0.65);
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
         }
         .share-card-achievements {
-          margin-top: 16px;
+          margin-top: 14px;
           display: flex;
           gap: 10px;
         }
@@ -183,24 +214,30 @@ const ShareResultCard = forwardRef(function ShareResultCard(
           filter: drop-shadow(0 0 6px rgba(244, 208, 79, 0.5));
         }
         .share-card-footer {
-          margin-top: 22px;
+          margin-top: 18px;
           font-size: 13px;
           font-weight: 600;
-          color: rgba(255,255,255,0.75);
+          color: rgba(255,255,255,0.8);
           text-align: center;
+          position: relative;
+          z-index: 1;
         }
         .share-card-footer-sub {
           margin-top: 2px;
           font-size: 11px;
-          color: rgba(255,255,255,0.4);
+          color: rgba(255,255,255,0.45);
         }
       `}</style>
 
       <img src={LOGO_SRC} alt="Retroke" className="share-card-logo" />
 
-      <div className="share-card-avatar">{avatar || '🎤'}</div>
+      <div className="share-card-avatar-wrap">
+        <div className="share-card-avatar-glow" />
+        <div className="share-card-avatar-ring" />
+        <div className="share-card-avatar">{avatar || '🎤'}</div>
+      </div>
       <div className="share-card-name">{singerName || 'Cantante Retroke'}</div>
-      {levelName && <div className="share-card-level">{levelName}</div>}
+      {levelName && <div className="share-card-level">🏅 {levelName}</div>}
 
       <div className="share-card-score-box">
         <div className="share-card-nota-label">⭐ Nota Final</div>

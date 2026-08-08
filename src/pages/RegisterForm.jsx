@@ -7,7 +7,7 @@ import { containsProfanity } from '../lib/profanityFilter'
 import { searchSongMatches } from '../lib/songLookup'
 import { getOrCreateParticipant, touchParticipantProfile } from '../lib/participant'
 import { buildShareUrl, buildShareText, shareResult, shareCardAsImage } from '../lib/shareCard'
-import { computeNotaFinal } from '../lib/gamification'
+import { computeNotaFinal, LEVELS } from '../lib/gamification'
 import ShareResultCard from '../components/ShareResultCard'
 
 const AVATARS = ['🔥', '🦄', '👽', '🐸', '🎤', '🐙', '⭐', '👑', '🍄', '🌊', '🎸', '🦋']
@@ -152,6 +152,30 @@ function YourTurnScreen(props) {
   var showShareCardStateHook = useState(false)
   var showShareCard = showShareCardStateHook[0]
   var setShowShareCard = showShareCardStateHook[1]
+
+  // Nivel actual del participante, para mostrarlo en la tarjeta. Es el
+  // nivel de ANTES de esta ronda (el XP de esta presentacion recien se
+  // calcula despues, cuando el DJ avanza al siguiente cantante) — igual
+  // sirve para mostrar algo real en vez de nada.
+  var levelNameStateHook = useState('')
+  var levelName = levelNameStateHook[0]
+  var setLevelName = levelNameStateHook[1]
+
+  useEffect(function () {
+    if (!props.participantId) return
+    var cancelled = false
+    supabase
+      .from('participant_stats')
+      .select('level_name')
+      .eq('participant_id', props.participantId)
+      .maybeSingle()
+      .then(function (result) {
+        if (cancelled) return
+        setLevelName(result.data && result.data.level_name ? result.data.level_name : LEVELS[0].name)
+      })
+      .catch(function () {})
+    return function () { cancelled = true }
+  }, [props.participantId])
 
   function handleShareCardImage() {
     setShareImageState('Generando...')
@@ -299,6 +323,7 @@ function YourTurnScreen(props) {
           artworkUrl={props.artworkUrl}
           notaFinal={computeNotaFinal(null, results.scores.finalScore)}
           confidence={results.scores.confidence}
+          levelName={levelName}
         />
         <div className="w-full max-w-sm flex flex-col gap-3">
           <button
@@ -960,6 +985,7 @@ export default function RegisterForm() {
         song={song}
         artistName={detectedArtist}
         artworkUrl={detectedArtwork}
+        participantId={participant ? participant.id : null}
         entryId={myEntryId}
         performanceId={myPerformanceId}
         sessionId={session.sessionId}
