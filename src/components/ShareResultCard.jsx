@@ -6,11 +6,19 @@ import { forwardRef, useEffect } from 'react'
 // termina de cantar. Reutiliza la misma paleta ya establecida en
 // SessionHub.jsx y DisplayCalled.jsx.
 //
-// OJO con el numero de la nota: NO usar la tecnica de texto con degradado
-// (-webkit-background-clip: text) aqui. Se ve genial en pantalla, pero
-// html2canvas (la libreria que convierte esta tarjeta en imagen para
-// compartir) no la soporta bien y el numero sale cortado/mal ubicado en la
-// imagen final. Por eso el numero va en un color solido.
+// DOS LECCIONES DE HTML2CANVAS QUE NO HAY QUE ROMPER:
+// 1. El numero de la nota va en color solido + text-shadow, nunca con la
+//    tecnica de texto degradado (-webkit-background-clip: text) — sale
+//    cortado/mal ubicado en la imagen final.
+// 2. La tarjeta tiene una altura FIJA (aspect-ratio 9:16) con overflow
+//    hidden para que encaje perfecto en una story. Eso significa que TODO
+//    el contenido (logo, avatar, nombre, nivel, nota, retroke score,
+//    desglose, cancion, logros, frase) tiene que entrar en ese alto fijo
+//    sin que se corte. El layout de abajo esta calculado con harto margen
+//    de sobra para que quepa siempre, incluso si una fuente carga un poco
+//    mas alta de lo esperado. Si agregas mas contenido a futuro, revisa
+//    que la suma de alturas siga entrando en los ~780px disponibles a
+//    440px de ancho.
 
 const FONT_HREF = 'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap'
 const LOGO_SRC = '/landing/retroke-logo-oficial-neon.png'
@@ -41,7 +49,9 @@ const ShareResultCard = forwardRef(function ShareResultCard(
 
   const notaTxt = notaFinal !== null && notaFinal !== undefined ? notaFinal.toFixed(1) : '—'
   const hasVocalScore = vocalScore !== null && vocalScore !== undefined
-  const hasSubScores = subScores && SUBSCORE_LABELS.some((s) => subScores[s.key] !== null && subScores[s.key] !== undefined)
+  const activeSubScores = subScores
+    ? SUBSCORE_LABELS.filter((s) => subScores[s.key] !== null && subScores[s.key] !== undefined)
+    : []
 
   return (
     <div ref={ref} className="share-card">
@@ -60,8 +70,9 @@ const ShareResultCard = forwardRef(function ShareResultCard(
           display: flex;
           flex-direction: column;
           align-items: center;
-          justify-content: space-between;
-          padding: 32px 26px 26px;
+          justify-content: flex-start;
+          gap: 11px;
+          padding: 26px 24px 20px;
           box-sizing: border-box;
         }
         .share-card::before {
@@ -77,25 +88,26 @@ const ShareResultCard = forwardRef(function ShareResultCard(
           top: -40%;
           left: -20%;
           width: 140%;
-          height: 60%;
-          background: radial-gradient(ellipse at center, rgba(233,30,140,0.25) 0%, transparent 70%);
+          height: 55%;
+          background: radial-gradient(ellipse at center, rgba(233,30,140,0.22) 0%, transparent 70%);
           pointer-events: none;
         }
         .share-card-logo {
-          height: 43px;
+          height: 38px;
           width: auto;
           object-fit: contain;
           position: relative;
           z-index: 1;
+          flex-shrink: 0;
         }
         .share-card-avatar-wrap {
           position: relative;
-          width: 118px;
-          height: 118px;
+          width: 104px;
+          height: 104px;
           display: flex;
           align-items: center;
           justify-content: center;
-          margin: 16px 0 8px;
+          flex-shrink: 0;
         }
         .share-card-avatar-glow {
           position: absolute;
@@ -105,104 +117,140 @@ const ShareResultCard = forwardRef(function ShareResultCard(
         }
         .share-card-avatar-ring {
           position: absolute;
-          inset: 6px;
+          inset: 5px;
           border-radius: 9999px;
           border: 2px solid rgba(244,208,79,0.55);
         }
         .share-card-avatar {
           position: relative;
-          font-size: 62px;
+          font-size: 54px;
           line-height: 1;
           filter: drop-shadow(0 0 14px rgba(233, 30, 140, 0.7));
         }
         .share-card-avatar-photo {
           position: relative;
-          width: 104px;
-          height: 104px;
+          width: 90px;
+          height: 90px;
           border-radius: 9999px;
           object-fit: cover;
           display: block;
         }
         .share-card-name {
-          font-size: 25px;
+          font-size: 22px;
           font-weight: 700;
           text-align: center;
+          line-height: 1.2;
+          flex-shrink: 0;
         }
         .share-card-level {
-          margin-top: 6px;
-          font-size: 12.5px;
+          font-size: 12px;
           font-weight: 600;
-          padding: 5px 16px;
+          padding: 4px 15px;
           border-radius: 999px;
           border: 1px solid rgba(244, 208, 79, 0.65);
           color: #F4D03F;
           background: rgba(244, 208, 79, 0.1);
           letter-spacing: 0.03em;
+          flex-shrink: 0;
         }
         .share-card-score-box {
           width: 100%;
           display: flex;
           flex-direction: column;
           align-items: center;
-          margin: 18px 0;
-          padding: 18px 16px 16px;
-          border-radius: 24px;
+          padding: 14px 14px 12px;
+          border-radius: 20px;
           background: linear-gradient(135deg, rgba(58,20,60,0.9), rgba(40,16,58,0.9));
           border: 1.5px solid rgba(244,208,79,0.55);
           box-sizing: border-box;
+          flex-shrink: 0;
+        }
+        .share-card-nota-row {
+          width: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 16px;
+        }
+        .share-card-nota-main {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
         }
         .share-card-nota-label {
-          font-size: 12px;
-          letter-spacing: 0.28em;
+          font-size: 10px;
+          letter-spacing: 0.22em;
           text-transform: uppercase;
-          color: rgba(255,255,255,0.65);
+          color: rgba(255,255,255,0.6);
           margin-bottom: 2px;
         }
         .share-card-nota {
-          font-size: 78px;
+          font-size: 56px;
           font-weight: 700;
-          line-height: 1.15;
+          line-height: 1.05;
           color: #F4D03F;
-          text-shadow: 0 0 24px rgba(244,208,79,0.5);
+          text-shadow: 0 0 20px rgba(244,208,79,0.5);
         }
-        .share-card-confidence {
-          margin-top: 2px;
-          font-size: 11px;
+        .share-card-nota-divider {
+          width: 1px;
+          align-self: stretch;
+          background: rgba(255,255,255,0.16);
+        }
+        .share-card-vocal-col {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+        .share-card-vocal-value {
+          font-size: 28px;
+          font-weight: 700;
+          color: #E91E8C;
+          line-height: 1.1;
+        }
+        .share-card-vocal-value span {
+          font-size: 14px;
+          font-weight: 600;
           color: rgba(255,255,255,0.5);
         }
-        .share-card-vocal-score {
-          margin-top: 8px;
-          font-size: 13px;
-          font-weight: 600;
-          color: rgba(255,255,255,0.75);
-          letter-spacing: 0.02em;
+        .share-card-vocal-label {
+          margin-top: 2px;
+          font-size: 9.5px;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          color: rgba(255,255,255,0.55);
         }
-        .share-card-vocal-score b {
-          color: #E91E8C;
+        .share-card-confidence {
+          margin-top: 6px;
+          font-size: 10.5px;
+          color: rgba(255,255,255,0.5);
         }
         .share-card-subscores {
           width: 100%;
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 8px;
-          margin-top: 12px;
-          padding-top: 12px;
+          display: flex;
+          gap: 6px;
+          margin-top: 10px;
+          padding-top: 10px;
           border-top: 1px solid rgba(255,255,255,0.14);
         }
         .share-card-subscore {
+          flex: 1;
+          min-width: 0;
           display: flex;
+          flex-direction: column;
           align-items: center;
-          justify-content: space-between;
-          padding: 6px 10px;
+          padding: 5px 2px;
           border-radius: 10px;
           background: rgba(255,255,255,0.05);
         }
         .share-card-subscore-label {
-          font-size: 11px;
+          font-size: 8.5px;
+          letter-spacing: 0.01em;
           color: rgba(255,255,255,0.6);
+          white-space: nowrap;
         }
         .share-card-subscore-value {
-          font-size: 13px;
+          margin-top: 2px;
+          font-size: 15px;
           font-weight: 700;
           color: #F4D03F;
         }
@@ -211,29 +259,31 @@ const ShareResultCard = forwardRef(function ShareResultCard(
           display: flex;
           align-items: center;
           gap: 12px;
-          padding: 12px 14px;
+          padding: 10px 14px;
           border-radius: 16px;
           background: rgba(255,255,255,0.06);
           border: 1px solid rgba(255,255,255,0.14);
           text-align: left;
+          box-sizing: border-box;
+          flex-shrink: 0;
         }
         .share-card-artwork {
-          width: 58px;
-          height: 58px;
-          border-radius: 11px;
+          width: 50px;
+          height: 50px;
+          border-radius: 10px;
           object-fit: cover;
           flex-shrink: 0;
           box-shadow: 0 0 0 1px rgba(255,255,255,0.18);
         }
         .share-card-artwork-fallback {
-          width: 58px;
-          height: 58px;
-          border-radius: 11px;
+          width: 50px;
+          height: 50px;
+          border-radius: 10px;
           flex-shrink: 0;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 24px;
+          font-size: 21px;
           background: rgba(255,255,255,0.07);
           box-shadow: 0 0 0 1px rgba(255,255,255,0.14);
         }
@@ -241,41 +291,42 @@ const ShareResultCard = forwardRef(function ShareResultCard(
           min-width: 0;
         }
         .share-card-song {
-          font-size: 17px;
+          font-size: 16px;
           font-weight: 700;
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
         }
         .share-card-artist {
-          margin-top: 3px;
-          font-size: 13px;
+          margin-top: 2px;
+          font-size: 12px;
           color: rgba(255,255,255,0.65);
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
         }
         .share-card-achievements {
-          margin-top: 14px;
           display: flex;
           gap: 10px;
+          flex-shrink: 0;
         }
         .share-card-achievement-icon {
-          font-size: 22px;
+          font-size: 20px;
           filter: drop-shadow(0 0 6px rgba(244, 208, 79, 0.5));
         }
         .share-card-footer {
-          margin-top: 18px;
-          font-size: 13px;
+          margin-top: auto;
+          font-size: 12.5px;
           font-weight: 600;
           color: rgba(255,255,255,0.8);
           text-align: center;
           position: relative;
           z-index: 1;
+          flex-shrink: 0;
         }
         .share-card-footer-sub {
           margin-top: 2px;
-          font-size: 11px;
+          font-size: 10.5px;
           color: rgba(255,255,255,0.45);
         }
       `}</style>
@@ -291,27 +342,36 @@ const ShareResultCard = forwardRef(function ShareResultCard(
           <div className="share-card-avatar">{avatar || '🎤'}</div>
         )}
       </div>
+
       <div className="share-card-name">{singerName || 'Cantante Retroke'}</div>
       {levelName && <div className="share-card-level">🏅 {levelName}</div>}
 
       <div className="share-card-score-box">
-        <div className="share-card-nota-label">⭐ Nota Final</div>
-        <div className="share-card-nota">{notaTxt}</div>
+        <div className="share-card-nota-row">
+          <div className="share-card-nota-main">
+            <div className="share-card-nota-label">⭐ Nota Final</div>
+            <div className="share-card-nota">{notaTxt}</div>
+          </div>
+          {hasVocalScore && (
+            <>
+              <div className="share-card-nota-divider" />
+              <div className="share-card-vocal-col">
+                <div className="share-card-vocal-value">{vocalScore}<span>/100</span></div>
+                <div className="share-card-vocal-label">Retroke Score</div>
+              </div>
+            </>
+          )}
+        </div>
         {confidence === 'baja' && (
           <div className="share-card-confidence">medición con señal limitada</div>
         )}
-        {hasVocalScore && (
-          <div className="share-card-vocal-score">Retroke Score <b>{vocalScore}/100</b></div>
-        )}
-        {hasSubScores && (
+        {activeSubScores.length > 0 && (
           <div className="share-card-subscores">
-            {SUBSCORE_LABELS.map((s) => (
-              subScores[s.key] !== null && subScores[s.key] !== undefined ? (
-                <div key={s.key} className="share-card-subscore">
-                  <span className="share-card-subscore-label">{s.label}</span>
-                  <span className="share-card-subscore-value">{subScores[s.key]}</span>
-                </div>
-              ) : null
+            {activeSubScores.map((s) => (
+              <div key={s.key} className="share-card-subscore">
+                <span className="share-card-subscore-label">{s.label}</span>
+                <span className="share-card-subscore-value">{subScores[s.key]}</span>
+              </div>
             ))}
           </div>
         )}
