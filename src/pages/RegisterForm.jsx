@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useKaraokeSession, parseYoutubeId } from '../contexts/KaraokeSessionContext'
 import ThemeToggle from '../components/ThemeToggle'
 import { supabase } from '../lib/supabase'
@@ -553,6 +554,14 @@ function YourTurnScreen(props) {
             >
               Listo
             </button>
+
+            <Link
+              to="/perfil"
+              className="block text-center text-xs mt-3 underline"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              Ver mi perfil →
+            </Link>
           </div>
         )}
       </div>
