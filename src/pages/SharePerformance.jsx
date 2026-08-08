@@ -4,180 +4,184 @@ import { supabase } from '../lib/supabase'
 import ShareResultCard from '../components/ShareResultCard'
 import { buildShareUrl, buildShareText, shareResult, downloadCardAsImage } from '../lib/shareCard'
 
-// Pagina publica (sin login) que muestra el resultado de una presentacion
-// como tarjeta compartible. Pensada para que el link viaje por
-// WhatsApp/Instagram y cualquiera que lo abra vea algo bonito, sin tener que
-// entrar a una sala de Retroke. Usa las mismas politicas de lectura publica
-// que ya existen para performances/participants/participant_stats.
+// Pagina publica /r/:performanceId — el link que se comparte en redes.
+// Muestra la misma tarjeta 9:16 que se ve en vivo en el celular del
+// cantante, pero armada con los datos ya guardados en la base (asi que
+// funciona aunque el que la abre no tenga sesion ni haya cantado nunca).
+
 export default function SharePerformance() {
   const { performanceId } = useParams()
-  const [status, setStatus] = useState('loading') // loading | ready | notfound | error
-  const [data, setData] = useState(null)
-  const [shareState, setShareState] = useState('')
-  const [downloadState, setDownloadState] = useState('')
   const cardRef = useRef(null)
+  const [state, setState] = useState({ loading: true, error: '', data: null })
+  const [downloadState, setDownloadState] = useState('')
 
   useEffect(() => {
+    if (!performanceId) return
     let cancelled = false
 
     async function load() {
-      const perfResult = await supabase
+      const { data: perf, error: perfError } = await supabase
         .from('performances')
         .select('*')
         .eq('id', performanceId)
         .maybeSingle()
 
       if (cancelled) return
-      const perf = perfResult.data
-      if (!perf) {
-        setStatus('notfound')
+      if (perfError || !perf) {
+        setState({ loading: false, error: 'No encontramos este resultado.', data: null })
         return
       }
 
-      let avatar = '🎤'
+      let avatar = null
+      let photoUrl = null
       let levelName = null
       let achievementIcons = []
+      let subScores = null
 
-      if (perf.participant_id) {
-        const [participantResult, statsResult, achievementsResult] = await Promise.all([
-          supabase.from('participants').select('avatar').eq('id', perf.participant_id).maybeSingle(),
-          supabase.from('participant_stats').select('level_name').eq('participant_id', perf.participant_id).maybeSingle(),
-          supabase
-            .from('participant_achievements')
-            .select('achievement_code, unlocked_at, achievements(icon)')
-            .eq('participant_id', perf.participant_id)
-            .order('unlocked_at', { ascending: false })
-            .limit(4)
-        ])
-        if (cancelled) return
-        if (participantResult.data && participantResult.data.avatar) avatar = participantResult.data.avatar
-        if (statsResult.data) levelName = statsResult.data.level_name
-        achievementIcons = (achievementsResult.data || [])
-          .map((row) => (row.achievements ? row.achievements.icon : null))
-          .filter(Boolean)
-      }
+      const lookups = await Promise.all([
+        perf.participant_id
+          ? supabase.from('participants').select('avatar').eq('id', perf.participant_id).maybeSingle()
+          : Promise.resolve({ data: null }),
+        perf.participant_id
+          ? supabase.from('participant_stats').select('level_name').eq('participant_id', perf.participant_id).maybeSingle()
+          : Promise.resolve({ data: null }),
+        perf.participant_id
+          ? supabase
+              .from('participant_achievements')
+              .select('achievements(icon)')
+              .eq('participant_id', perf.participant_id)
+              .order('unlocked_at', { ascending: false })
+              .limit(4)
+          : Promise.resolve({ data: [] }),
+        perf.queue_entry_id
+          ? supabase.from('queue_entries').select('photo').eq('id', perf.queue_entry_id).maybeSingle()
+          : Promise.resolve({ data: null }),
+        perf.queue_entry_id
+          ? supabase
+              .from('vocal_results')
+              .select('pitch_score, rhythm_score, stability_score, energy_score')
+              .eq('queue_entry_id', perf.queue_entry_id)
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle()
+          : Promise.resolve({ data: null })
+      ])
 
-      setData({
-        singerName: perf.singer_name,
-        song: perf.song,
-        artistName: perf.artist_name,
-        artworkUrl: perf.artwork_url,
-        notaFinal: perf.nota_final,
-        confidence: perf.vocal_confidence,
-        avatar,
-        levelName,
-        achievementIcons
+      if (cancelled) return
+
+      avatar = lookups[0].data ? lookups[0].data.avatar : null
+      levelName = lookups[1].data ? lookups[1].data.level_name : null
+      achievementIcons = (lookups[2].data || [])
+        .map((row) => row.achievements && row.achievements.icon)
+        .filter(Boolean)
+      photoUrl = lookups[3].data ? lookups[3].data.photo : null
+      subScores = lookups[4].data || null
+
+      setState({
+        loading: false,
+        error: '',
+        data: {
+          singerName: perf.singer_name,
+          song: perf.song,
+          artistName: perf.artist_name,
+          artworkUrl: perf.artwork_url,
+          notaFinal: perf.nota_final !== null && perf.nota_final !== undefined ? Number(perf.nota_final) : null,
+          vocalScore: perf.vocal_score,
+          confidence: perf.vocal_confidence,
+          avatar,
+          photoUrl,
+          levelName,
+          achievementIcons,
+          subScores
+        }
       })
-      setStatus('ready')
     }
 
-    load().catch(() => {
-      if (!cancelled) setStatus('error')
-    })
-
-    return () => {
-      cancelled = true
-    }
+    load()
+    return () => { cancelled = true }
   }, [performanceId])
 
-  async function handleShare() {
-    const url = buildShareUrl(performanceId)
-    const text = buildShareText(data)
-    const result = await shareResult({ url, text, title: 'Mi resultado en Retroke' })
-    if (result.method === 'copy') setShareState('Link copiado ✓')
-    if (result.method === 'error') setShareState('No se pudo compartir')
-    if (result.method === 'share') setShareState('')
-    setTimeout(() => setShareState(''), 2500)
+  function handleDownload() {
+    setDownloadState('Generando...')
+    downloadCardAsImage(cardRef.current, 'retroke-' + (state.data ? state.data.singerName || 'resultado' : 'resultado') + '.png')
+      .then((result) => {
+        setDownloadState(result && result.error ? 'No se pudo descargar' : 'Descargada ✓')
+        setTimeout(() => setDownloadState(''), 2500)
+      })
   }
 
-  async function handleDownload() {
-    setDownloadState('Generando...')
-    const result = await downloadCardAsImage(cardRef.current, 'retroke-' + (data.singerName || 'resultado') + '.png')
-    setDownloadState(result.error ? 'No se pudo generar la imagen' : 'Descargada ✓')
-    setTimeout(() => setDownloadState(''), 2500)
+  function handleShareLink() {
+    if (!state.data) return
+    shareResult({
+      performanceId,
+      song: state.data.song,
+      artistName: state.data.artistName,
+      notaFinal: state.data.notaFinal
+    })
   }
+
+  if (state.loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-page)', color: '#fff' }}>
+        Cargando resultado...
+      </div>
+    )
+  }
+
+  if (state.error || !state.data) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 px-6 text-center" style={{ background: 'var(--bg-page)', color: '#fff' }}>
+        <p>{state.error || 'No encontramos este resultado.'}</p>
+        <Link to="/" className="underline">Ir a Retroke</Link>
+      </div>
+    )
+  }
+
+  const d = state.data
 
   return (
-    <div style={styles.page}>
-      {status === 'loading' && <div style={styles.message}>Cargando resultado...</div>}
-
-      {status === 'notfound' && (
-        <div style={styles.message}>
-          No encontramos esta presentación.
-          <div style={{ marginTop: 12 }}>
-            <Link to="/inicio" style={styles.link}>Ir a Retroke</Link>
-          </div>
-        </div>
-      )}
-
-      {status === 'error' && <div style={styles.message}>Ocurrió un error cargando el resultado.</div>}
-
-      {status === 'ready' && data && (
-        <>
-          <ShareResultCard ref={cardRef} {...data} />
-
-          <div style={styles.actions}>
-            <button onClick={handleShare} style={styles.buttonPrimary}>
-              Compartir {shareState && '· ' + shareState}
-            </button>
-            <button onClick={handleDownload} style={styles.buttonSecondary}>
-              Descargar tarjeta {downloadState && '· ' + downloadState}
-            </button>
-          </div>
-
-          <Link to="/inicio" style={styles.link}>¿Qué es Retroke?</Link>
-        </>
-      )}
+    <div className="min-h-screen flex flex-col items-center justify-center px-6 py-10 gap-5" style={{ background: 'var(--bg-page)' }}>
+      <ShareResultCard
+        ref={cardRef}
+        singerName={d.singerName}
+        avatar={d.avatar}
+        photoUrl={d.photoUrl}
+        song={d.song}
+        artistName={d.artistName}
+        artworkUrl={d.artworkUrl}
+        notaFinal={d.notaFinal}
+        vocalScore={d.vocalScore}
+        subScores={d.subScores ? {
+          pitchScore: d.subScores.pitch_score,
+          rhythmScore: d.subScores.rhythm_score,
+          stabilityScore: d.subScores.stability_score,
+          energyScore: d.subScores.energy_score
+        } : null}
+        confidence={d.confidence}
+        levelName={d.levelName}
+        achievementIcons={d.achievementIcons}
+      />
+      <div className="w-full max-w-sm flex flex-col gap-3">
+        <button
+          type="button"
+          onClick={handleDownload}
+          className="w-full h-12 rounded-xl font-bold text-white"
+          style={{ background: 'linear-gradient(90deg, #E91E8C, #8B5CF6)' }}
+        >
+          Descargar tarjeta {downloadState && '· ' + downloadState}
+        </button>
+        <button
+          type="button"
+          onClick={handleShareLink}
+          className="w-full h-12 rounded-xl font-bold"
+          style={{ background: 'rgba(255,255,255,0.08)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}
+        >
+          Compartir link
+        </button>
+        <Link to="/" className="text-center text-sm underline" style={{ color: 'rgba(255,255,255,0.6)' }}>
+          Quiero cantar en Retroke
+        </Link>
+      </div>
     </div>
   )
-}
-
-const styles = {
-  page: {
-    minHeight: '100vh',
-    background: '#05030a',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '32px 16px',
-    gap: 20
-  },
-  message: {
-    color: '#fff',
-    fontFamily: 'system-ui, sans-serif',
-    fontSize: 16,
-    textAlign: 'center'
-  },
-  actions: {
-    display: 'flex',
-    gap: 12,
-    flexWrap: 'wrap',
-    justifyContent: 'center'
-  },
-  buttonPrimary: {
-    padding: '12px 22px',
-    borderRadius: 999,
-    border: 'none',
-    background: 'linear-gradient(90deg, #E91E8C, #8B5CF6)',
-    color: '#fff',
-    fontWeight: 700,
-    fontSize: 14,
-    cursor: 'pointer'
-  },
-  buttonSecondary: {
-    padding: '12px 22px',
-    borderRadius: 999,
-    border: '1px solid rgba(255,255,255,0.25)',
-    background: 'transparent',
-    color: '#fff',
-    fontWeight: 600,
-    fontSize: 14,
-    cursor: 'pointer'
-  },
-  link: {
-    color: 'rgba(255,255,255,0.5)',
-    fontSize: 13,
-    textDecoration: 'underline'
-  }
 }

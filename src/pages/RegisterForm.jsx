@@ -318,10 +318,18 @@ function YourTurnScreen(props) {
           ref={shareCardRef}
           singerName={name}
           avatar={props.avatar}
+          photoUrl={props.photo || null}
           song={song}
           artistName={props.artistName}
           artworkUrl={props.artworkUrl}
           notaFinal={computeNotaFinal(null, results.scores.finalScore)}
+          vocalScore={results.scores.finalScore}
+          subScores={{
+            pitchScore: results.scores.pitchScore,
+            rhythmScore: results.scores.rhythmScore,
+            stabilityScore: results.scores.stabilityScore,
+            energyScore: results.scores.energyScore
+          }}
           confidence={results.scores.confidence}
           levelName={levelName}
         />
@@ -982,6 +990,7 @@ export default function RegisterForm() {
       <YourTurnScreen
         name={name}
         avatar={avatar}
+        photo={photo}
         song={song}
         artistName={detectedArtist}
         artworkUrl={detectedArtwork}

@@ -26,13 +26,22 @@ function useCardFont() {
   }, [])
 }
 
+const SUBSCORE_LABELS = [
+  { key: 'pitchScore', label: 'Afinación' },
+  { key: 'rhythmScore', label: 'Ritmo' },
+  { key: 'stabilityScore', label: 'Estabilidad' },
+  { key: 'energyScore', label: 'Energía' }
+]
+
 const ShareResultCard = forwardRef(function ShareResultCard(
-  { singerName, avatar, song, artistName, artworkUrl, notaFinal, levelName, achievementIcons, confidence },
+  { singerName, avatar, photoUrl, song, artistName, artworkUrl, notaFinal, vocalScore, subScores, levelName, achievementIcons, confidence },
   ref
 ) {
   useCardFont()
 
   const notaTxt = notaFinal !== null && notaFinal !== undefined ? notaFinal.toFixed(1) : '—'
+  const hasVocalScore = vocalScore !== null && vocalScore !== undefined
+  const hasSubScores = subScores && SUBSCORE_LABELS.some((s) => subScores[s.key] !== null && subScores[s.key] !== undefined)
 
   return (
     <div ref={ref} className="share-card">
@@ -45,8 +54,7 @@ const ShareResultCard = forwardRef(function ShareResultCard(
           position: relative;
           overflow: hidden;
           background: radial-gradient(circle at 50% 0%, #33174d 0%, #14081f 55%, #05030a 100%);
-          border: 2px solid rgba(233, 30, 140, 0.6);
-          box-shadow: 0 0 0 1px rgba(139,92,246,0.25), 0 0 50px rgba(233, 30, 140, 0.4), 0 0 110px rgba(139, 92, 246, 0.3);
+          border: 2.5px solid #E91E8C;
           font-family: 'Space Grotesk', system-ui, sans-serif;
           color: #fff;
           display: flex;
@@ -107,6 +115,14 @@ const ShareResultCard = forwardRef(function ShareResultCard(
           line-height: 1;
           filter: drop-shadow(0 0 14px rgba(233, 30, 140, 0.7));
         }
+        .share-card-avatar-photo {
+          position: relative;
+          width: 104px;
+          height: 104px;
+          border-radius: 9999px;
+          object-fit: cover;
+          display: block;
+        }
         .share-card-name {
           font-size: 25px;
           font-weight: 700;
@@ -131,9 +147,8 @@ const ShareResultCard = forwardRef(function ShareResultCard(
           margin: 18px 0;
           padding: 18px 16px 16px;
           border-radius: 24px;
-          background: linear-gradient(135deg, rgba(233,30,140,0.22), rgba(139,92,246,0.22));
+          background: linear-gradient(135deg, rgba(58,20,60,0.9), rgba(40,16,58,0.9));
           border: 1.5px solid rgba(244,208,79,0.55);
-          box-shadow: inset 0 0 30px rgba(233,30,140,0.12);
           box-sizing: border-box;
         }
         .share-card-nota-label {
@@ -154,6 +169,42 @@ const ShareResultCard = forwardRef(function ShareResultCard(
           margin-top: 2px;
           font-size: 11px;
           color: rgba(255,255,255,0.5);
+        }
+        .share-card-vocal-score {
+          margin-top: 8px;
+          font-size: 13px;
+          font-weight: 600;
+          color: rgba(255,255,255,0.75);
+          letter-spacing: 0.02em;
+        }
+        .share-card-vocal-score b {
+          color: #E91E8C;
+        }
+        .share-card-subscores {
+          width: 100%;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 8px;
+          margin-top: 12px;
+          padding-top: 12px;
+          border-top: 1px solid rgba(255,255,255,0.14);
+        }
+        .share-card-subscore {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 6px 10px;
+          border-radius: 10px;
+          background: rgba(255,255,255,0.05);
+        }
+        .share-card-subscore-label {
+          font-size: 11px;
+          color: rgba(255,255,255,0.6);
+        }
+        .share-card-subscore-value {
+          font-size: 13px;
+          font-weight: 700;
+          color: #F4D03F;
         }
         .share-card-song-card {
           width: 100%;
@@ -234,7 +285,11 @@ const ShareResultCard = forwardRef(function ShareResultCard(
       <div className="share-card-avatar-wrap">
         <div className="share-card-avatar-glow" />
         <div className="share-card-avatar-ring" />
-        <div className="share-card-avatar">{avatar || '🎤'}</div>
+        {photoUrl ? (
+          <img src={photoUrl} alt={singerName || ''} className="share-card-avatar-photo" />
+        ) : (
+          <div className="share-card-avatar">{avatar || '🎤'}</div>
+        )}
       </div>
       <div className="share-card-name">{singerName || 'Cantante Retroke'}</div>
       {levelName && <div className="share-card-level">🏅 {levelName}</div>}
@@ -244,6 +299,21 @@ const ShareResultCard = forwardRef(function ShareResultCard(
         <div className="share-card-nota">{notaTxt}</div>
         {confidence === 'baja' && (
           <div className="share-card-confidence">medición con señal limitada</div>
+        )}
+        {hasVocalScore && (
+          <div className="share-card-vocal-score">Retroke Score <b>{vocalScore}/100</b></div>
+        )}
+        {hasSubScores && (
+          <div className="share-card-subscores">
+            {SUBSCORE_LABELS.map((s) => (
+              subScores[s.key] !== null && subScores[s.key] !== undefined ? (
+                <div key={s.key} className="share-card-subscore">
+                  <span className="share-card-subscore-label">{s.label}</span>
+                  <span className="share-card-subscore-value">{subScores[s.key]}</span>
+                </div>
+              ) : null
+            ))}
+          </div>
         )}
       </div>
 
