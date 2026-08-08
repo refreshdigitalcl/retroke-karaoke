@@ -34,8 +34,8 @@ const ShareResultCard = forwardRef(function ShareResultCard(
       <style>{`
         .share-card {
           width: 100%;
-          max-width: 420px;
-          aspect-ratio: 9 / 14;
+          max-width: 440px;
+          aspect-ratio: 9 / 16;
           border-radius: 28px;
           position: relative;
           overflow: hidden;
@@ -84,21 +84,27 @@ const ShareResultCard = forwardRef(function ShareResultCard(
           background: rgba(244, 208, 79, 0.08);
           letter-spacing: 0.04em;
         }
-        .share-card-nota-wrap {
+        .share-card-score-box {
+          width: 100%;
           display: flex;
           flex-direction: column;
           align-items: center;
-          margin: 22px 0;
+          margin: 20px 0;
+          padding: 20px 16px 18px;
+          border-radius: 22px;
+          background: linear-gradient(135deg, rgba(233,30,140,0.18), rgba(139,92,246,0.18));
+          border: 1px solid rgba(244,208,79,0.45);
+          box-sizing: border-box;
         }
         .share-card-nota-label {
           font-size: 12px;
           letter-spacing: 0.28em;
           text-transform: uppercase;
-          color: rgba(255,255,255,0.55);
+          color: rgba(255,255,255,0.6);
           margin-bottom: 4px;
         }
         .share-card-nota {
-          font-size: 84px;
+          font-size: 76px;
           font-weight: 700;
           line-height: 1;
           background: linear-gradient(100deg, #fff 8%, #E91E8C 34%, #8B5CF6 58%, #F4D03F 82%, #fff 100%);
@@ -114,9 +120,9 @@ const ShareResultCard = forwardRef(function ShareResultCard(
           100% { background-position: 0% 50%; }
         }
         .share-card-confidence {
-          margin-top: 2px;
+          margin-top: 4px;
           font-size: 11px;
-          color: rgba(255,255,255,0.45);
+          color: rgba(255,255,255,0.5);
         }
         .share-card-song-card {
           width: 100%;
@@ -196,8 +202,8 @@ const ShareResultCard = forwardRef(function ShareResultCard(
       <div className="share-card-name">{singerName || 'Cantante Retroke'}</div>
       {levelName && <div className="share-card-level">{levelName}</div>}
 
-      <div className="share-card-nota-wrap">
-        <div className="share-card-nota-label">Nota Final</div>
+      <div className="share-card-score-box">
+        <div className="share-card-nota-label">⭐ Nota Final</div>
         <div className="share-card-nota">{notaTxt}</div>
         {confidence === 'baja' && (
           <div className="share-card-confidence">medición con señal limitada</div>

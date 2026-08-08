@@ -146,6 +146,13 @@ function YourTurnScreen(props) {
   var shareImageState = shareImageStateHook[0]
   var setShareImageState = shareImageStateHook[1]
 
+  // La tarjeta vive en su propia pantalla (no mezclada con el detalle de
+  // puntajes) para que se vea grande y limpia, lista para capturarse como
+  // imagen 9:16 igual a una story.
+  var showShareCardStateHook = useState(false)
+  var showShareCard = showShareCardStateHook[0]
+  var setShowShareCard = showShareCardStateHook[1]
+
   function handleShareCardImage() {
     setShareImageState('Generando...')
     var previewNota = results ? computeNotaFinal(null, results.scores.finalScore) : null
@@ -276,6 +283,44 @@ function YourTurnScreen(props) {
   }, [props.currentSinger, props.screenMode, micStatus])
 
   var hasSignal = peakSeenRef.current
+
+  // Pantalla dedicada a la tarjeta compartible — separada del detalle de
+  // puntajes para que la tarjeta se vea grande, limpia y en formato 9:16
+  // (igual a una story), lista para capturarse como imagen.
+  if (showShareCard && results) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center px-6 py-10 gap-5" style={{ background: 'var(--bg-page)' }}>
+        <ShareResultCard
+          ref={shareCardRef}
+          singerName={name}
+          avatar={props.avatar}
+          song={song}
+          artistName={props.artistName}
+          artworkUrl={props.artworkUrl}
+          notaFinal={computeNotaFinal(null, results.scores.finalScore)}
+          confidence={results.scores.confidence}
+        />
+        <div className="w-full max-w-sm flex flex-col gap-3">
+          <button
+            type="button"
+            onClick={handleShareCardImage}
+            className="w-full h-12 rounded-xl font-bold text-white"
+            style={{ background: 'linear-gradient(90deg, #E91E8C, #8B5CF6)' }}
+          >
+            Compartir tarjeta 📲 {shareImageState && '· ' + shareImageState}
+          </button>
+          <button
+            type="button"
+            onClick={function () { setShowShareCard(false) }}
+            className="w-full h-11 rounded-xl font-medium"
+            style={{ color: 'var(--text-secondary)' }}
+          >
+            ← Volver a mi resultado
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center px-6" style={{ background: 'var(--bg-page)' }}>
@@ -459,25 +504,13 @@ function YourTurnScreen(props) {
             </div>
             <p className="text-sm mb-5" style={{ color: 'var(--text-primary)' }}>{results.feedback}</p>
 
-            <div className="flex justify-center mb-4">
-              <ShareResultCard
-                ref={shareCardRef}
-                singerName={name}
-                avatar={props.avatar}
-                song={song}
-                artistName={props.artistName}
-                artworkUrl={props.artworkUrl}
-                notaFinal={computeNotaFinal(null, results.scores.finalScore)}
-                confidence={results.scores.confidence}
-              />
-            </div>
             <button
               type="button"
-              onClick={handleShareCardImage}
+              onClick={function () { setShowShareCard(true) }}
               className="w-full h-12 rounded-xl font-bold text-white"
               style={{ background: 'linear-gradient(90deg, #E91E8C, #8B5CF6)' }}
             >
-              Compartir tarjeta 📲 {shareImageState && '· ' + shareImageState}
+              Compartir Tarjeta 📲
             </button>
 
             <button

@@ -56,7 +56,10 @@ function loadHtml2Canvas() {
 
 async function renderCardToBlob(node) {
   const html2canvas = await loadHtml2Canvas()
-  const canvas = await html2canvas(node, { backgroundColor: null, scale: 2 })
+  // scale 3 sobre una tarjeta 9:16 de ~440px de ancho da una imagen de
+  // aprox. 1320x2350 — nitida en una story de Instagram/TikTok (que se ven
+  // a 1080x1920) sin generar un archivo excesivamente pesado.
+  const canvas = await html2canvas(node, { backgroundColor: null, scale: 3 })
   const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'))
   return { canvas, blob }
 }
