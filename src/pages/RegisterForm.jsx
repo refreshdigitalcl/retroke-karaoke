@@ -230,7 +230,7 @@ function YourTurnScreen(props) {
   }
 
   useEffect(function () {
-    var stillCurrentSinger = props.currentSinger && props.currentSinger.id === props.entryId
+    var stillCurrentSinger = props.currentSinger && String(props.currentSinger.id) === String(props.entryId)
     var isPerforming = stillCurrentSinger && props.screenMode === 'reactions'
 
     if (micStatus === 'ready' && isPerforming) {
@@ -666,6 +666,14 @@ export default function RegisterForm() {
   // nunca se hubiera inscrito, aunque su turno ya este por llegar. Lo
   // guardamos en localStorage, atado a esta sesion especifica de la noche,
   // y lo restauramos apenas carga la pagina.
+  //
+  // OJO: localStorage solo guarda texto, asi que el id (que en memoria es
+  // un numero) vuelve como string despues de restaurarlo. Por eso todas las
+  // comparaciones contra myEntryId en este archivo usan String(...) en vez
+  // de === directo — si no, "¿es mi turno?" nunca daba true despues de que
+  // el celular recargara la pagina o bloqueara la pantalla, y la persona se
+  // quedaba esperando sin que le llegara nunca el aviso de "activa tu
+  // microfono".
   var storageKey = sessionId ? 'retroke_entry_' + sessionId : null
 
   useEffect(function () {
@@ -776,11 +784,11 @@ export default function RegisterForm() {
     setSubmitted(true)
   }
 
-  var realIndex = myEntryId ? queue.findIndex(function (q) { return q.id === myEntryId }) : -1
+  var realIndex = myEntryId ? queue.findIndex(function (q) { return String(q.id) === String(myEntryId) }) : -1
   var position = realIndex !== -1 ? realIndex + 1 : (optimisticPosition || queue.length + 1)
 
   var isHome = workspaceType === 'HOME'
-  var itsMyTurn = isHome && myEntryId && currentSinger && currentSinger.id === myEntryId
+  var itsMyTurn = isHome && myEntryId && currentSinger && String(currentSinger.id) === String(myEntryId)
 
   useEffect(function () {
     if (!isHome || !myEntryId) return
