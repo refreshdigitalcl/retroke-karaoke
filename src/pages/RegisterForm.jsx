@@ -1304,7 +1304,16 @@ export default function RegisterForm() {
             <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{barName}</p>
             <p className="text-lg font-medium" style={{ color: 'var(--text-primary)' }}>Anotate para cantar</p>
           </div>
-          <ThemeToggle />
+          <div className="flex items-center gap-2">
+            <Link
+              to="/perfil"
+              className="text-xs font-medium underline"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              👤 Mi perfil
+            </Link>
+            <ThemeToggle />
+          </div>
         </div>
 
         <label className="text-sm block mb-1.5" style={{ color: 'var(--text-secondary)' }}>Tu nombre</label>
