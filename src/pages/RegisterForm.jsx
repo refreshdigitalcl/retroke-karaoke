@@ -6,9 +6,10 @@ import { createVocalAnalyzer, getFeedback } from '../lib/vocalAnalysis'
 import { containsProfanity } from '../lib/profanityFilter'
 import { searchSongMatches } from '../lib/songLookup'
 import { getOrCreateParticipant, touchParticipantProfile, signInWithGoogle, signOutParticipant } from '../lib/participant'
-import { buildShareUrl, buildShareText, shareResult, shareCardAsImage } from '../lib/shareCard'
+import { buildShareText } from '../lib/shareCard'
 import { computeNotaFinal, LEVELS } from '../lib/gamification'
 import ShareResultCard from '../components/ShareResultCard'
+import ShareButton from '../components/share/ShareButton'
 
 const AVATARS = ['🔥', '🦄', '👽', '🐸', '🎤', '🐙', '⭐', '👑', '🍄', '🌊', '🎸', '🦋']
 
@@ -88,24 +89,20 @@ function flushPendingVocalResults() {
 // Fase D: boton de compartir, reutilizado en las pantallas de "gracias por
 // participar" y "ya estas en la cola". Solo aparece una vez que existe una
 // tarjeta de resultado real (performance_id ya generado en el servidor).
+// Fase 14: delega en ShareButton (mode="link") en vez de tener su propia
+// logica -- ver components/share/ShareButton.jsx.
 function ShareResultButton(props) {
-  function handleClick() {
-    shareResult({
-      performanceId: props.performanceId,
-      song: props.song,
-      artistName: props.artistName || null,
-      notaFinal: null
-    })
-  }
   return (
-    <button
-      type="button"
-      onClick={handleClick}
-      className="w-full h-11 rounded-xl font-bold text-white mt-4"
-      style={{ background: 'linear-gradient(90deg, #E91E8C, #8B5CF6)' }}
-    >
-      Compartir mi resultado 🔗
-    </button>
+    <ShareButton
+      mode="link"
+      performanceId={props.performanceId}
+      song={props.song}
+      artistName={props.artistName || null}
+      notaFinal={null}
+      label="Compartir mi resultado 🔗"
+      heightClass="h-11"
+      className="mt-4"
+    />
   )
 }
 
@@ -149,9 +146,6 @@ function YourTurnScreen(props) {
   // TikTok sin tener que esperar a que termine toda la ronda (calificacion
   // del publico, XP, logros — eso llega despues via el link de /r/:id).
   var shareCardRef = useRef(null)
-  var shareImageStateHook = useState('')
-  var shareImageState = shareImageStateHook[0]
-  var setShareImageState = shareImageStateHook[1]
 
   // La tarjeta vive en su propia pantalla (no mezclada con el detalle de
   // puntajes) para que se vea grande y limpia, lista para capturarse como
@@ -183,22 +177,6 @@ function YourTurnScreen(props) {
       .catch(function () {})
     return function () { cancelled = true }
   }, [props.participantId])
-
-  function handleShareCardImage() {
-    setShareImageState('Generando...')
-    var previewNota = results ? computeNotaFinal(null, results.scores.finalScore) : null
-    var text = buildShareText({ song: song, artistName: props.artistName || null, notaFinal: previewNota })
-    shareCardAsImage(shareCardRef.current, {
-      filename: 'retroke-' + (name || 'resultado') + '.png',
-      title: 'Mi resultado en Retroke',
-      text: text
-    }).then(function (result) {
-      if (result.error) setShareImageState('No se pudo compartir')
-      else if (result.method === 'download') setShareImageState('Descargada ✓')
-      else setShareImageState('')
-      setTimeout(function () { setShareImageState('') }, 2500)
-    })
-  }
 
   useEffect(function () {
     flushPendingVocalResults()
@@ -341,14 +319,13 @@ function YourTurnScreen(props) {
           levelName={levelName}
         />
         <div className="w-full max-w-sm flex flex-col gap-3">
-          <button
-            type="button"
-            onClick={handleShareCardImage}
-            className="w-full h-12 rounded-xl font-bold text-white"
-            style={{ background: 'linear-gradient(90deg, #E91E8C, #8B5CF6)' }}
-          >
-            Compartir tarjeta 📲 {shareImageState && '· ' + shareImageState}
-          </button>
+          <ShareButton
+            mode="image"
+            cardRef={shareCardRef}
+            filename={'retroke-' + (name || 'resultado') + '.png'}
+            title="Mi resultado en Retroke"
+            text={buildShareText({ song: song, artistName: props.artistName || null, notaFinal: results ? computeNotaFinal(null, results.scores.finalScore) : null })}
+          />
           <button
             type="button"
             onClick={function () { setShowShareCard(false) }}
@@ -650,9 +627,6 @@ function PerformanceShareScreen(props) {
   var setLevelName = levelNameState[1]
 
   var shareCardRef = useRef(null)
-  var shareImageStateHook = useState('')
-  var shareImageState = shareImageStateHook[0]
-  var setShareImageState = shareImageStateHook[1]
 
   useEffect(function () {
     var cancelled = false
@@ -722,25 +696,6 @@ function PerformanceShareScreen(props) {
     return function () { cancelled = true }
   }, [participantId])
 
-  function handleShareCardImage() {
-    setShareImageState('Generando...')
-    var text = buildShareText({
-      song: fallbackSong,
-      artistName: data ? data.artistName : '',
-      notaFinal: data ? data.notaFinal : null
-    })
-    shareCardAsImage(shareCardRef.current, {
-      filename: 'retroke-' + (fallbackName || 'resultado') + '.png',
-      title: 'Mi resultado en Retroke',
-      text: text
-    }).then(function (result) {
-      if (result.error) setShareImageState('No se pudo compartir')
-      else if (result.method === 'download') setShareImageState('Descargada ✓')
-      else setShareImageState('')
-      setTimeout(function () { setShareImageState('') }, 2500)
-    })
-  }
-
   if (!data) {
     return (
       <div className="min-h-screen flex items-center justify-center px-6" style={{ background: 'var(--bg-page)' }}>
@@ -766,14 +721,13 @@ function PerformanceShareScreen(props) {
         levelName={levelName}
       />
       <div className="w-full max-w-sm flex flex-col gap-3">
-        <button
-          type="button"
-          onClick={handleShareCardImage}
-          className="w-full h-12 rounded-xl font-bold text-white"
-          style={{ background: 'linear-gradient(90deg, #E91E8C, #8B5CF6)' }}
-        >
-          Compartir tarjeta 📲 {shareImageState && '· ' + shareImageState}
-        </button>
+        <ShareButton
+          mode="image"
+          cardRef={shareCardRef}
+          filename={'retroke-' + (fallbackName || 'resultado') + '.png'}
+          title="Mi resultado en Retroke"
+          text={buildShareText({ song: fallbackSong, artistName: data ? data.artistName : '', notaFinal: data ? data.notaFinal : null })}
+        />
         <button
           type="button"
           onClick={onBack}

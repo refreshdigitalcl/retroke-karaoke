@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import ShareResultCard from '../components/ShareResultCard'
-import { buildShareUrl, buildShareText, shareResult, downloadCardAsImage } from '../lib/shareCard'
+import ShareButton from '../components/share/ShareButton'
 
 // Pagina publica /r/:performanceId — el link que se comparte en redes.
 // Muestra la misma tarjeta 9:16 que se ve en vivo en el celular del
@@ -13,7 +13,6 @@ export default function SharePerformance() {
   const { performanceId } = useParams()
   const cardRef = useRef(null)
   const [state, setState] = useState({ loading: true, error: '', data: null })
-  const [downloadState, setDownloadState] = useState('')
 
   useEffect(() => {
     if (!performanceId) return
@@ -118,25 +117,6 @@ export default function SharePerformance() {
     return () => { cancelled = true }
   }, [performanceId])
 
-  function handleDownload() {
-    setDownloadState('Generando...')
-    downloadCardAsImage(cardRef.current, 'retroke-' + (state.data ? state.data.singerName || 'resultado' : 'resultado') + '.png')
-      .then((result) => {
-        setDownloadState(result && result.error ? 'No se pudo descargar' : 'Descargada ✓')
-        setTimeout(() => setDownloadState(''), 2500)
-      })
-  }
-
-  function handleShareLink() {
-    if (!state.data) return
-    shareResult({
-      performanceId,
-      song: state.data.song,
-      artistName: state.data.artistName,
-      notaFinal: state.data.notaFinal
-    })
-  }
-
   if (state.loading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-page)', color: '#fff' }}>
@@ -179,22 +159,21 @@ export default function SharePerformance() {
         achievementIcons={d.achievementIcons}
       />
       <div className="w-full max-w-sm flex flex-col gap-3">
-        <button
-          type="button"
-          onClick={handleDownload}
-          className="w-full h-12 rounded-xl font-bold text-white"
-          style={{ background: 'linear-gradient(90deg, #E91E8C, #8B5CF6)' }}
-        >
-          Descargar tarjeta {downloadState && '· ' + downloadState}
-        </button>
-        <button
-          type="button"
-          onClick={handleShareLink}
-          className="w-full h-12 rounded-xl font-bold"
-          style={{ background: 'rgba(255,255,255,0.08)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}
-        >
-          Compartir link
-        </button>
+        <ShareButton
+          mode="download"
+          cardRef={cardRef}
+          filename={'retroke-' + (d.singerName || 'resultado') + '.png'}
+          label="Descargar tarjeta"
+        />
+        <ShareButton
+          mode="link"
+          performanceId={performanceId}
+          song={d.song}
+          artistName={d.artistName}
+          notaFinal={d.notaFinal}
+          label="Compartir link"
+          variant="secondary"
+        />
         <Link to={d.registerHref || '/registro'} className="text-center text-sm underline" style={{ color: 'rgba(255,255,255,0.6)' }}>
           Quiero cantar en Retroke
         </Link>

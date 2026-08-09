@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { LEVELS, computeLevel } from '../lib/gamification'
@@ -7,6 +7,10 @@ import { getGlobalXpRank } from '../lib/ranking'
 import { loadReceivedChallenges } from '../lib/challenges'
 import { loadFollowCounts, loadFollowingList, loadFollowersList } from '../lib/follows'
 import { loadStatuses, createStatus, deleteStatus, STATUS_MAX_LENGTH } from '../lib/statuses'
+import ShareButton from '../components/share/ShareButton'
+import ShareModal from '../components/share/ShareModal'
+import ShareRankCard from '../components/share/ShareRankCard'
+import ShareAchievementCard from '../components/share/ShareAchievementCard'
 
 // Misma tecnica que resizeToSquareJpeg en RegisterForm.jsx (PNG en vez de
 // JPEG a proposito: algunos Smart TV con Chrome embebido decodifican mal el
@@ -85,6 +89,9 @@ export default function Profile() {
   var [instagramDraft, setInstagramDraft] = useState('')
   var [showInstagramDraft, setShowInstagramDraft] = useState(false)
   var [savingInstagram, setSavingInstagram] = useState(false)
+  // Fase 14 ("Viralidad"): null | { type: 'rank' } | { type: 'achievement', achievement }
+  var [shareModal, setShareModal] = useState(null)
+  var shareCardRef = useRef(null)
 
   var load = useCallback(function () {
     setLoading(true)
@@ -353,6 +360,7 @@ export default function Profile() {
         .profile-achv-name { font-size: 12px; font-weight: 700; margin-top: 8px; }
         .profile-achv-date { font-size: 10px; color: rgba(255,255,255,0.5); margin-top: 2px; }
         .profile-achv-date.unlocked-date { color: #F4D03F; font-weight: 600; }
+        .profile-achv-share-btn { margin-top: 6px; font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.6); background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 999px; padding: 3px 8px; cursor: pointer; }
         .profile-history-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.08); }
         .profile-history-art { width: 44px; height: 44px; border-radius: 10px; object-fit: cover; flex-shrink: 0; background: rgba(255,255,255,0.07); display: flex; align-items: center; justify-content: center; font-size: 18px; }
         .profile-history-text { min-width: 0; flex: 1; }
@@ -474,6 +482,19 @@ export default function Profile() {
                 >
                   #{rank.rank} de {rank.total} en Retroke
                 </span>
+              )}
+              {rank && (
+                <button
+                  type="button"
+                  onClick={function () { setShareModal({ type: 'rank' }) }}
+                  style={{
+                    fontSize: 11.5, fontWeight: 700, color: 'rgba(255,255,255,0.7)',
+                    background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
+                    borderRadius: 999, padding: '2px 9px', cursor: 'pointer'
+                  }}
+                >
+                  Compartir 📤
+                </button>
               )}
               {followCounts && (
                 <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
@@ -677,7 +698,16 @@ export default function Profile() {
                   </div>
                   <div className="profile-achv-name">{a.name}</div>
                   {unlockedAt ? (
-                    <div className="profile-achv-date unlocked-date">{formatDate(unlockedAt)}</div>
+                    <>
+                      <div className="profile-achv-date unlocked-date">{formatDate(unlockedAt)}</div>
+                      <button
+                        type="button"
+                        onClick={function (e) { e.stopPropagation(); setShareModal({ type: 'achievement', achievement: a }) }}
+                        className="profile-achv-share-btn"
+                      >
+                        Compartir 📤
+                      </button>
+                    </>
                   ) : (
                     <div className="profile-achv-date">Bloqueado</div>
                   )}
@@ -763,6 +793,54 @@ export default function Profile() {
           Volver a Retroke — inscríbete para cantar
         </Link>
       </div>
+
+      {shareModal && shareModal.type === 'rank' && rank && (
+        <ShareModal onClose={function () { setShareModal(null) }}>
+          <ShareRankCard
+            ref={shareCardRef}
+            name={participant.display_name}
+            avatar={participant.avatar}
+            photoUrl={participant.photo_url}
+            levelName={levelInfo.name}
+            rank={rank.rank}
+            total={rank.total}
+            xp={stats ? stats.xp || 0 : 0}
+          />
+          <div className="share-modal-actions">
+            <ShareButton
+              mode="image"
+              cardRef={shareCardRef}
+              filename={'retroke-ranking-' + (participant.display_name || 'yo') + '.png'}
+              title="Mi ranking en Retroke"
+              text={'🌎 Estoy #' + rank.rank + ' de ' + rank.total + ' en el Ranking Retroke 🔥'}
+            />
+          </div>
+        </ShareModal>
+      )}
+
+      {shareModal && shareModal.type === 'achievement' && (
+        <ShareModal onClose={function () { setShareModal(null) }}>
+          <ShareAchievementCard
+            ref={shareCardRef}
+            name={participant.display_name}
+            avatar={participant.avatar}
+            photoUrl={participant.photo_url}
+            levelName={levelInfo.name}
+            icon={shareModal.achievement.icon}
+            achievementName={shareModal.achievement.name}
+            description={shareModal.achievement.description}
+          />
+          <div className="share-modal-actions">
+            <ShareButton
+              mode="image"
+              cardRef={shareCardRef}
+              filename={'retroke-logro-' + shareModal.achievement.code + '.png'}
+              title="Logro desbloqueado en Retroke"
+              text={'🏆 Desbloqueé "' + shareModal.achievement.name + '" en Retroke 🎤'}
+            />
+          </div>
+        </ShareModal>
+      )}
     </div>
   )
 }

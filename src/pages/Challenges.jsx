@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { getOrCreateParticipant } from '../lib/participant'
@@ -8,6 +8,9 @@ import WorldSection from '../components/world/WorldSection'
 import WorldEmptyState from '../components/world/WorldEmptyState'
 import WorldSkeleton from '../components/world/WorldSkeleton'
 import { WORLD_STYLES } from '../components/world/worldStyles'
+import ShareButton from '../components/share/ShareButton'
+import ShareModal from '../components/share/ShareModal'
+import ShareChallengeCard from '../components/share/ShareChallengeCard'
 
 // Fase 6 de Retroke World ("Misiones y Logros", ver
 // retroke-world-diagnostico-tecnico.md). Reskin bento de esta pagina --
@@ -43,6 +46,11 @@ export default function Challenges() {
   const [receivedChallenges, setReceivedChallenges] = useState(null)
   const [sentChallenges, setSentChallenges] = useState(null)
   const [myBestScore, setMyBestScore] = useState(null)
+  const [me, setMe] = useState(null) // Fase 14: nombre propio para armar la tarjeta de desafio
+
+  // Fase 14 ("Viralidad"): null | { fromName, toName, targetScore, done }
+  const [shareModal, setShareModal] = useState(null)
+  const shareCardRef = useRef(null)
 
   useEffect(() => {
     let cancelled = false
@@ -57,6 +65,7 @@ export default function Challenges() {
         setSentChallenges([])
         return
       }
+      setMe(participant)
 
       const { data: challengeRows } = await supabase
         .from('challenges')
@@ -135,6 +144,7 @@ export default function Challenges() {
         .dc-meta { font-size: 11px; color: rgba(255,255,255,0.5); margin-top: 1px; }
         .dc-badge-done { font-size: 10.5px; font-weight: 700; color: #7ED957; background: rgba(126,217,87,0.12); border-radius: 999px; padding: 4px 9px; white-space: nowrap; flex-shrink: 0; }
         .dc-badge-pending { font-size: 10.5px; font-weight: 700; color: rgba(255,255,255,0.5); background: rgba(255,255,255,0.08); border-radius: 999px; padding: 4px 9px; white-space: nowrap; flex-shrink: 0; }
+        .dc-share-btn { font-size: 13px; background: none; border: none; color: rgba(255,255,255,0.5); cursor: pointer; padding: 2px 4px; flex-shrink: 0; }
       `}</style>
 
       <div className="world-inner">
@@ -217,6 +227,18 @@ export default function Challenges() {
                           <div className="dc-meta">Superar su nota: {r.targetScore}</div>
                         </div>
                         <span className={done ? 'dc-badge-done' : 'dc-badge-pending'}>{done ? 'Superado ✓' : 'Pendiente'}</span>
+                        <button
+                          type="button"
+                          className="dc-share-btn"
+                          onClick={() => setShareModal({
+                            fromName: r.fromName,
+                            toName: me ? (me.display_name || 'Cantante Retroke') : 'Cantante Retroke',
+                            targetScore: r.targetScore,
+                            done
+                          })}
+                        >
+                          📤
+                        </button>
                       </div>
                     )
                   })}
@@ -244,6 +266,18 @@ export default function Challenges() {
                           <div className="dc-meta">Superar tu nota: {s.targetScore}</div>
                         </div>
                         <span className={done ? 'dc-badge-done' : 'dc-badge-pending'}>{done ? 'Superado ✓' : 'Pendiente'}</span>
+                        <button
+                          type="button"
+                          className="dc-share-btn"
+                          onClick={() => setShareModal({
+                            fromName: me ? (me.display_name || 'Cantante Retroke') : 'Cantante Retroke',
+                            toName: s.toName,
+                            targetScore: s.targetScore,
+                            done
+                          })}
+                        >
+                          📤
+                        </button>
                       </div>
                     )
                   })}
@@ -255,6 +289,27 @@ export default function Challenges() {
 
         <Link to="/world" className="world-footer-link">← Retroke World</Link>
       </div>
+
+      {shareModal && (
+        <ShareModal onClose={() => setShareModal(null)}>
+          <ShareChallengeCard
+            ref={shareCardRef}
+            fromName={shareModal.fromName}
+            toName={shareModal.toName}
+            targetScore={shareModal.targetScore}
+            done={shareModal.done}
+          />
+          <div className="share-modal-actions">
+            <ShareButton
+              mode="image"
+              cardRef={shareCardRef}
+              filename={'retroke-desafio.png'}
+              title="Desafío Retroke"
+              text={'🥊 ' + shareModal.fromName + ' desafió a ' + shareModal.toName + ' a superar ' + Number(shareModal.targetScore).toFixed(1) + ' en Retroke'}
+            />
+          </div>
+        </ShareModal>
+      )}
     </div>
   )
 }
