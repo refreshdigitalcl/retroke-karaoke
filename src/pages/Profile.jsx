@@ -99,7 +99,15 @@ export default function Profile() {
 
           setStats(statsResult.data || null)
           setAchievements(achievementsResult.data || [])
-          getGlobalXpRank(supabase, statsResult.data ? statsResult.data.xp : 0).then(setRank)
+          // Solo mostramos posicion si ya existe una fila real en
+          // participant_stats -- sin eso, "rankear" a alguien que nunca
+          // canto daba numeros absurdos como "#5 de 4" (peor posicion que
+          // el total de gente rankeada).
+          if (statsResult.data) {
+            getGlobalXpRank(supabase, statsResult.data.xp).then(setRank)
+          } else {
+            setRank(null)
+          }
 
           var map = {}
           ;(unlockedResult.data || []).forEach(function (row) {

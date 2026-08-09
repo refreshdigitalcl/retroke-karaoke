@@ -111,7 +111,11 @@ async function loadMyExperience() {
     .select('xp, level_name, total_performances, current_streak, best_score')
     .eq('participant_id', participant.id)
     .maybeSingle()
-  const rank = await getGlobalXpRank(supabase, stats ? stats.xp : 0)
+  // Solo tiene sentido mostrar posicion si ya existe una fila real en
+  // participant_stats -- alguien que nunca canto no es parte de la
+  // poblacion ranqueada, y calcularle una posicion igual daba numeros
+  // absurdos como "#5 de 4" (mas atras que el total de gente rankeada).
+  const rank = stats ? await getGlobalXpRank(supabase, stats.xp) : null
   return { participant, stats: stats || null, rank }
 }
 
@@ -192,7 +196,12 @@ export default function World() {
     loadMyExperience().then(setExperience).catch(() => setExperience(null))
   }, [])
 
-  const levelInfo = experience && experience.stats ? computeLevel(experience.stats.xp || 0) : null
+  // OJO: "sin stats todavia" (participante identificado pero nunca canto)
+  // NO es lo mismo que "sin participante" -- en el primer caso el nivel es
+  // igual el inicial (Novato del Microfono, 0 XP), no "desconocido". Antes
+  // esto devolvia null en ambos casos, lo que hacia que nextLevel tambien
+  // diera null y la UI mostrara "Nivel maximo" para alguien con 0 XP.
+  const levelInfo = experience ? computeLevel(experience.stats ? experience.stats.xp || 0 : 0) : null
   const levelIndex = levelInfo ? LEVELS.findIndex((l) => l.level === levelInfo.level) : -1
   const nextLevel = levelIndex >= 0 && levelIndex < LEVELS.length - 1 ? LEVELS[levelIndex + 1] : null
   const xpProgressPct = !levelInfo
