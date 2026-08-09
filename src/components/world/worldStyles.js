@@ -116,6 +116,14 @@ export const WORLD_STYLES = `
   .world-rank-level { font-size: 11px; color: rgba(255,255,255,0.45); }
   .world-rank-xp { font-size: 13px; font-weight: 700; color: #F4D03F; flex-shrink: 0; }
 
+  .world-trend-row { display: flex; align-items: center; gap: 10px; padding: 5px 2px; }
+  .world-trend-art { width: 34px; height: 34px; border-radius: 8px; overflow: hidden; flex-shrink: 0; background: rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: center; font-size: 15px; }
+  .world-trend-art img { width: 100%; height: 100%; object-fit: cover; }
+  .world-trend-info { flex: 1; min-width: 0; }
+  .world-trend-name { font-size: 13px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .world-trend-artist { font-size: 11px; color: rgba(255,255,255,0.5); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .world-trend-count { font-size: 12px; font-weight: 800; color: #F4D03F; flex-shrink: 0; white-space: nowrap; }
+
   .world-xp-track { width: 100%; height: 8px; border-radius: 999px; background: rgba(255,255,255,0.1); overflow: hidden; }
   .world-xp-fill { height: 100%; background: linear-gradient(90deg, #E91E8C, #8B5CF6); }
 

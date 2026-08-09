@@ -104,6 +104,22 @@ async function loadActiveChallengesCount() {
   return count || 0
 }
 
+// Fase 4 -- "Lo mas cantado": agrupado server-side (get_trending_songs RPC)
+// normalizando song/artist a minuscula+trim para que "Let It Be" y "let it
+// be" cuenten como la misma cancion (ver punto 10 del diagnostico). Con el
+// volumen real de datos de hoy casi todo va a salir con 1 vez cantada -- es
+// correcto mostrarlo asi, no hay que inventar un numero mas grande.
+async function loadTrendingSongs() {
+  const { data } = await supabase.rpc('get_trending_songs', { p_limit: 6 })
+  return (data || []).map((row) => ({
+    key: row.song_norm + '::' + row.artist_norm,
+    song: row.song_label,
+    artist: row.artist_label,
+    veces: row.veces,
+    artworkUrl: row.artwork_url
+  }))
+}
+
 async function loadMyExperience() {
   const participant = await getOrCreateParticipant(supabase)
   if (!participant) return null
@@ -139,6 +155,22 @@ function NowPlayingCard(props) {
   return href ? <Link to={href} className="world-nowplaying-link">{content}</Link> : content
 }
 
+function TrendRow(props) {
+  const row = props.row
+  return (
+    <div className="world-trend-row">
+      <div className="world-trend-art">
+        {row.artworkUrl ? <img src={row.artworkUrl} alt="" /> : <span>🎵</span>}
+      </div>
+      <div className="world-trend-info">
+        <div className="world-trend-name">{row.song}</div>
+        {row.artist && <div className="world-trend-artist">{row.artist}</div>}
+      </div>
+      <div className="world-trend-count">{row.veces}×</div>
+    </div>
+  )
+}
+
 function ScenarioRow(props) {
   const row = props.row
   const href = scenarioHref(row)
@@ -163,6 +195,7 @@ export default function World() {
   const [live, setLive] = useState(null) // { stats, nowPlaying, scenarios }
   const [liveLoading, setLiveLoading] = useState(true)
   const [rankingTop, setRankingTop] = useState(null)
+  const [trending, setTrending] = useState(null)
   const [challengesCount, setChallengesCount] = useState(null)
   const [experience, setExperience] = useState(undefined) // undefined = cargando, null = sin perfil
 
@@ -193,6 +226,7 @@ export default function World() {
 
   useEffect(() => {
     loadRankingTop().then(setRankingTop).catch(() => setRankingTop([]))
+    loadTrendingSongs().then(setTrending).catch(() => setTrending([]))
     loadActiveChallengesCount().then(setChallengesCount).catch(() => setChallengesCount(0))
     loadMyExperience().then(setExperience).catch(() => setExperience(null))
   }, [])
@@ -345,6 +379,24 @@ export default function World() {
                     </div>
                     <div className="world-rank-xp">{row.xp} XP</div>
                   </div>
+                ))}
+              </div>
+            )}
+          </WorldSection>
+
+          <WorldSection
+            eyebrow="Tendencia"
+            title="🎵 Lo más cantado"
+            subtitle="Las canciones que más suenan en Retroke"
+          >
+            {trending === null && <WorldSkeleton lines={3} />}
+            {trending !== null && trending.length === 0 && (
+              <WorldEmptyState icon="🎶" message="Todavía no hay suficientes presentaciones para armar una tendencia. Sé el primero en cantar." />
+            )}
+            {trending !== null && trending.length > 0 && (
+              <div>
+                {trending.map((row) => (
+                  <TrendRow key={row.key} row={row} />
                 ))}
               </div>
             )}
