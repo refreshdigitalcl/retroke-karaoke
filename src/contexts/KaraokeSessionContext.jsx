@@ -580,6 +580,62 @@ export function KaraokeSessionProvider({ children }) {
     }
   }, [barId, workspaceId, refreshActiveSession])
 
+  // Si el plan del workspace cambia mientras otra pantalla ya esta abierta
+  // (por ejemplo, el DJ activa la prueba PRO desde su celular mientras la
+  // pantalla del bar -TV/monitor- ya estaba cargada desde antes), esa otra
+  // pantalla no se entera sola: el plan y las features solo se cargaban una
+  // vez al montar. Sin esto, cosas como "estadisticas de la noche" seguian
+  // mostrando el candado de "disponible en PRO" aunque la prueba ya
+  // estuviera activa, hasta que alguien recargara esa pantalla a mano.
+  const loadPlanFeatures = useCallback(async (wsId) => {
+    if (!wsId) return
+    try {
+      const { data: ws } = await supabase
+        .from('workspaces')
+        .select('plan, type')
+        .eq('id', wsId)
+        .maybeSingle()
+      if (!ws) return
+      const plan = (ws.plan || 'FREE').toUpperCase()
+      setWorkspacePlan(plan)
+      setWorkspaceType(ws.type)
+      const { data: features } = await supabase
+        .from('plan_features')
+        .select('feature')
+        .eq('plan', plan)
+        .eq('workspace_type', ws.type)
+      setFeatureSet(new Set((features || []).map((f) => f.feature)))
+    } catch (err) {
+      console.error('Error actualizando plan/features:', err)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!workspaceId) return
+    const channel = supabase
+      .channel('workspace-plan-' + workspaceId)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'workspaces', filter: 'id=eq.' + workspaceId },
+        () => loadPlanFeatures(workspaceId)
+      )
+      .subscribe()
+
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') loadPlanFeatures(workspaceId)
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('focus', onVisible)
+    window.addEventListener('online', onVisible)
+
+    return () => {
+      supabase.removeChannel(channel)
+      document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('focus', onVisible)
+      window.removeEventListener('online', onVisible)
+    }
+  }, [workspaceId, loadPlanFeatures])
+
   const loadQueue = useCallback(async (sid) => {
     const { data } = await supabase
       .from('queue_entries')
