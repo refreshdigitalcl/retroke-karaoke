@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { getOrCreateParticipant } from '../lib/participant'
 import { LEVELS, computeLevel } from '../lib/gamification'
 import { getGlobalXpRank } from '../lib/ranking'
+import { loadActivityFeed } from '../lib/activity'
 import WorldHero from '../components/world/WorldHero'
 import WorldLive from '../components/world/WorldLive'
 import WorldSection from '../components/world/WorldSection'
@@ -199,6 +200,47 @@ function ScenarioRow(props) {
   )
 }
 
+// Fase 12 -- "hace cuanto" en formato corto, igual de honesto que el resto
+// de World: si el evento paso hace menos de un minuto se dice "ahora", no
+// se inventa un numero de segundos que nadie pidio.
+function timeAgo(iso) {
+  const diffMs = Date.now() - new Date(iso).getTime()
+  const mins = Math.floor(diffMs / 60000)
+  if (mins < 1) return 'ahora'
+  if (mins < 60) return mins + ' min'
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return hours + ' h'
+  const days = Math.floor(hours / 24)
+  return days + ' d'
+}
+
+function ActivityRow(props) {
+  const item = props.row
+  return (
+    <div className="world-activity-row">
+      <span className="world-activity-avatar">{item.actor.avatar}</span>
+      <div className="world-activity-body">
+        <div className="world-activity-text">
+          <Link to={'/u/' + item.actor.id} className="world-activity-name">{item.actor.name}</Link>
+          {item.type === 'follow' && (
+            <> empezó a seguir a <Link to={'/u/' + item.target.id} className="world-activity-name">{item.target.name}</Link></>
+          )}
+          {item.type === 'status' && (
+            <> publicó: "{item.text.length > 90 ? item.text.slice(0, 90) + '…' : item.text}"</>
+          )}
+          {item.type === 'challenge' && (
+            <> desafió a <Link to={'/u/' + item.target.id} className="world-activity-name">{item.target.name}</Link></>
+          )}
+          {item.type === 'achievement' && (
+            <> desbloqueó {item.achievement.icon} {item.achievement.name}</>
+          )}
+        </div>
+        <div className="world-activity-time">{timeAgo(item.createdAt)}</div>
+      </div>
+    </div>
+  )
+}
+
 export default function World() {
   useWorldFont()
 
@@ -208,6 +250,7 @@ export default function World() {
   const [trending, setTrending] = useState(null)
   const [challengesCount, setChallengesCount] = useState(null)
   const [experience, setExperience] = useState(undefined) // undefined = cargando, null = sin perfil
+  const [activity, setActivity] = useState(null) // Fase 12: null = cargando, [] = sin actividad reciente
 
   const refreshLive = useRef(null)
   refreshLive.current = () => {
@@ -239,6 +282,7 @@ export default function World() {
     loadTrendingSongs().then(setTrending).catch(() => setTrending([]))
     loadActiveChallengesCount().then(setChallengesCount).catch(() => setChallengesCount(0))
     loadMyExperience().then(setExperience).catch(() => setExperience(null))
+    loadActivityFeed(supabase, 10).then(setActivity).catch(() => setActivity([]))
   }, [])
 
   // OJO: "sin stats todavia" (participante identificado pero nunca canto)
@@ -257,7 +301,15 @@ export default function World() {
 
   return (
     <div className="world-page">
-      <style>{WORLD_STYLES}</style>
+      <style>{WORLD_STYLES}{`
+        .world-activity-row { display: flex; align-items: flex-start; gap: 10px; padding: 7px 2px; }
+        .world-activity-avatar { font-size: 18px; flex-shrink: 0; line-height: 1.4; }
+        .world-activity-body { flex: 1; min-width: 0; }
+        .world-activity-text { font-size: 12.5px; line-height: 1.5; color: rgba(255,255,255,0.75); }
+        .world-activity-name { color: #fff; font-weight: 700; text-decoration: none; }
+        .world-activity-name:hover { text-decoration: underline; }
+        .world-activity-time { font-size: 10.5px; color: rgba(255,255,255,0.4); margin-top: 2px; }
+      `}</style>
 
       <div className="world-inner">
         <WorldHero />
@@ -442,6 +494,25 @@ export default function World() {
               <div>
                 {live.scenarios.map((row) => (
                   <ScenarioRow key={row.id} row={row} />
+                ))}
+              </div>
+            )}
+          </WorldSection>
+
+          <WorldSection
+            size="lg"
+            eyebrow="Comunidad"
+            title="🟣 Actividad Retroke"
+            subtitle="Lo último que pasó entre cantantes"
+          >
+            {activity === null && <WorldSkeleton lines={4} />}
+            {activity !== null && activity.length === 0 && (
+              <WorldEmptyState icon="🟣" message="Todavía no hay actividad reciente. Sigue a alguien, publica un estado o desafía a un cantante y va a aparecer acá." />
+            )}
+            {activity !== null && activity.length > 0 && (
+              <div>
+                {activity.map((row) => (
+                  <ActivityRow key={row.id} row={row} />
                 ))}
               </div>
             )}
