@@ -122,8 +122,8 @@ export default function Escenario() {
           <>
             <WorldSection
               size="lg"
-              eyebrow={overview && overview.isLiveNow ? 'En vivo' : 'Estado'}
-              title={overview && overview.isLiveNow ? '🔴 En vivo ahora' : '🌙 Sin actividad en este momento'}
+              eyebrow={!overview ? 'Estado' : overview.isLiveNow ? 'En vivo' : 'Estado'}
+              title={!overview ? 'Revisando el escenario…' : overview.isLiveNow ? '🔴 En vivo ahora' : '🌙 Sin actividad en este momento'}
             >
               {!overview && <WorldSkeleton lines={2} />}
               {overview && !overview.isLiveNow && (
