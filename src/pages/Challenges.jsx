@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { getOrCreateParticipant } from '../lib/participant'
 import { getPeriodKey } from '../lib/gamification'
+import { loadReceivedChallenges, loadSentChallenges } from '../lib/challenges'
 
 // Fase E.2: pagina publica de desafios. Usa la identidad liviana de
 // participante (Fase B, por dispositivo) para mostrar "mi progreso" sin
@@ -32,6 +33,12 @@ export default function Challenges() {
   const [progressByCode, setProgressByCode] = useState({})
   const [hasParticipant, setHasParticipant] = useState(true)
 
+  // Fase 5: desafios 1 a 1 entre cantantes ("te reto a superar mi nota"),
+  // separados del catalogo fijo de arriba -- ver lib/challenges.js.
+  const [receivedChallenges, setReceivedChallenges] = useState(null)
+  const [sentChallenges, setSentChallenges] = useState(null)
+  const [myBestScore, setMyBestScore] = useState(null)
+
   useEffect(() => {
     let cancelled = false
 
@@ -41,6 +48,8 @@ export default function Challenges() {
       if (!participant) {
         setHasParticipant(false)
         setChallenges([])
+        setReceivedChallenges([])
+        setSentChallenges([])
         return
       }
 
@@ -70,10 +79,24 @@ export default function Challenges() {
         })
         setProgressByCode(map)
       }
+
+      const [received, sent, statsResult] = await Promise.all([
+        loadReceivedChallenges(supabase, participant.id),
+        loadSentChallenges(supabase, participant.id),
+        supabase.from('participant_stats').select('best_score').eq('participant_id', participant.id).maybeSingle()
+      ])
+      if (cancelled) return
+      setReceivedChallenges(received)
+      setSentChallenges(sent)
+      setMyBestScore(statsResult.data && statsResult.data.best_score !== null && statsResult.data.best_score !== undefined ? Number(statsResult.data.best_score) : null)
     }
 
     load().catch(() => {
-      if (!cancelled) setChallenges([])
+      if (!cancelled) {
+        setChallenges([])
+        setReceivedChallenges([])
+        setSentChallenges([])
+      }
     })
 
     return () => {
@@ -149,6 +172,63 @@ export default function Challenges() {
         </div>
       )}
 
+      {hasParticipant && (
+        <div style={styles.dcSection}>
+          <div style={styles.dcSectionHeader}>
+            <div style={styles.dcSectionTitle}>🥊 Desafíos entre cantantes</div>
+            <div style={styles.subtitle}>Reta a alguien del Ranking Retroke a superar tu nota</div>
+          </div>
+
+          <div style={styles.dcSubTitle}>Te desafiaron</div>
+          {receivedChallenges === null && <div style={styles.loading}>Cargando…</div>}
+          {receivedChallenges !== null && receivedChallenges.length === 0 && (
+            <div style={styles.dcEmpty}>Nadie te ha desafiado todavía.</div>
+          )}
+          {receivedChallenges !== null && receivedChallenges.length > 0 && (
+            <div style={styles.list}>
+              {receivedChallenges.map((r) => {
+                const done = myBestScore !== null && myBestScore >= Number(r.targetScore)
+                return (
+                  <div key={r.id} style={styles.dcCard}>
+                    <span style={styles.dcAvatar}>{r.fromAvatar}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={styles.dcName}>{r.fromName} te desafía</div>
+                      <div style={styles.dcMeta}>Superar su nota: {r.targetScore}</div>
+                    </div>
+                    <span style={done ? styles.doneBadge : styles.pendingBadge}>{done ? 'Superado ✓' : 'Pendiente'}</span>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          <div style={{ ...styles.dcSubTitle, marginTop: 18 }}>Tus desafíos enviados</div>
+          {sentChallenges === null && <div style={styles.loading}>Cargando…</div>}
+          {sentChallenges !== null && sentChallenges.length === 0 && (
+            <div style={styles.dcEmpty}>
+              Aún no has desafiado a nadie. Ve al <Link to="/ranking" style={styles.dcLink}>Ranking Retroke</Link> y desafía a alguien a superar tu nota.
+            </div>
+          )}
+          {sentChallenges !== null && sentChallenges.length > 0 && (
+            <div style={styles.list}>
+              {sentChallenges.map((s) => {
+                const done = s.toBestScore !== null && Number(s.toBestScore) >= Number(s.targetScore)
+                return (
+                  <div key={s.id} style={styles.dcCard}>
+                    <span style={styles.dcAvatar}>{s.toAvatar}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={styles.dcName}>Desafiaste a {s.toName}</div>
+                      <div style={styles.dcMeta}>Superar tu nota: {s.targetScore}</div>
+                    </div>
+                    <span style={done ? styles.doneBadge : styles.pendingBadge}>{done ? 'Superado ✓' : 'Pendiente'}</span>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
       <Link to="/inicio" style={styles.link}>← Volver a Retroke</Link>
     </div>
   )
@@ -194,5 +274,24 @@ const styles = {
   progressTrack: { height: 8, borderRadius: 999, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' },
   progressFill: { height: '100%', borderRadius: 999, transition: 'width 0.3s ease' },
   progressLabel: { marginTop: 6, fontSize: 11, color: 'rgba(255,255,255,0.5)' },
-  link: { color: 'rgba(255,255,255,0.5)', fontSize: 13, textDecoration: 'underline' }
+  link: { color: 'rgba(255,255,255,0.5)', fontSize: 13, textDecoration: 'underline' },
+
+  dcSection: { width: '100%', maxWidth: 480, display: 'flex', flexDirection: 'column', gap: 10 },
+  dcSectionHeader: { textAlign: 'center', marginBottom: 4 },
+  dcSectionTitle: { fontSize: 20, fontWeight: 700 },
+  dcSubTitle: { fontSize: 12.5, fontWeight: 700, color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: '0.06em' },
+  dcEmpty: { fontSize: 12.5, color: 'rgba(255,255,255,0.45)', padding: '4px 0 8px' },
+  dcLink: { color: '#F4D03F', textDecoration: 'underline' },
+  dcCard: {
+    display: 'flex', alignItems: 'center', gap: 12,
+    padding: '12px 14px', borderRadius: 16,
+    background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)'
+  },
+  dcAvatar: { fontSize: 22, flexShrink: 0 },
+  dcName: { fontSize: 13.5, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  dcMeta: { fontSize: 11.5, color: 'rgba(255,255,255,0.5)', marginTop: 2 },
+  pendingBadge: {
+    fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)',
+    background: 'rgba(255,255,255,0.08)', borderRadius: 999, padding: '4px 10px', whiteSpace: 'nowrap'
+  }
 }

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { getOrCreateParticipant } from '../lib/participant'
+import { createDirectChallenge } from '../lib/challenges'
 import WorldSection from '../components/world/WorldSection'
 import WorldEmptyState from '../components/world/WorldEmptyState'
 import WorldSkeleton from '../components/world/WorldSkeleton'
@@ -50,13 +52,14 @@ function getParam(name) {
 async function loadHistoricalRanking() {
   const { data } = await supabase
     .from('participant_stats')
-    .select('participant_id, xp, level_name, total_performances, participants(display_name, avatar)')
+    .select('participant_id, xp, level_name, total_performances, participants(display_name, avatar, user_id)')
     .order('xp', { ascending: false })
     .limit(10)
   return (data || []).map((row) => ({
     participantId: row.participant_id,
     name: (row.participants && row.participants.display_name) || 'Cantante Retroke',
     avatar: (row.participants && row.participants.avatar) || '🎤',
+    hasGoogle: !!(row.participants && row.participants.user_id),
     primary: (row.xp || 0) + ' XP',
     meta: row.level_name || null
   }))
@@ -101,9 +104,10 @@ async function loadPeriodRanking(days, city) {
 
   if (!order.length) return []
 
-  const { data: participantsData } = await supabase.from('participants').select('id, avatar').in('id', order)
+  const { data: participantsData } = await supabase.from('participants').select('id, avatar, user_id').in('id', order)
   const avatarById = {}
-  ;(participantsData || []).forEach((p) => { avatarById[p.id] = p.avatar })
+  const hasGoogleById = {}
+  ;(participantsData || []).forEach((p) => { avatarById[p.id] = p.avatar; hasGoogleById[p.id] = !!p.user_id })
 
   return order
     .sort((a, b) => {
@@ -116,6 +120,7 @@ async function loadPeriodRanking(days, city) {
       participantId: id,
       name: byParticipant[id].name || 'Cantante Retroke',
       avatar: avatarById[id] || '🎤',
+      hasGoogle: !!hasGoogleById[id],
       primary: byParticipant[id].count + (byParticipant[id].count === 1 ? ' presentación' : ' presentaciones'),
       meta: byParticipant[id].bestNota !== null ? 'Mejor nota: ' + byParticipant[id].bestNota.toFixed(1) : null
     }))
@@ -125,6 +130,26 @@ async function loadAvailableCities() {
   const { data } = await supabase.from('bars').select('city').not('city', 'is', null)
   const set = new Set((data || []).map((r) => r.city).filter(Boolean))
   return Array.from(set).sort()
+}
+
+// Fase 5: contexto de quien esta mirando el ranking, para poder ofrecerle
+// el boton "Desafiar". Solo tiene sentido si tiene cuenta Google conectada
+// (identidad estable, ver lib/challenges.js) y ya tiene una mejor nota real
+// que defender -- si nunca canto, no hay nada que ofrecer de desafio.
+async function loadViewerContext() {
+  const participant = await getOrCreateParticipant(supabase)
+  if (!participant) return null
+  const hasGoogle = !!participant.user_id
+  let bestScore = null
+  if (hasGoogle) {
+    const { data: stats } = await supabase
+      .from('participant_stats')
+      .select('best_score')
+      .eq('participant_id', participant.id)
+      .maybeSingle()
+    bestScore = stats && stats.best_score !== null && stats.best_score !== undefined ? Number(stats.best_score) : null
+  }
+  return { participantId: participant.id, hasGoogle, bestScore }
 }
 
 async function loadVenueRanking(barSlug, wsId) {
@@ -184,23 +209,77 @@ async function loadVenueRanking(barSlug, wsId) {
   }
 }
 
+// Fase 5: boton "Desafiar" por fila -- solo aparece si quien mira (viewer)
+// tiene cuenta Google + una mejor nota real, y la persona de la fila
+// tambien tiene cuenta Google (si no, el desafio ni se podria ver despues,
+// ver lib/challenges.js). Sin aceptar/rechazar: al confirmar se crea el
+// desafio y aparece directo en "Desafios recibidos" de esa persona.
 function RankingList(props) {
   const rows = props.rows
+  const viewer = props.viewer
+  const [confirmingId, setConfirmingId] = useState(null)
+  const [sendingId, setSendingId] = useState(null)
+  const [sentIds, setSentIds] = useState({})
+  const [errorId, setErrorId] = useState(null)
+
   if (rows === null) return <WorldSkeleton lines={4} />
   if (rows.length === 0) return <WorldEmptyState icon="🏆" message={props.emptyMessage} />
+
+  async function handleConfirm(row) {
+    setSendingId(row.participantId)
+    const result = await createDirectChallenge(supabase, viewer.participantId, row.participantId, viewer.bestScore)
+    setSendingId(null)
+    setConfirmingId(null)
+    if (result.error) {
+      setErrorId(row.participantId)
+      setTimeout(() => setErrorId(null), 3000)
+    } else {
+      setSentIds((prev) => ({ ...prev, [row.participantId]: true }))
+    }
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      {rows.map((row, i) => (
-        <div className="world-rank-row" key={row.participantId + i}>
-          <div className="world-rank-medal">{MEDALS[i] || '#' + (i + 1)}</div>
-          <div className="world-rank-avatar">{row.avatar}</div>
-          <div className="world-rank-info">
-            <div className="world-rank-name">{row.name}</div>
-            {row.meta && <div className="world-rank-level">{row.meta}</div>}
+      {rows.map((row, i) => {
+        const canChallenge = !!(
+          viewer && viewer.hasGoogle && viewer.bestScore !== null &&
+          row.hasGoogle && row.participantId !== viewer.participantId
+        )
+        return (
+          <div key={row.participantId + i}>
+            <div className="world-rank-row">
+              <div className="world-rank-medal">{MEDALS[i] || '#' + (i + 1)}</div>
+              <div className="world-rank-avatar">{row.avatar}</div>
+              <div className="world-rank-info">
+                <div className="world-rank-name">{row.name}</div>
+                {row.meta && <div className="world-rank-level">{row.meta}</div>}
+              </div>
+              <div className="world-rank-xp">{row.primary}</div>
+            </div>
+
+            {canChallenge && (
+              <div className="rk-challenge-row">
+                {sentIds[row.participantId] ? (
+                  <span className="rk-challenge-sent">Desafío enviado ✓</span>
+                ) : confirmingId === row.participantId ? (
+                  <span className="rk-challenge-confirm">
+                    ¿Retarlo a superar tu {viewer.bestScore}?
+                    <button type="button" className="rk-challenge-yes" onClick={() => handleConfirm(row)} disabled={sendingId === row.participantId}>
+                      {sendingId === row.participantId ? 'Enviando…' : 'Sí, desafiar'}
+                    </button>
+                    <button type="button" className="rk-challenge-no" onClick={() => setConfirmingId(null)}>Cancelar</button>
+                  </span>
+                ) : (
+                  <button type="button" className="rk-challenge-btn" onClick={() => setConfirmingId(row.participantId)}>
+                    🥊 Desafiar a superar tu {viewer.bestScore}
+                  </button>
+                )}
+                {errorId === row.participantId && <span className="rk-challenge-error">No se pudo enviar, intenta de nuevo.</span>}
+              </div>
+            )}
           </div>
-          <div className="world-rank-xp">{row.primary}</div>
-        </div>
-      ))}
+        )
+      })}
     </div>
   )
 }
@@ -212,6 +291,7 @@ export default function Rankings() {
   const [activeCity, setActiveCity] = useState(null)
   const [cities, setCities] = useState([])
   const [rows, setRows] = useState(null)
+  const [viewer, setViewer] = useState(null)
 
   const barSlug = getParam('bar')
   const wsId = getParam('ws')
@@ -219,6 +299,7 @@ export default function Rankings() {
 
   useEffect(() => {
     loadAvailableCities().then(setCities).catch(() => setCities([]))
+    loadViewerContext().then(setViewer).catch(() => setViewer(null))
   }, [])
 
   useEffect(() => {
@@ -265,6 +346,24 @@ export default function Rankings() {
           border-radius: 999px; padding: 5px 11px; cursor: pointer;
         }
         .rk-city-pill-active { color: #F4D03F; border-color: rgba(244,208,63,0.5); background: rgba(244,208,63,0.1); }
+
+        .rk-challenge-row { padding: 2px 0 0 32px; margin-top: -2px; }
+        .rk-challenge-btn {
+          font-size: 11.5px; font-weight: 700; color: #F4D03F;
+          background: rgba(244,208,63,0.1); border: 1px solid rgba(244,208,63,0.35);
+          border-radius: 999px; padding: 5px 12px; cursor: pointer;
+        }
+        .rk-challenge-confirm { font-size: 11.5px; color: rgba(255,255,255,0.6); display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .rk-challenge-yes {
+          font-size: 11px; font-weight: 700; color: #05030a;
+          background: #F4D03F; border: none; border-radius: 999px; padding: 4px 10px; cursor: pointer;
+        }
+        .rk-challenge-no {
+          font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.55);
+          background: none; border: 1px solid rgba(255,255,255,0.15); border-radius: 999px; padding: 4px 10px; cursor: pointer;
+        }
+        .rk-challenge-sent { font-size: 11.5px; font-weight: 700; color: #7ED957; }
+        .rk-challenge-error { font-size: 11px; color: #FF6B6B; margin-left: 8px; }
       `}</style>
 
       <div className="world-inner">
@@ -316,7 +415,7 @@ export default function Rankings() {
           )}
 
           <div style={{ marginTop: 4 }}>
-            <RankingList rows={rows} emptyMessage={emptyMessages[activeTab]} />
+            <RankingList rows={rows} emptyMessage={emptyMessages[activeTab]} viewer={viewer} />
           </div>
         </WorldSection>
 

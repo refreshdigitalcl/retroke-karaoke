@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { LEVELS, computeLevel } from '../lib/gamification'
 import { getOrCreateParticipant, touchParticipantProfile, updateParticipantPhoto, signInWithGoogle, signOutParticipant } from '../lib/participant'
 import { getGlobalXpRank } from '../lib/ranking'
+import { loadReceivedChallenges } from '../lib/challenges'
 
 // Misma tecnica que resizeToSquareJpeg en RegisterForm.jsx (PNG en vez de
 // JPEG a proposito: algunos Smart TV con Chrome embebido decodifican mal el
@@ -70,6 +71,7 @@ export default function Profile() {
   var [connectState, setConnectState] = useState('')
   var [uploadingPhoto, setUploadingPhoto] = useState(false)
   var [rank, setRank] = useState(null)
+  var [pendingChallengeCount, setPendingChallengeCount] = useState(0)
 
   var load = useCallback(function () {
     setLoading(true)
@@ -90,12 +92,14 @@ export default function Profile() {
           supabase.from('participant_stats').select('*').eq('participant_id', p.id).maybeSingle(),
           supabase.from('achievements').select('*').order('sort_order', { ascending: true }),
           supabase.from('participant_achievements').select('achievement_code, unlocked_at').eq('participant_id', p.id),
-          supabase.from('performances').select('id, song, artist_name, artwork_url, nota_final, vocal_score, created_at').eq('participant_id', p.id).order('created_at', { ascending: false }).limit(50)
+          supabase.from('performances').select('id, song, artist_name, artwork_url, nota_final, vocal_score, created_at').eq('participant_id', p.id).order('created_at', { ascending: false }).limit(50),
+          loadReceivedChallenges(supabase, p.id)
         ]).then(function (results) {
           var statsResult = results[0]
           var achievementsResult = results[1]
           var unlockedResult = results[2]
           var performancesResult = results[3]
+          var receivedChallenges = results[4] || []
 
           setStats(statsResult.data || null)
           setAchievements(achievementsResult.data || [])
@@ -108,6 +112,17 @@ export default function Profile() {
           } else {
             setRank(null)
           }
+
+          // Fase 5: cuantos desafios 1 a 1 todavia no supera -- "superado"
+          // se calcula al vuelo comparando con su mejor nota real, no se
+          // guarda un estado aparte (ver lib/challenges.js).
+          var myBestScore = statsResult.data && statsResult.data.best_score !== null && statsResult.data.best_score !== undefined
+            ? Number(statsResult.data.best_score)
+            : null
+          var pending = receivedChallenges.filter(function (c) {
+            return !(myBestScore !== null && myBestScore >= Number(c.targetScore))
+          }).length
+          setPendingChallengeCount(pending)
 
           var map = {}
           ;(unlockedResult.data || []).forEach(function (row) {
@@ -281,6 +296,29 @@ export default function Profile() {
           <span style={{ fontSize: 13, fontWeight: 700 }}>🌐 Retroke World — rankings, desafíos y quién está cantando ahora</span>
           <span style={{ fontSize: 13, color: '#F4D03F' }}>→</span>
         </Link>
+
+        {pendingChallengeCount > 0 && (
+          <Link
+            to="/desafios"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 10,
+              borderRadius: 16,
+              padding: '12px 16px',
+              background: 'rgba(244,208,63,0.12)',
+              border: '1px solid rgba(244,208,63,0.4)',
+              textDecoration: 'none',
+              color: '#fff'
+            }}
+          >
+            <span style={{ fontSize: 13, fontWeight: 700 }}>
+              🥊 {pendingChallengeCount === 1 ? 'Te desafiaron a superar una nota' : 'Te desafiaron ' + pendingChallengeCount + ' veces a superar una nota'}
+            </span>
+            <span style={{ fontSize: 13, color: '#F4D03F' }}>→</span>
+          </Link>
+        )}
 
         <div className="profile-card" style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
           <button
