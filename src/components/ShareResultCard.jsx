@@ -19,6 +19,18 @@ import { forwardRef, useEffect } from 'react'
 //    mas alta de lo esperado. Si agregas mas contenido a futuro, revisa
 //    que la suma de alturas siga entrando en los ~780px disponibles a
 //    440px de ancho.
+//
+// SAFE ZONE para Instagram/TikTok/WhatsApp stories: aunque la imagen que
+// generamos calza exacto en proporcion 9:16 con el formato de historia,
+// Instagram y TikTok SIEMPRE dibujan su propia interfaz (usuario/hora
+// arriba, caja de respuesta/reacciones abajo) ENCIMA de la imagen, sin
+// importar que haya ahi dibujado. Si el contenido de la tarjeta llega hasta
+// el borde justo, esa interfaz lo tapa (asi se veia el pie de foto y a
+// veces la cancion, tapados por la caja de comentarios al ver la historia
+// ya publicada). Por eso el padding superior e inferior de .share-card es
+// bastante mas grande que lo que el contenido necesita — ese espacio extra
+// (vacio, solo con el fondo/glow) es lo que evita que la UI de estas apps
+// tape texto real.
 
 const FONT_HREF = 'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap'
 const LOGO_SRC = '/landing/retroke-logo-oficial-neon.png'
@@ -72,7 +84,7 @@ const ShareResultCard = forwardRef(function ShareResultCard(
           align-items: center;
           justify-content: flex-start;
           gap: 11px;
-          padding: 26px 24px 20px;
+          padding: 42px 24px 78px;
           box-sizing: border-box;
         }
         .share-card::before {
@@ -291,11 +303,13 @@ const ShareResultCard = forwardRef(function ShareResultCard(
           min-width: 0;
         }
         .share-card-song {
-          font-size: 16px;
+          font-size: 15px;
           font-weight: 700;
+          line-height: 1.25;
+          display: -webkit-box;
+          -webkit-box-orient: vertical;
+          -webkit-line-clamp: 2;
           overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
         }
         .share-card-artist {
           margin-top: 2px;

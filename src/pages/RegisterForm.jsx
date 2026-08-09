@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useKaraokeSession, parseYoutubeId } from '../contexts/KaraokeSessionContext'
-import ThemeToggle from '../components/ThemeToggle'
 import { supabase } from '../lib/supabase'
 import { createVocalAnalyzer, getFeedback } from '../lib/vocalAnalysis'
 import { containsProfanity } from '../lib/profanityFilter'
@@ -1186,6 +1185,25 @@ export default function RegisterForm() {
   var isHome = workspaceType === 'HOME'
   var itsMyTurn = isHome && myEntryId && currentSinger && String(currentSinger.id) === String(myEntryId)
 
+  // Si el participante ya paso por "es tu turno" y llego a "gracias por
+  // participar", pero el DJ todavia no llama al siguiente cantante,
+  // currentSinger.id sigue siendo el mismo myEntryId. Antes, si el celular
+  // recargaba la pagina en ese punto (se bloqueo la pantalla, se cerro el
+  // navegador sin querer, etc.), itsMyTurn volvia a dar true y la persona
+  // caia de nuevo en "ES TU TURNO!" con el microfono para activar, como si
+  // nunca hubiera cantado. Guardamos en localStorage que esta ronda
+  // especifica (este entryId) ya se canto, para que un reload se quede en
+  // "gracias por participar" hasta que el DJ efectivamente avance.
+  function markEntryFinished(entryId) {
+    if (!entryId) return
+    try { localStorage.setItem('retroke_finished_' + entryId, '1') } catch (e) {}
+  }
+
+  function isEntryFinished(entryId) {
+    if (!entryId) return false
+    try { return localStorage.getItem('retroke_finished_' + entryId) === '1' } catch (e) { return false }
+  }
+
   useEffect(function () {
     if (!isHome || !myEntryId) return
     sendPresenceHeartbeat(myEntryId)
@@ -1210,8 +1228,13 @@ export default function RegisterForm() {
   var setShowShareCardScreen = showShareCardScreenState[1]
 
   useEffect(function () {
-    if (itsMyTurn) setShowPerformance(true)
-  }, [itsMyTurn])
+    if (!itsMyTurn) return
+    if (isEntryFinished(myEntryId)) {
+      setShowThanks(true)
+      return
+    }
+    setShowPerformance(true)
+  }, [itsMyTurn, myEntryId])
 
   if (entryChoice === 'pending') {
     return (
@@ -1445,6 +1468,7 @@ export default function RegisterForm() {
         currentSinger={currentSinger}
         screenMode={session.screenMode}
         onDone={function () {
+          markEntryFinished(myEntryId)
           setShowPerformance(false)
           setShowThanks(true)
         }}
@@ -1585,23 +1609,56 @@ export default function RegisterForm() {
             color: #E91E8C;
             border: 1px solid rgba(233,30,140,0.5);
           }
-          .form-header-profile-link {
+          .form-header-profile-btn {
             display: inline-flex;
             align-items: center;
-            gap: 5px;
+            justify-content: center;
+            width: 34px;
+            height: 34px;
+            border-radius: 999px;
+            flex-shrink: 0;
+            background: rgba(139,92,246,0.14);
+            border: 1.5px solid rgba(139,92,246,0.55);
+            color: #8B5CF6;
+            box-shadow: 0 0 14px -4px rgba(139,92,246,0.7);
+            transition: transform 0.15s ease;
+          }
+          .form-header-profile-btn:active { transform: scale(0.92); }
+          .form-header-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 12px;
+          }
+          .form-header-bar {
             font-size: 11px;
             font-weight: 600;
-            color: rgba(255,255,255,0.5);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            min-width: 0;
+          }
+          .form-header-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+          }
+          .form-header-title {
+            font-size: 23px;
+            font-weight: 800;
+            letter-spacing: -0.01em;
+            line-height: 1.15;
           }
         `}</style>
 
-        <div className="flex items-start justify-between gap-3 mb-4">
-          <div className="min-w-0">
-            <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>{barName}</p>
-            <p className="text-lg font-medium" style={{ color: 'var(--text-primary)' }}>Regístrate para Cantar</p>
-          </div>
-          <div className="flex flex-col items-end gap-1.5 shrink-0">
-            <div className="flex items-center gap-2">
+        <div className="mb-5">
+          <div className="form-header-top">
+            <p className="form-header-bar" style={{ color: 'var(--text-muted)' }}>{barName}</p>
+            <div className="form-header-actions">
               {authUser ? (
                 <button type="button" onClick={handleHeaderSignOut} className="form-header-auth-btn form-header-auth-btn-logout">
                   Cerrar sesión
@@ -1619,12 +1676,15 @@ export default function RegisterForm() {
                   {headerGoogleConnecting ? 'Conectando...' : 'Ingresar'}
                 </button>
               )}
-              <ThemeToggle />
+              <Link to={perfilHref} className="form-header-profile-btn" title="Mi perfil" aria-label="Mi perfil">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="8" r="4" />
+                  <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+                </svg>
+              </Link>
             </div>
-            <Link to={perfilHref} className="form-header-profile-link">
-              👤 Mi perfil
-            </Link>
           </div>
+          <p className="form-header-title" style={{ color: 'var(--text-primary)' }}>Regístrate para Cantar</p>
         </div>
 
         <label className="text-sm block mb-1.5" style={{ color: 'var(--text-secondary)' }}>Tu nombre</label>
