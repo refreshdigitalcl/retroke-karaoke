@@ -1,20 +1,35 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import WorldSection from '../components/world/WorldSection'
+import WorldEmptyState from '../components/world/WorldEmptyState'
+import WorldSkeleton from '../components/world/WorldSkeleton'
+import { WORLD_STYLES } from '../components/world/worldStyles'
 
-// Fase E.1: rankings. Publica (sin login), en linea con el modelo de
-// confianza abierto que ya usa toda la app. Dos secciones:
-//  1) Ranking Retroke (global, por XP en participant_stats) — la meta-partida
-//     entre salas, posible gracias a que la identidad de participante
-//     (Fase B) es por dispositivo y no queda encerrada en un solo bar.
-//  2) Ranking de esta sala (opcional, si la URL trae ?bar= o ?ws=) — mejor
-//     nota final por participante dentro de esa sala/workspace, calculado a
-//     partir de performances (Fase C.1/C.2), igual que ya se hace en
-//     KaraokeSessionContext.loadSessionLeaderboard pero a traves del
-//     historial completo en vez de una sola sesion.
+// Fase 3 de Retroke World ("Rankings", ver retroke-world-diagnostico-tecnico.md).
+// Evoluciona la version original (Fase E.1): mismo modelo de confianza
+// abierto (publica, sin login) y las mismas dos fuentes de datos de
+// siempre --
+//   1) Ranking Retroke historico: por XP acumulado en participant_stats
+//      (la meta-partida entre salas, de toda la vida del participante).
+//   2) Ranking por periodo (nuevo): actividad real dentro de la ultima
+//      semana/mes, calculada en vivo desde performances.created_at -- no
+//      es un numero inventado, es lo que efectivamente paso en ese rango.
+//   3) Ranking de esta sala (igual que antes, si la URL trae ?bar= o ?ws=).
+//
+// Filtro de ciudad: solo se muestra si existen 2+ ciudades reales con datos
+// (bars.city). Hoy la tabla bars esta vacia en produccion, asi que el
+// filtro simplemente no aparece -- queda listo para cuando haya locales
+// reales con ciudad cargada, sin inventar opciones que no existen.
 
 const FONT_HREF = 'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap'
 const MEDALS = ['🥇', '🥈', '🥉']
+
+const TABS = [
+  { key: 'historico', label: 'Histórico' },
+  { key: 'semana', label: 'Esta semana' },
+  { key: 'mes', label: 'Este mes' }
+]
 
 function useRankingsFont() {
   useEffect(() => {
@@ -32,215 +47,295 @@ function getParam(name) {
   return new URLSearchParams(window.location.search).get(name)
 }
 
+async function loadHistoricalRanking() {
+  const { data } = await supabase
+    .from('participant_stats')
+    .select('participant_id, xp, level_name, total_performances, participants(display_name, avatar)')
+    .order('xp', { ascending: false })
+    .limit(10)
+  return (data || []).map((row) => ({
+    participantId: row.participant_id,
+    name: (row.participants && row.participants.display_name) || 'Cantante Retroke',
+    avatar: (row.participants && row.participants.avatar) || '🎤',
+    primary: (row.xp || 0) + ' XP',
+    meta: row.level_name || null
+  }))
+}
+
+// Ranking de actividad real en un rango de dias (7 = semana, 30 = mes),
+// calculado desde performances -- no depende de participant_stats (que es
+// acumulado historico), asi que refleja quien esta activo justo ahora,
+// no quien acumulo mas XP hace meses.
+async function loadPeriodRanking(days, city) {
+  const sinceIso = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString()
+
+  let barIds = null
+  if (city) {
+    const { data: barsData } = await supabase.from('bars').select('id').eq('city', city)
+    barIds = (barsData || []).map((b) => b.id)
+    if (!barIds.length) return []
+  }
+
+  let query = supabase
+    .from('performances')
+    .select('participant_id, nota_final, singer_name, bar_id')
+    .not('participant_id', 'is', null)
+    .gte('created_at', sinceIso)
+  if (barIds) query = query.in('bar_id', barIds)
+
+  const { data } = await query
+  const rows = data || []
+  const byParticipant = {}
+  const order = []
+  rows.forEach((r) => {
+    if (!byParticipant[r.participant_id]) {
+      byParticipant[r.participant_id] = { count: 0, bestNota: null, name: r.singer_name }
+      order.push(r.participant_id)
+    }
+    const entry = byParticipant[r.participant_id]
+    entry.count += 1
+    if (r.nota_final !== null && r.nota_final !== undefined && (entry.bestNota === null || r.nota_final > entry.bestNota)) {
+      entry.bestNota = r.nota_final
+    }
+  })
+
+  if (!order.length) return []
+
+  const { data: participantsData } = await supabase.from('participants').select('id, avatar').in('id', order)
+  const avatarById = {}
+  ;(participantsData || []).forEach((p) => { avatarById[p.id] = p.avatar })
+
+  return order
+    .sort((a, b) => {
+      const diff = byParticipant[b].count - byParticipant[a].count
+      if (diff !== 0) return diff
+      return (byParticipant[b].bestNota || 0) - (byParticipant[a].bestNota || 0)
+    })
+    .slice(0, 10)
+    .map((id) => ({
+      participantId: id,
+      name: byParticipant[id].name || 'Cantante Retroke',
+      avatar: avatarById[id] || '🎤',
+      primary: byParticipant[id].count + (byParticipant[id].count === 1 ? ' presentación' : ' presentaciones'),
+      meta: byParticipant[id].bestNota !== null ? 'Mejor nota: ' + byParticipant[id].bestNota.toFixed(1) : null
+    }))
+}
+
+async function loadAvailableCities() {
+  const { data } = await supabase.from('bars').select('city').not('city', 'is', null)
+  const set = new Set((data || []).map((r) => r.city).filter(Boolean))
+  return Array.from(set).sort()
+}
+
+async function loadVenueRanking(barSlug, wsId) {
+  let barId = null
+  let workspaceId = null
+  let venueName = ''
+
+  if (wsId) {
+    const { data: ws } = await supabase.from('workspaces').select('id, name').eq('id', wsId).maybeSingle()
+    if (!ws) return { error: true }
+    workspaceId = ws.id
+    venueName = ws.name
+  } else {
+    const { data: bar } = await supabase.from('bars').select('id, name').ilike('slug', barSlug).maybeSingle()
+    if (!bar) return { error: true }
+    barId = bar.id
+    venueName = bar.name
+  }
+
+  let query = supabase
+    .from('performances')
+    .select('participant_id, singer_name, nota_final')
+    .not('participant_id', 'is', null)
+    .not('nota_final', 'is', null)
+    .order('nota_final', { ascending: false })
+    .limit(300)
+  query = barId ? query.eq('bar_id', barId) : query.eq('workspace_id', workspaceId)
+  const { data: perfRows } = await query
+
+  const bestByParticipant = {}
+  const order = []
+  ;(perfRows || []).forEach((row) => {
+    const existing = bestByParticipant[row.participant_id]
+    if (!existing || row.nota_final > existing.notaFinal) {
+      if (!existing) order.push(row.participant_id)
+      bestByParticipant[row.participant_id] = { participantId: row.participant_id, name: row.singer_name, notaFinal: row.nota_final }
+    }
+  })
+  const top = order.map((id) => bestByParticipant[id]).sort((a, b) => b.notaFinal - a.notaFinal).slice(0, 10)
+
+  if (!top.length) return { error: false, venueName, rows: [] }
+
+  const { data: participantsData } = await supabase.from('participants').select('id, avatar').in('id', top.map((r) => r.participantId))
+  const avatarById = {}
+  ;(participantsData || []).forEach((p) => { avatarById[p.id] = p.avatar })
+
+  return {
+    error: false,
+    venueName,
+    rows: top.map((r) => ({
+      participantId: r.participantId,
+      name: r.name,
+      avatar: avatarById[r.participantId] || '🎤',
+      primary: r.notaFinal.toFixed(1),
+      meta: null
+    }))
+  }
+}
+
+function RankingList(props) {
+  const rows = props.rows
+  if (rows === null) return <WorldSkeleton lines={4} />
+  if (rows.length === 0) return <WorldEmptyState icon="🏆" message={props.emptyMessage} />
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      {rows.map((row, i) => (
+        <div className="world-rank-row" key={row.participantId + i}>
+          <div className="world-rank-medal">{MEDALS[i] || '#' + (i + 1)}</div>
+          <div className="world-rank-avatar">{row.avatar}</div>
+          <div className="world-rank-info">
+            <div className="world-rank-name">{row.name}</div>
+            {row.meta && <div className="world-rank-level">{row.meta}</div>}
+          </div>
+          <div className="world-rank-xp">{row.primary}</div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export default function Rankings() {
   useRankingsFont()
 
-  const [globalTop, setGlobalTop] = useState(null)
-  const [venueTop, setVenueTop] = useState(null)
-  const [venueName, setVenueName] = useState('')
-  const [venueError, setVenueError] = useState(false)
+  const [activeTab, setActiveTab] = useState('historico')
+  const [activeCity, setActiveCity] = useState(null)
+  const [cities, setCities] = useState([])
+  const [rows, setRows] = useState(null)
+
+  const barSlug = getParam('bar')
+  const wsId = getParam('ws')
+  const [venueState, setVenueState] = useState(null) // { error, venueName, rows } | null
 
   useEffect(() => {
-    let cancelled = false
-
-    async function loadGlobal() {
-      const { data } = await supabase
-        .from('participant_stats')
-        .select('participant_id, xp, level, level_name, total_performances, best_score, participants(display_name, avatar)')
-        .order('xp', { ascending: false })
-        .limit(10)
-      if (cancelled) return
-      setGlobalTop(
-        (data || []).map((row) => ({
-          participantId: row.participant_id,
-          name: (row.participants && row.participants.display_name) || 'Cantante Retroke',
-          avatar: (row.participants && row.participants.avatar) || '🎤',
-          xp: row.xp,
-          levelName: row.level_name,
-          totalPerformances: row.total_performances,
-          bestScore: row.best_score
-        }))
-      )
-    }
-
-    async function loadVenue() {
-      const barSlug = getParam('bar')
-      const wsId = getParam('ws')
-      if (!barSlug && !wsId) return
-
-      let barId = null
-      let workspaceId = null
-
-      if (wsId) {
-        const { data: ws } = await supabase.from('workspaces').select('id, name').eq('id', wsId).maybeSingle()
-        if (cancelled) return
-        if (!ws) { setVenueError(true); return }
-        workspaceId = ws.id
-        setVenueName(ws.name)
-      } else {
-        const { data: bar } = await supabase.from('bars').select('id, name').ilike('slug', barSlug).maybeSingle()
-        if (cancelled) return
-        if (!bar) { setVenueError(true); return }
-        barId = bar.id
-        setVenueName(bar.name)
-      }
-
-      let query = supabase
-        .from('performances')
-        .select('participant_id, singer_name, nota_final')
-        .not('participant_id', 'is', null)
-        .not('nota_final', 'is', null)
-        .order('nota_final', { ascending: false })
-        .limit(300)
-      query = barId ? query.eq('bar_id', barId) : query.eq('workspace_id', workspaceId)
-      const { data: perfRows } = await query
-      if (cancelled) return
-
-      const bestByParticipant = {}
-      const order = []
-      ;(perfRows || []).forEach((row) => {
-        const existing = bestByParticipant[row.participant_id]
-        if (!existing || row.nota_final > existing.notaFinal) {
-          if (!existing) order.push(row.participant_id)
-          bestByParticipant[row.participant_id] = {
-            participantId: row.participant_id,
-            name: row.singer_name,
-            notaFinal: row.nota_final
-          }
-        }
-      })
-      const topIds = order
-        .map((id) => bestByParticipant[id])
-        .sort((a, b) => b.notaFinal - a.notaFinal)
-        .slice(0, 10)
-
-      if (topIds.length) {
-        const { data: participantsData } = await supabase
-          .from('participants')
-          .select('id, avatar')
-          .in('id', topIds.map((r) => r.participantId))
-        if (cancelled) return
-        const avatarById = {}
-        ;(participantsData || []).forEach((p) => { avatarById[p.id] = p.avatar })
-        setVenueTop(topIds.map((r) => ({ ...r, avatar: avatarById[r.participantId] || '🎤' })))
-      } else {
-        setVenueTop([])
-      }
-    }
-
-    loadGlobal().catch(() => setGlobalTop([]))
-    loadVenue().catch(() => setVenueError(true))
-
-    return () => {
-      cancelled = true
-    }
+    loadAvailableCities().then(setCities).catch(() => setCities([]))
   }, [])
 
+  useEffect(() => {
+    setRows(null)
+    let cancelled = false
+    const loader =
+      activeTab === 'historico' ? loadHistoricalRanking() :
+      loadPeriodRanking(activeTab === 'semana' ? 7 : 30, activeCity)
+    loader
+      .then((data) => { if (!cancelled) setRows(data) })
+      .catch(() => { if (!cancelled) setRows([]) })
+    return () => { cancelled = true }
+  }, [activeTab, activeCity])
+
+  useEffect(() => {
+    if (!barSlug && !wsId) return
+    let cancelled = false
+    loadVenueRanking(barSlug, wsId)
+      .then((result) => { if (!cancelled) setVenueState(result) })
+      .catch(() => { if (!cancelled) setVenueState({ error: true }) })
+    return () => { cancelled = true }
+  }, [barSlug, wsId])
+
+  const emptyMessages = {
+    historico: 'Tu ciudad todavía está comenzando a cantar. Invita a alguien y arranca el ranking.',
+    semana: 'Nadie ha cantado esta semana todavía.',
+    mes: 'Nadie ha cantado este mes todavía.'
+  }
+
   return (
-    <div style={styles.page}>
-      <style>{`
-        .rk-title {
-          font-family: 'Space Grotesk', system-ui, sans-serif;
-          font-weight: 700;
-          background: linear-gradient(100deg, #fff 10%, #E91E8C 35%, #8B5CF6 60%, #F4D03F 85%, #fff 100%);
-          background-size: 240% auto;
-          -webkit-background-clip: text;
-          background-clip: text;
-          -webkit-text-fill-color: transparent;
-          animation: rkShift 7s ease-in-out infinite;
+    <div className="world-page">
+      <style>{WORLD_STYLES}{`
+        .rk-tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+        .rk-tab {
+          font-size: 12.5px; font-weight: 700; color: rgba(255,255,255,0.55);
+          background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+          border-radius: 999px; padding: 7px 14px; cursor: pointer;
         }
-        @keyframes rkShift {
-          0% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
+        .rk-tab-active { color: #fff; background: linear-gradient(90deg, #E91E8C, #8B5CF6); border-color: transparent; }
+        .rk-city-pills { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+        .rk-city-pill {
+          font-size: 11.5px; font-weight: 600; color: rgba(255,255,255,0.6);
+          background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
+          border-radius: 999px; padding: 5px 11px; cursor: pointer;
         }
+        .rk-city-pill-active { color: #F4D03F; border-color: rgba(244,208,63,0.5); background: rgba(244,208,63,0.1); }
       `}</style>
 
-      <div style={styles.header}>
-        <div className="rk-title" style={styles.mainTitle}>Rankings Retroke</div>
-        <div style={styles.subtitle}>El karaoke cambió para siempre.</div>
-      </div>
+      <div className="world-inner">
+        <header className="world-hero">
+          <div className="world-hero-eyebrow">RANKING RETROKE</div>
+          <h1 className="world-hero-title">¿Dónde estás parado?</h1>
+          <p className="world-hero-subtitle">El karaoke cambió para siempre.</p>
+        </header>
 
-      <RankingSection title="🌎 Top Retroke" subtitle="Por experiencia acumulada, en todas las salas" rows={globalTop} mode="xp" />
+        <WorldSection
+          size="lg"
+          eyebrow="Meta-partida"
+          title="🌎 Top Retroke"
+          subtitle={activeTab === 'historico' ? 'Por experiencia acumulada, en todas las salas' : 'Por actividad real en el período elegido'}
+        >
+          <div className="rk-tabs">
+            {TABS.map((t) => (
+              <button
+                key={t.key}
+                type="button"
+                className={'rk-tab' + (activeTab === t.key ? ' rk-tab-active' : '')}
+                onClick={() => setActiveTab(t.key)}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
 
-      {(getParam('bar') || getParam('ws')) && (
-        <RankingSection
-          title={'📍 ' + (venueName || 'Esta sala')}
-          subtitle="Mejores notas de esta sala"
-          rows={venueError ? [] : venueTop}
-          mode="nota"
-        />
-      )}
-
-      <Link to="/inicio" style={styles.link}>← Volver a Retroke</Link>
-    </div>
-  )
-}
-
-function RankingSection({ title, subtitle, rows, mode }) {
-  return (
-    <div style={styles.section}>
-      <div style={styles.sectionTitle}>{title}</div>
-      <div style={styles.sectionSubtitle}>{subtitle}</div>
-
-      {rows === null && <div style={styles.loading}>Cargando...</div>}
-      {rows !== null && rows.length === 0 && <div style={styles.loading}>Todavía no hay datos suficientes.</div>}
-
-      {rows !== null && rows.length > 0 && (
-        <div style={styles.list}>
-          {rows.map((row, i) => (
-            <div key={row.participantId + i} style={styles.row}>
-              <div style={styles.rowRank}>{MEDALS[i] || '#' + (i + 1)}</div>
-              <div style={styles.rowAvatar}>{row.avatar}</div>
-              <div style={styles.rowInfo}>
-                <div style={styles.rowName}>{row.name}</div>
-                {mode === 'xp' && row.levelName && <div style={styles.rowMeta}>{row.levelName} · {row.totalPerformances} presentaciones</div>}
-              </div>
-              <div style={styles.rowValue}>
-                {mode === 'xp' ? row.xp + ' XP' : row.notaFinal.toFixed(1)}
-              </div>
+          {activeTab !== 'historico' && cities.length > 1 && (
+            <div className="rk-city-pills">
+              <button
+                type="button"
+                className={'rk-city-pill' + (!activeCity ? ' rk-city-pill-active' : '')}
+                onClick={() => setActiveCity(null)}
+              >
+                Todas las ciudades
+              </button>
+              {cities.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  className={'rk-city-pill' + (activeCity === c ? ' rk-city-pill-active' : '')}
+                  onClick={() => setActiveCity(c)}
+                >
+                  {c}
+                </button>
+              ))}
             </div>
-          ))}
-        </div>
-      )}
+          )}
+
+          <div style={{ marginTop: 4 }}>
+            <RankingList rows={rows} emptyMessage={emptyMessages[activeTab]} />
+          </div>
+        </WorldSection>
+
+        {(barSlug || wsId) && (
+          <WorldSection
+            eyebrow="Esta sala"
+            title={'📍 ' + (venueState && venueState.venueName ? venueState.venueName : 'Cargando sala...')}
+            subtitle="Mejores notas de esta sala"
+          >
+            {!venueState && <WorldSkeleton lines={4} />}
+            {venueState && venueState.error && <WorldEmptyState icon="🔍" message="No encontramos esta sala." />}
+            {venueState && !venueState.error && (
+              <RankingList rows={venueState.rows} emptyMessage="Esta sala todavía no tiene presentaciones calificadas." />
+            )}
+          </WorldSection>
+        )}
+
+        <Link to="/world" className="world-footer-link">← Retroke World</Link>
+      </div>
     </div>
   )
-}
-
-const styles = {
-  page: {
-    minHeight: '100vh',
-    background: 'radial-gradient(circle at 50% 0%, #1a0b2e 0%, #0a0512 55%, #05030a 100%)',
-    color: '#fff',
-    fontFamily: 'system-ui, sans-serif',
-    padding: '40px 18px 60px',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: 36
-  },
-  header: { textAlign: 'center' },
-  mainTitle: { fontSize: 34 },
-  subtitle: { marginTop: 6, fontSize: 13, color: 'rgba(255,255,255,0.5)' },
-  section: { width: '100%', maxWidth: 480 },
-  sectionTitle: { fontSize: 18, fontWeight: 700 },
-  sectionSubtitle: { fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 2, marginBottom: 14 },
-  loading: { fontSize: 13, color: 'rgba(255,255,255,0.4)', padding: '20px 0', textAlign: 'center' },
-  list: { display: 'flex', flexDirection: 'column', gap: 8 },
-  row: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 12,
-    padding: '10px 14px',
-    borderRadius: 14,
-    background: 'rgba(255,255,255,0.05)',
-    border: '1px solid rgba(255,255,255,0.1)'
-  },
-  rowRank: { width: 28, fontSize: 15, fontWeight: 700, textAlign: 'center' },
-  rowAvatar: { fontSize: 26 },
-  rowInfo: { flex: 1, minWidth: 0 },
-  rowName: { fontSize: 14, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
-  rowMeta: { fontSize: 11, color: 'rgba(255,255,255,0.45)', marginTop: 2 },
-  rowValue: { fontSize: 15, fontWeight: 700, color: '#F4D03F' },
-  link: { color: 'rgba(255,255,255,0.5)', fontSize: 13, textDecoration: 'underline' }
 }
