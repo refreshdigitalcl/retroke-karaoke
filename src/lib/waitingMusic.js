@@ -31,35 +31,36 @@ function shuffle(arr) {
   return copy
 }
 
-// Rotacion para el plan PRO: la primera cancion de la sala de espera es
-// siempre la guaracha (guiño de marca), y despues va rotando el resto
-// al azar sin repetir ninguna hasta que pasaron todas ("bolsa" que se
-// vuelve a barajar solo cuando se vacia, y nunca deja que la ultima de
-// una vuelta se repita como primera de la siguiente).
+// Rotacion para el plan PRO. Antes "first()" arrancaba siempre con la
+// guaracha como guiño de marca, pero eso significaba que cada vez que se
+// recargaba/reabria la sala de espera sonaba lo mismo. Ahora la guaracha es
+// una cancion mas dentro del mazo (no exclusiva de Free) y "first()" saca
+// una carta al azar igual que "next()" -- asi cada apertura de la sala de
+// espera suena distinto, sin ningun punto de partida fijo. Sigue siendo un
+// sistema de "bolsa" que se rebaraja sola cuando se vacia, y nunca deja que
+// la ultima cancion de una vuelta se repita como primera de la siguiente.
 export function createProRotation() {
+  var ALL_TRACKS = WAITING_TRACKS.concat([FREE_TRACK])
   var bag = []
   var lastTrack = null
 
   function refillBag() {
-    var shuffled = shuffle(WAITING_TRACKS)
-    // Si por mala suerte la primera de la nueva vuelta es igual a la
-    // ultima que sono, la mandamos al final para evitar la repeticion.
+    var shuffled = shuffle(ALL_TRACKS)
     if (shuffled[0] === lastTrack && shuffled.length > 1) {
       shuffled.push(shuffled.shift())
     }
     bag = shuffled
   }
 
+  function draw() {
+    if (bag.length === 0) refillBag()
+    var track = bag.shift()
+    lastTrack = track
+    return track
+  }
+
   return {
-    first: function () {
-      lastTrack = FREE_TRACK
-      return FREE_TRACK
-    },
-    next: function () {
-      if (bag.length === 0) refillBag()
-      var track = bag.shift()
-      lastTrack = track
-      return track
-    }
+    first: draw,
+    next: draw
   }
 }

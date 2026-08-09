@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { LEVELS, computeLevel } from '../lib/gamification'
 import { getOrCreateParticipant, touchParticipantProfile, signInWithGoogle, signOutParticipant } from '../lib/participant'
@@ -21,6 +21,13 @@ function formatDate(iso) {
 }
 
 export default function Profile() {
+  // El local/workspace activo viaja en el query string (?bar=... o
+  // ?ws=...). Lo propagamos de vuelta al link de "volver" para no perder
+  // el contexto de la sesion — si no, volver desde el perfil mandaba
+  // siempre al bar por defecto en vez de al que realmente estaba cantando.
+  var location = useLocation()
+  var backToRegistroHref = '/registro' + (location.search || '')
+
   var [loading, setLoading] = useState(true)
   var [authUser, setAuthUser] = useState(null)
   var [participant, setParticipant] = useState(null)
@@ -142,7 +149,7 @@ export default function Profile() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-3 px-6 text-center" style={{ background: 'var(--bg-page)', color: '#fff' }}>
         <p>No pudimos cargar tu perfil.</p>
-        <Link to="/" className="underline">Ir a Retroke</Link>
+        <Link to={backToRegistroHref} className="underline">Ir a Retroke</Link>
       </div>
     )
   }
@@ -327,8 +334,8 @@ export default function Profile() {
           })}
         </div>
 
-        <Link to="/" className="text-center text-sm underline" style={{ color: 'rgba(255,255,255,0.5)' }}>
-          Volver a Retroke
+        <Link to={backToRegistroHref} className="text-center text-sm underline" style={{ color: 'rgba(255,255,255,0.5)' }}>
+          Volver a Retroke — inscríbete para cantar
         </Link>
       </div>
     </div>

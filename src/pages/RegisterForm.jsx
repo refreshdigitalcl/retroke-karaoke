@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { useKaraokeSession, parseYoutubeId } from '../contexts/KaraokeSessionContext'
 import ThemeToggle from '../components/ThemeToggle'
 import { supabase } from '../lib/supabase'
 import { createVocalAnalyzer, getFeedback } from '../lib/vocalAnalysis'
 import { containsProfanity } from '../lib/profanityFilter'
 import { searchSongMatches } from '../lib/songLookup'
-import { getOrCreateParticipant, touchParticipantProfile, signInWithGoogle } from '../lib/participant'
+import { getOrCreateParticipant, touchParticipantProfile, signInWithGoogle, signOutParticipant } from '../lib/participant'
 import { buildShareUrl, buildShareText, shareResult, shareCardAsImage } from '../lib/shareCard'
 import { computeNotaFinal, LEVELS } from '../lib/gamification'
 import ShareResultCard from '../components/ShareResultCard'
@@ -113,6 +113,10 @@ function YourTurnScreen(props) {
   var sessionId = props.sessionId
   var entryId = props.entryId
   var setMicReady = useKaraokeSession().setMicReady
+  // El bar/workspace activo viaja en el query string -- lo propagamos al
+  // link de "Ver mi perfil" para que, al volver, no se pierda el contexto
+  // de la sesion (sin esto, volver mandaba siempre al bar por defecto).
+  var perfilHref = '/perfil' + (useLocation().search || '')
 
   var micState = useState('idle')
   var micStatus = micState[0]
@@ -556,7 +560,7 @@ function YourTurnScreen(props) {
             </button>
 
             <Link
-              to="/perfil"
+              to={perfilHref}
               className="block text-center text-xs mt-3 underline"
               style={{ color: 'var(--text-muted)' }}
             >
@@ -612,6 +616,11 @@ function YourTurnScreen(props) {
 }
 
 export default function RegisterForm() {
+  // Igual que en YourTurnScreen: se propaga el query string actual
+  // (?bar=... / ?ws=...) al link de "Mi perfil" para no perder el
+  // contexto del local al volver.
+  var perfilHref = '/perfil' + (useLocation().search || '')
+
   var session = useKaraokeSession()
   var barName = session.barName
   var queue = session.queue
@@ -691,6 +700,49 @@ export default function RegisterForm() {
     setGoogleConnecting(true)
     signInWithGoogle(supabase, window.location.href).then(function (result) {
       if (result.error) setGoogleConnecting(false)
+    })
+  }
+
+  // Estado de sesion para el boton del header del formulario: si ya esta
+  // conectado con Google se ofrece "Cerrar sesion", si no, "Ingresar". Se
+  // mantiene al dia con un listener ademas de la lectura inicial, para que
+  // el boton cambie solo apenas vuelve el redirect de Google.
+  var authUserState = useState(null)
+  var authUser = authUserState[0]
+  var setAuthUser = authUserState[1]
+
+  var headerGoogleConnectingState = useState(false)
+  var headerGoogleConnecting = headerGoogleConnectingState[0]
+  var setHeaderGoogleConnecting = headerGoogleConnectingState[1]
+
+  useEffect(function () {
+    var cancelled = false
+    supabase.auth.getUser().then(function (result) {
+      if (cancelled) return
+      setAuthUser(result.data && result.data.user ? result.data.user : null)
+    })
+    var subscription = supabase.auth.onAuthStateChange(function (_event, authSession) {
+      setAuthUser(authSession ? authSession.user : null)
+      setHeaderGoogleConnecting(false)
+    })
+    return function () {
+      cancelled = true
+      if (subscription && subscription.data && subscription.data.subscription) {
+        subscription.data.subscription.unsubscribe()
+      }
+    }
+  }, [])
+
+  function handleHeaderGoogle() {
+    setHeaderGoogleConnecting(true)
+    signInWithGoogle(supabase, window.location.href).then(function (result) {
+      if (result.error) setHeaderGoogleConnecting(false)
+    })
+  }
+
+  function handleHeaderSignOut() {
+    signOutParticipant(supabase).then(function () {
+      setAuthUser(null)
     })
   }
 
@@ -1299,20 +1351,69 @@ export default function RegisterForm() {
         className="max-w-sm w-full rounded-3xl border p-6"
         style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}
       >
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{barName}</p>
-            <p className="text-lg font-medium" style={{ color: 'var(--text-primary)' }}>Anotate para cantar</p>
+        <style>{`
+          .form-header-auth-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            height: 34px;
+            padding: 0 14px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+            white-space: nowrap;
+            transition: transform 0.15s ease;
+          }
+          .form-header-auth-btn:active { transform: scale(0.96); }
+          .form-header-auth-btn-google {
+            background: #fff;
+            color: #1f1f1f;
+            box-shadow: 0 0 0 1px rgba(255,255,255,0.15), 0 0 16px -4px rgba(233,30,140,0.5);
+          }
+          .form-header-auth-btn-logout {
+            background: rgba(233,30,140,0.1);
+            color: #E91E8C;
+            border: 1px solid rgba(233,30,140,0.5);
+          }
+          .form-header-profile-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 11px;
+            font-weight: 600;
+            color: rgba(255,255,255,0.5);
+          }
+        `}</style>
+
+        <div className="flex items-start justify-between gap-3 mb-4">
+          <div className="min-w-0">
+            <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>{barName}</p>
+            <p className="text-lg font-medium" style={{ color: 'var(--text-primary)' }}>Regístrate para Cantar</p>
           </div>
-          <div className="flex items-center gap-2">
-            <Link
-              to="/perfil"
-              className="text-xs font-medium underline"
-              style={{ color: 'var(--text-secondary)' }}
-            >
+          <div className="flex flex-col items-end gap-1.5 shrink-0">
+            <div className="flex items-center gap-2">
+              {authUser ? (
+                <button type="button" onClick={handleHeaderSignOut} className="form-header-auth-btn form-header-auth-btn-logout">
+                  Cerrar sesión
+                </button>
+              ) : (
+                <button type="button" onClick={handleHeaderGoogle} disabled={headerGoogleConnecting} className="form-header-auth-btn form-header-auth-btn-google">
+                  {!headerGoogleConnecting && (
+                    <svg width="14" height="14" viewBox="0 0 48 48" aria-hidden="true">
+                      <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 8 2.9l6-6C34.9 5.1 29.7 3 24 3 12.4 3 3 12.4 3 24s9.4 21 21 21 21-9.4 21-21c0-1.4-.1-2.7-.4-3.5z" />
+                      <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 15.9 18.9 13 24 13c3.1 0 5.8 1.1 8 2.9l6-6C34.9 5.1 29.7 3 24 3c-7.6 0-14.1 4.3-17.7 10.7z" />
+                      <path fill="#4CAF50" d="M24 45c5.6 0 10.7-1.9 14.7-5.2l-6.8-5.7C29.7 35.6 27 36.5 24 36.5c-5.3 0-9.7-3.3-11.3-7.9l-6.7 5.2C9.8 40.6 16.4 45 24 45z" />
+                      <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.2-4.3 5.6l6.8 5.7C40.2 37 44 31.4 44 24c0-1.4-.1-2.7-.4-3.5z" />
+                    </svg>
+                  )}
+                  {headerGoogleConnecting ? 'Conectando...' : 'Ingresar'}
+                </button>
+              )}
+              <ThemeToggle />
+            </div>
+            <Link to={perfilHref} className="form-header-profile-link">
               👤 Mi perfil
             </Link>
-            <ThemeToggle />
           </div>
         </div>
 
