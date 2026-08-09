@@ -90,9 +90,12 @@ function flushPendingVocalResults() {
 // tarjeta de resultado real (performance_id ya generado en el servidor).
 function ShareResultButton(props) {
   function handleClick() {
-    var url = buildShareUrl(props.performanceId)
-    var text = buildShareText({ song: props.song, artistName: props.artistName || null, notaFinal: null })
-    shareResult({ url: url, text: text, title: 'Mi resultado en Retroke' })
+    shareResult({
+      performanceId: props.performanceId,
+      song: props.song,
+      artistName: props.artistName || null,
+      notaFinal: null
+    })
   }
   return (
     <button
@@ -1622,6 +1625,7 @@ export default function RegisterForm() {
             height: 34px;
             border-radius: 999px;
             flex-shrink: 0;
+            overflow: hidden;
             background: rgba(139,92,246,0.14);
             border: 1.5px solid rgba(139,92,246,0.55);
             color: #8B5CF6;
@@ -1629,6 +1633,12 @@ export default function RegisterForm() {
             transition: transform 0.15s ease;
           }
           .form-header-profile-btn:active { transform: scale(0.92); }
+          .form-header-profile-photo {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 999px;
+          }
           .form-header-top {
             display: flex;
             align-items: center;
@@ -1682,10 +1692,14 @@ export default function RegisterForm() {
                 </button>
               )}
               <Link to={perfilHref} className="form-header-profile-btn" title="Mi perfil" aria-label="Mi perfil">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="8" r="4" />
-                  <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
-                </svg>
+                {participant && participant.photo_url ? (
+                  <img src={participant.photo_url} alt="" className="form-header-profile-photo" />
+                ) : (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="8" r="4" />
+                    <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+                  </svg>
+                )}
               </Link>
             </div>
           </div>
