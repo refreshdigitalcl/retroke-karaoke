@@ -18,6 +18,7 @@ import Rankings from './pages/Rankings'
 import Challenges from './pages/Challenges'
 import Profile from './pages/Profile'
 import World from './pages/World'
+import Escenario from './pages/Escenario'
 
 export default function App() {
   return (
@@ -70,6 +71,9 @@ export default function App() {
 
             {/* Retroke World: universo digital -- hero, live, ranking, desafios, escenarios */}
             <Route path="/world" element={<World />} />
+
+            {/* Fase 7: ficha publica de un escenario puntual (?bar=slug o ?ws=id) */}
+            <Route path="/escenario" element={<Escenario />} />
           </Routes>
         </BrowserRouter>
         </KaraokeSessionProvider>

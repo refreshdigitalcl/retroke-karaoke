@@ -43,6 +43,16 @@ function scenarioHref(row) {
   return null
 }
 
+// Fase 7: a diferencia de scenarioHref (que manda directo a la pantalla en
+// vivo, para "estoy viendo a esta persona cantar AHORA"), esto manda a la
+// ficha del escenario -- pensado para cuando el interes es la sala en si
+// (lista de "Escenarios" mas abajo), no una presentacion puntual.
+function escenarioPageHref(row) {
+  if (row.bar_id && row.bars && row.bars.slug) return '/escenario?bar=' + row.bars.slug
+  if (row.workspace_id) return '/escenario?ws=' + row.workspace_id
+  return null
+}
+
 function venueLabel(row) {
   if (row.bars && row.bars.name) return row.bars.name
   if (row.workspaces && row.workspaces.name) return row.workspaces.name
@@ -173,7 +183,7 @@ function TrendRow(props) {
 
 function ScenarioRow(props) {
   const row = props.row
-  const href = scenarioHref(row)
+  const href = escenarioPageHref(row)
   const inner = (
     <>
       <span className="world-scenario-dot" />

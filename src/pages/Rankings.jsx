@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { getOrCreateParticipant } from '../lib/participant'
 import { createDirectChallenge } from '../lib/challenges'
+import { resolveVenue, loadVenueRanking as loadVenueRankingRows } from '../lib/venue'
 import WorldSection from '../components/world/WorldSection'
 import WorldEmptyState from '../components/world/WorldEmptyState'
 import WorldSkeleton from '../components/world/WorldSkeleton'
@@ -152,61 +153,14 @@ async function loadViewerContext() {
   return { participantId: participant.id, hasGoogle, bestScore }
 }
 
+// Fase 7: resolucion de sala y ranking de sala ahora viven en lib/venue.js
+// (compartido con Escenario.jsx) -- esto solo adapta esa forma comun al
+// shape que ya usaba esta pagina, sin repetir las consultas.
 async function loadVenueRanking(barSlug, wsId) {
-  let barId = null
-  let workspaceId = null
-  let venueName = ''
-
-  if (wsId) {
-    const { data: ws } = await supabase.from('workspaces').select('id, name').eq('id', wsId).maybeSingle()
-    if (!ws) return { error: true }
-    workspaceId = ws.id
-    venueName = ws.name
-  } else {
-    const { data: bar } = await supabase.from('bars').select('id, name').ilike('slug', barSlug).maybeSingle()
-    if (!bar) return { error: true }
-    barId = bar.id
-    venueName = bar.name
-  }
-
-  let query = supabase
-    .from('performances')
-    .select('participant_id, singer_name, nota_final')
-    .not('participant_id', 'is', null)
-    .not('nota_final', 'is', null)
-    .order('nota_final', { ascending: false })
-    .limit(300)
-  query = barId ? query.eq('bar_id', barId) : query.eq('workspace_id', workspaceId)
-  const { data: perfRows } = await query
-
-  const bestByParticipant = {}
-  const order = []
-  ;(perfRows || []).forEach((row) => {
-    const existing = bestByParticipant[row.participant_id]
-    if (!existing || row.nota_final > existing.notaFinal) {
-      if (!existing) order.push(row.participant_id)
-      bestByParticipant[row.participant_id] = { participantId: row.participant_id, name: row.singer_name, notaFinal: row.nota_final }
-    }
-  })
-  const top = order.map((id) => bestByParticipant[id]).sort((a, b) => b.notaFinal - a.notaFinal).slice(0, 10)
-
-  if (!top.length) return { error: false, venueName, rows: [] }
-
-  const { data: participantsData } = await supabase.from('participants').select('id, avatar').in('id', top.map((r) => r.participantId))
-  const avatarById = {}
-  ;(participantsData || []).forEach((p) => { avatarById[p.id] = p.avatar })
-
-  return {
-    error: false,
-    venueName,
-    rows: top.map((r) => ({
-      participantId: r.participantId,
-      name: r.name,
-      avatar: avatarById[r.participantId] || '🎤',
-      primary: r.notaFinal.toFixed(1),
-      meta: null
-    }))
-  }
+  const venue = await resolveVenue(supabase, { barSlug, wsId })
+  if (!venue) return { error: true }
+  const rows = await loadVenueRankingRows(supabase, venue)
+  return { error: false, venue, venueName: venue.name, rows }
 }
 
 // Fase 5: boton "Desafiar" por fila -- solo aparece si quien mira (viewer)
@@ -424,6 +378,16 @@ export default function Rankings() {
             eyebrow="Esta sala"
             title={'📍 ' + (venueState && venueState.venueName ? venueState.venueName : 'Cargando sala...')}
             subtitle="Mejores notas de esta sala"
+            action={
+              venueState && !venueState.error ? (
+                <Link
+                  to={'/escenario' + (barSlug ? '?bar=' + barSlug : '?ws=' + wsId)}
+                  className="world-section-action"
+                >
+                  Ver escenario →
+                </Link>
+              ) : null
+            }
           >
             {!venueState && <WorldSkeleton lines={4} />}
             {venueState && venueState.error && <WorldEmptyState icon="🔍" message="No encontramos esta sala." />}
