@@ -252,6 +252,25 @@ export default function Profile() {
       `}</style>
 
       <div className="profile-wrap">
+        <Link
+          to="/world"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 10,
+            borderRadius: 16,
+            padding: '12px 16px',
+            background: 'linear-gradient(90deg, rgba(233,30,140,0.16), rgba(139,92,246,0.16))',
+            border: '1px solid rgba(139,92,246,0.4)',
+            textDecoration: 'none',
+            color: '#fff'
+          }}
+        >
+          <span style={{ fontSize: 13, fontWeight: 700 }}>🌐 Retroke World — rankings, desafíos y quién está cantando ahora</span>
+          <span style={{ fontSize: 13, color: '#F4D03F' }}>→</span>
+        </Link>
+
         <div className="profile-card" style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
           <button
             type="button"

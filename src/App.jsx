@@ -17,6 +17,7 @@ import SharePerformance from './pages/SharePerformance'
 import Rankings from './pages/Rankings'
 import Challenges from './pages/Challenges'
 import Profile from './pages/Profile'
+import World from './pages/World'
 
 export default function App() {
   return (
@@ -66,6 +67,9 @@ export default function App() {
 
             {/* Fase "comunidad": perfil propio del participante (historial, stats, logros) */}
             <Route path="/perfil" element={<Profile />} />
+
+            {/* Retroke World: universo digital -- hero, live, ranking, desafios, escenarios */}
+            <Route path="/world" element={<World />} />
           </Routes>
         </BrowserRouter>
         </KaraokeSessionProvider>
