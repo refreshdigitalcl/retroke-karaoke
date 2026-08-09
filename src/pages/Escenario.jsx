@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { resolveVenue, loadVenueRanking, loadVenueOverview, loadVenueNowPlaying } from '../lib/venue'
+import { getOrCreateParticipant } from '../lib/participant'
+import { loadMyGoingStatus, setGoingStatus, loadGoingLists } from '../lib/going'
 import WorldSection from '../components/world/WorldSection'
 import WorldEmptyState from '../components/world/WorldEmptyState'
 import WorldSkeleton from '../components/world/WorldSkeleton'
@@ -53,6 +55,15 @@ function liveHref(venue) {
   return '/'
 }
 
+// Fase 11: mismo patron de identidad liviana que loadViewerContext() en
+// Rankings.jsx, pero sin necesitar el best_score (aca solo importa si hay
+// Google conectado para poder marcar "voy"/"tal vez").
+async function loadViewerContext() {
+  const participant = await getOrCreateParticipant(supabase)
+  if (!participant) return null
+  return { participantId: participant.id, hasGoogle: !!participant.user_id }
+}
+
 export default function Escenario() {
   useEscenarioFont()
 
@@ -63,6 +74,14 @@ export default function Escenario() {
   const [overview, setOverview] = useState(null)
   const [nowPlaying, setNowPlaying] = useState(null)
   const [ranking, setRanking] = useState(null)
+
+  // Fase 11 ("Quien va"): viewer = identidad liviana de quien mira esta
+  // pagina; goingLists = quienes marcaron voy/tal vez a este escenario;
+  // myGoingStatus = el estado propio del viewer (null si no ha marcado nada).
+  const [viewer, setViewer] = useState(undefined) // undefined = cargando, null = sin perfil
+  const [goingLists, setGoingLists] = useState(null)
+  const [myGoingStatus, setMyGoingStatus] = useState(null)
+  const [savingGoing, setSavingGoing] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -75,12 +94,44 @@ export default function Escenario() {
       loadVenueOverview(supabase, resolved).then((o) => { if (!cancelled) setOverview(o) })
       loadVenueNowPlaying(supabase, resolved).then((np) => { if (!cancelled) setNowPlaying(np) })
       loadVenueRanking(supabase, resolved).then((r) => { if (!cancelled) setRanking(r) })
+      loadGoingLists(supabase, resolved).then((g) => { if (!cancelled) setGoingLists(g) })
     }).catch(() => {
       if (!cancelled) setVenue(null)
     })
 
     return () => { cancelled = true }
   }, [barSlug, wsId])
+
+  useEffect(() => {
+    let cancelled = false
+    loadViewerContext().then((v) => { if (!cancelled) setViewer(v) }).catch(() => { if (!cancelled) setViewer(null) })
+    return () => { cancelled = true }
+  }, [])
+
+  useEffect(() => {
+    if (!venue || !viewer || !viewer.hasGoogle) return
+    let cancelled = false
+    loadMyGoingStatus(supabase, viewer.participantId, venue).then((s) => { if (!cancelled) setMyGoingStatus(s) })
+    return () => { cancelled = true }
+  }, [venue, viewer])
+
+  // Toggle optimista igual que Fase 8 (follow): actualiza el estado propio
+  // antes de esperar la red y revierte si el toggle falla; si funciona,
+  // vuelve a cargar las listas para que aparezca/desaparezca en Van/Tal vez.
+  async function handleToggleGoing(status) {
+    if (!viewer || !viewer.hasGoogle || !venue || savingGoing) return
+    setSavingGoing(true)
+    const prevStatus = myGoingStatus
+    setMyGoingStatus(prevStatus === status ? null : status)
+    const result = await setGoingStatus(supabase, viewer.participantId, venue, status)
+    setSavingGoing(false)
+    if (result.error) {
+      setMyGoingStatus(prevStatus)
+      return
+    }
+    setMyGoingStatus(result.status)
+    loadGoingLists(supabase, venue).then((g) => setGoingLists(g))
+  }
 
   if (venue === null) {
     return (
@@ -107,6 +158,18 @@ export default function Escenario() {
         .es-stat-box { text-align: center; padding: 12px 6px; border-radius: 14px; background: rgba(255,255,255,0.05); }
         .es-stat-value { font-size: 22px; font-weight: 800; color: #F4D03F; }
         .es-stat-label { font-size: 10.5px; color: rgba(255,255,255,0.5); margin-top: 3px; }
+        .qv-actions { display: flex; gap: 10px; margin-bottom: 14px; }
+        .qv-btn {
+          flex: 1; text-align: center; font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.75);
+          padding: 10px 14px; border-radius: 999px; background: rgba(255,255,255,0.05);
+          border: 1px solid rgba(255,255,255,0.1); cursor: pointer;
+        }
+        .qv-btn.active { background: #7ED957; color: #05030a; border-color: #7ED957; }
+        .qv-btn:disabled { opacity: 0.6; cursor: default; }
+        .qv-group-label { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 8px; }
+        .qv-people { display: flex; flex-wrap: wrap; gap: 8px; }
+        .qv-chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: rgba(255,255,255,0.06); text-decoration: none; color: inherit; font-size: 12.5px; }
+        .qv-chip-avatar { font-size: 14px; }
       `}</style>
 
       <div className="world-inner">
@@ -148,6 +211,71 @@ export default function Escenario() {
                     <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)' }}>Hay una sesión activa, esperando al próximo cantante.</p>
                   )}
                   <Link to={liveHref(venue)} className="es-live-btn">▶ Entrar en vivo</Link>
+                </div>
+              )}
+            </WorldSection>
+
+            <WorldSection eyebrow="Asistencia" title="🙋 Quién va">
+              {viewer === undefined && <WorldSkeleton lines={2} />}
+              {viewer === null && (
+                <WorldEmptyState icon="🔒" message="Conecta tu cuenta de Google en tu perfil para marcar si vas." />
+              )}
+              {viewer && !viewer.hasGoogle && (
+                <WorldEmptyState icon="🔒" message="Conecta tu cuenta de Google en tu perfil para marcar si vas." />
+              )}
+              {viewer && viewer.hasGoogle && (
+                <div className="qv-actions">
+                  <button
+                    type="button"
+                    className={'qv-btn' + (myGoingStatus === 'VOY' ? ' active' : '')}
+                    disabled={savingGoing}
+                    onClick={() => handleToggleGoing('VOY')}
+                  >
+                    ✅ Voy
+                  </button>
+                  <button
+                    type="button"
+                    className={'qv-btn' + (myGoingStatus === 'TAL_VEZ' ? ' active' : '')}
+                    disabled={savingGoing}
+                    onClick={() => handleToggleGoing('TAL_VEZ')}
+                  >
+                    🤔 Tal vez
+                  </button>
+                </div>
+              )}
+
+              {goingLists === null && <WorldSkeleton lines={2} />}
+              {goingLists !== null && goingLists.voy.length === 0 && goingLists.talVez.length === 0 && (
+                <WorldEmptyState icon="🙋" message="Todavía nadie confirmó asistencia a este escenario." />
+              )}
+              {goingLists !== null && (goingLists.voy.length > 0 || goingLists.talVez.length > 0) && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {goingLists.voy.length > 0 && (
+                    <div>
+                      <div className="qv-group-label">Van ({goingLists.voy.length})</div>
+                      <div className="qv-people">
+                        {goingLists.voy.map((p) => (
+                          <Link key={p.participantId} to={'/u/' + p.participantId} className="qv-chip">
+                            <span className="qv-chip-avatar">{p.avatar}</span>
+                            <span>{p.name}</span>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {goingLists.talVez.length > 0 && (
+                    <div>
+                      <div className="qv-group-label">Tal vez ({goingLists.talVez.length})</div>
+                      <div className="qv-people">
+                        {goingLists.talVez.map((p) => (
+                          <Link key={p.participantId} to={'/u/' + p.participantId} className="qv-chip">
+                            <span className="qv-chip-avatar">{p.avatar}</span>
+                            <span>{p.name}</span>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </WorldSection>
