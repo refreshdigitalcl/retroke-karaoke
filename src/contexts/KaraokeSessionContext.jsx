@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useCallback, useEffect } from 'rea
 import { supabase } from '../lib/supabase'
 import { REACTION_EMOJIS as REACTION_EMOJI_LIST } from '../lib/reactionEmojis'
 import { fetchArtistNameForSong } from '../lib/artistLookup'
-import { computeLevel, computeNotaFinal, computeXpForPerformance, isGoodPerformance, evaluateNewAchievements, getPeriodKey, evaluateChallengeUpdate, isChallengeComplete } from '../lib/gamification'
+import { computeNotaFinal } from '../lib/gamification'
 import { trackEvent } from '../lib/analytics'
 
 export function parseYoutubeId(url) {
@@ -123,162 +123,66 @@ async function recordPerformance(singer, sessionId, barId, workspaceId) {
   // presentacion si falla.
   if (singer.participantId) {
     const ctx = { sessionId, barId, workspaceId }
-    applyGamification(singer.participantId, notaFinal, vocalScore, ctx)
-      .then((updatedStats) => {
-        if (!updatedStats) return
-        return applyChallenges(singer.participantId, notaFinal, updatedStats.current_streak, ctx)
-      })
-      .catch(() => {})
+    applyGamification(singer.participantId, notaFinal, vocalScore, ctx).catch(() => {})
   }
 }
 
-// Fase C.2: lee el progreso actual del participante, calcula el nuevo XP,
-// nivel y racha con las funciones puras de gamification.js, guarda el nuevo
-// estado y desbloquea los logros que correspondan. Devuelve el nuevo estado
-// para que quien la llama (recordPerformance) pueda encadenar Fase E.2
-// (desafios) sin tener que releer todo de nuevo.
-//
-// Fase H: recibe "ctx" (sessionId/barId/workspaceId) solo para poder anotar
-// los eventos de analitica (subida de nivel, logro desbloqueado) contra el
-// local/workspace correspondiente — no cambia nada de la logica de puntaje.
+// Fase C.2 + E.2 (Fase 0 de Retroke World: escritura movida server-side).
+// Antes esta funcion leia participant_stats/participant_achievements/
+// participant_challenge_progress y las actualizaba directo desde el
+// cliente -- eso quedo cerrado por RLS porque cualquiera con la clave anon
+// podia hacer ese mismo UPDATE a mano y falsear su propio XP o progreso de
+// desafios. Ahora toda esa logica (identica a la que tenia antes, ver
+// gamification.js para la version de referencia) vive en la funcion SQL
+// apply_performance_gamification() (SECURITY DEFINER), y aca solo se llama
+// y se usan los datos que devuelve para disparar los mismos eventos de
+// analitica que antes (level_up, achievement_unlocked, challenge_completed).
 async function applyGamification(participantId, notaFinal, vocalScore, ctx) {
   const eventCtx = ctx || {}
-  const statsResult = await supabase
-    .from('participant_stats')
-    .select('*')
-    .eq('participant_id', participantId)
-    .maybeSingle()
-  const prevStats = statsResult.data || {
-    xp: 0,
-    total_performances: 0,
-    best_score: null,
-    current_streak: 0,
-    best_streak: 0
-  }
-  const hadPriorStats = !!statsResult.data
+  const rpcResult = await supabase.rpc('apply_performance_gamification', {
+    p_participant_id: participantId,
+    p_nota_final: notaFinal,
+    p_vocal_score: vocalScore,
+    p_session_id: eventCtx.sessionId || null,
+    p_bar_id: eventCtx.barId || null,
+    p_workspace_id: eventCtx.workspaceId || null
+  })
+  if (rpcResult.error || !rpcResult.data) return null
 
-  const good = isGoodPerformance(notaFinal)
-  const newStreak = good ? (prevStats.current_streak || 0) + 1 : 0
-  const newXp = (prevStats.xp || 0) + computeXpForPerformance(notaFinal)
-  const levelInfo = computeLevel(newXp)
+  const result = rpcResult.data
+  const stats = result.stats || {}
 
-  const updatedStats = {
-    participant_id: participantId,
-    xp: newXp,
-    level: levelInfo.level,
-    level_name: levelInfo.name,
-    total_performances: (prevStats.total_performances || 0) + 1,
-    best_score:
-      vocalScore !== null && vocalScore !== undefined
-        ? Math.max(prevStats.best_score || 0, vocalScore)
-        : prevStats.best_score,
-    current_streak: newStreak,
-    best_streak: Math.max(prevStats.best_streak || 0, newStreak),
-    updated_at: new Date().toISOString()
-  }
-
-  await supabase.from('participant_stats').upsert(updatedStats)
-
-  // Fase H: solo cuenta como "subida de nivel" si ya existia un registro
-  // previo y el nivel efectivamente subio — la primera presentacion de
-  // siempre no es una subida, es el punto de partida.
-  if (hadPriorStats && levelInfo.level > (prevStats.level || 0)) {
+  if (result.leveledUp) {
     trackEvent('level_up', {
       participantId,
       sessionId: eventCtx.sessionId || null,
       barId: eventCtx.barId || null,
       workspaceId: eventCtx.workspaceId || null,
-      payload: { fromLevel: prevStats.level || 0, toLevel: levelInfo.level, levelName: levelInfo.name, xp: newXp }
+      payload: { fromLevel: result.fromLevel || 0, toLevel: stats.level, levelName: stats.level_name, xp: stats.xp }
     })
   }
 
-  const unlockedResult = await supabase
-    .from('participant_achievements')
-    .select('achievement_code')
-    .eq('participant_id', participantId)
-  const alreadyUnlocked = (unlockedResult.data || []).map((r) => r.achievement_code)
-
-  const newlyUnlocked = evaluateNewAchievements(vocalScore, updatedStats, alreadyUnlocked)
-  if (newlyUnlocked.length) {
-    await supabase.from('participant_achievements').insert(
-      newlyUnlocked.map((code) => ({ participant_id: participantId, achievement_code: code }))
-    )
-    newlyUnlocked.forEach((code) => {
-      trackEvent('achievement_unlocked', {
-        participantId,
-        sessionId: eventCtx.sessionId || null,
-        barId: eventCtx.barId || null,
-        workspaceId: eventCtx.workspaceId || null,
-        payload: { achievementCode: code }
-      })
+  ;(result.newlyUnlockedAchievements || []).forEach((code) => {
+    trackEvent('achievement_unlocked', {
+      participantId,
+      sessionId: eventCtx.sessionId || null,
+      barId: eventCtx.barId || null,
+      workspaceId: eventCtx.workspaceId || null,
+      payload: { achievementCode: code }
     })
-  }
+  })
 
-  return updatedStats
-}
-
-// Fase E.2: revisa cada desafio activo, actualiza el progreso del
-// participante en el periodo correspondiente (semana/mes/permanente) y, si
-// se acaba de completar, otorga el XP de recompensa. Fire-and-forget desde
-// recordPerformance, igual que applyGamification — nunca debe interrumpir
-// el show en vivo.
-async function applyChallenges(participantId, notaFinal, currentStreak, ctx) {
-  const eventCtx = ctx || {}
-  const challengesResult = await supabase.from('challenges').select('*').eq('active', true)
-  const challenges = challengesResult.data || []
-  if (!challenges.length) return
-
-  for (const challenge of challenges) {
-    const periodKey = getPeriodKey(challenge.period)
-    const progressResult = await supabase
-      .from('participant_challenge_progress')
-      .select('progress, completed_at')
-      .eq('participant_id', participantId)
-      .eq('challenge_code', challenge.code)
-      .eq('period_key', periodKey)
-      .maybeSingle()
-
-    const existing = progressResult.data
-    if (existing && existing.completed_at) continue // ya se gano este periodo
-
-    const prevProgress = existing ? existing.progress : 0
-    const newProgress = evaluateChallengeUpdate(challenge, prevProgress, { notaFinal, currentStreak })
-    const justCompleted = !isChallengeComplete(challenge, prevProgress) && isChallengeComplete(challenge, newProgress)
-
-    await supabase.from('participant_challenge_progress').upsert({
-      participant_id: participantId,
-      challenge_code: challenge.code,
-      period_key: periodKey,
-      progress: newProgress,
-      completed_at: justCompleted ? new Date().toISOString() : (existing ? existing.completed_at : null),
-      updated_at: new Date().toISOString()
+  ;(result.challengesCompleted || []).forEach((c) => {
+    trackEvent('challenge_completed', {
+      participantId,
+      sessionId: eventCtx.sessionId || null,
+      barId: eventCtx.barId || null,
+      workspaceId: eventCtx.workspaceId || null,
+      payload: { challengeCode: c.code, xpReward: c.xpReward || 0 }
     })
+  })
 
-    if (justCompleted && challenge.xp_reward) {
-      const statsResult = await supabase
-        .from('participant_stats')
-        .select('xp')
-        .eq('participant_id', participantId)
-        .maybeSingle()
-      const currentXp = statsResult.data ? statsResult.data.xp : 0
-      const newXp = currentXp + challenge.xp_reward
-      const levelInfo = computeLevel(newXp)
-      await supabase
-        .from('participant_stats')
-        .update({ xp: newXp, level: levelInfo.level, level_name: levelInfo.name, updated_at: new Date().toISOString() })
-        .eq('participant_id', participantId)
-    }
-
-    if (justCompleted) {
-      trackEvent('challenge_completed', {
-        participantId,
-        sessionId: eventCtx.sessionId || null,
-        barId: eventCtx.barId || null,
-        workspaceId: eventCtx.workspaceId || null,
-        payload: { challengeCode: challenge.code, periodKey, xpReward: challenge.xp_reward || 0 }
-      })
-    }
-  }
+  return stats
 }
 
 export function KaraokeSessionProvider({ children }) {
