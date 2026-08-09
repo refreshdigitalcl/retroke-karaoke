@@ -4,12 +4,17 @@ import { supabase } from '../lib/supabase'
 import { getOrCreateParticipant } from '../lib/participant'
 import { getPeriodKey } from '../lib/gamification'
 import { loadReceivedChallenges, loadSentChallenges } from '../lib/challenges'
+import WorldSection from '../components/world/WorldSection'
+import WorldEmptyState from '../components/world/WorldEmptyState'
+import WorldSkeleton from '../components/world/WorldSkeleton'
+import { WORLD_STYLES } from '../components/world/worldStyles'
 
-// Fase E.2: pagina publica de desafios. Usa la identidad liviana de
-// participante (Fase B, por dispositivo) para mostrar "mi progreso" sin
-// pedir login — el mismo modelo de confianza abierto que ya usa toda la
-// app. El progreso real lo calcula y guarda el servidor (recordPerformance
-// -> applyChallenges en KaraokeSessionContext); esta pantalla solo lee.
+// Fase 6 de Retroke World ("Misiones y Logros", ver
+// retroke-world-diagnostico-tecnico.md). Reskin bento de esta pagina --
+// misma logica y datos de siempre (Fase E.2 para misiones del sistema,
+// Fase 5 para desafios 1 a 1), lo unico que cambia es que ahora usa el
+// mismo lenguaje visual que /world y /ranking (WorldSection, WORLD_STYLES)
+// en vez de una pagina suelta con su propio estilo.
 
 const FONT_HREF = 'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap'
 
@@ -105,193 +110,151 @@ export default function Challenges() {
   }, [])
 
   return (
-    <div style={styles.page}>
-      <style>{`
-        .ch-title {
-          font-family: 'Space Grotesk', system-ui, sans-serif;
-          font-weight: 700;
-          background: linear-gradient(100deg, #fff 10%, #E91E8C 35%, #8B5CF6 60%, #F4D03F 85%, #fff 100%);
-          background-size: 240% auto;
-          -webkit-background-clip: text;
-          background-clip: text;
-          -webkit-text-fill-color: transparent;
-          animation: chShift 7s ease-in-out infinite;
-        }
-        @keyframes chShift {
-          0% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
-        }
+    <div className="world-page">
+      <style>{WORLD_STYLES}{`
+        .ms-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+        @media (min-width: 640px) { .ms-grid { grid-template-columns: repeat(2, 1fr); } }
+        .ms-card { padding: 16px 18px; border-radius: 18px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); }
+        .ms-card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+        .ms-icon { font-size: 26px; }
+        .ms-title { font-size: 14px; font-weight: 700; }
+        .ms-period { font-size: 10.5px; color: rgba(255,255,255,0.45); margin-top: 1px; text-transform: uppercase; letter-spacing: 0.05em; }
+        .ms-done-badge { font-size: 10.5px; font-weight: 700; color: #7ED957; background: rgba(126,217,87,0.12); border-radius: 999px; padding: 4px 9px; white-space: nowrap; }
+        .ms-desc { font-size: 12px; color: rgba(255,255,255,0.6); margin-bottom: 10px; }
+        .ms-track { height: 7px; border-radius: 999px; background: rgba(255,255,255,0.08); overflow: hidden; }
+        .ms-fill { height: 100%; border-radius: 999px; }
+        .ms-label { margin-top: 6px; font-size: 10.5px; color: rgba(255,255,255,0.5); }
+
+        .dc-subtitle { font-size: 11.5px; font-weight: 700; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+        .dc-empty { font-size: 12.5px; color: rgba(255,255,255,0.45); padding: 2px 0 4px; }
+        .dc-link { color: #F4D03F; text-decoration: underline; }
+        .dc-list { display: flex; flex-direction: column; gap: 4px; }
+        .dc-row { display: flex; align-items: center; gap: 10px; padding: 8px 2px; }
+        .dc-avatar { font-size: 20px; flex-shrink: 0; }
+        .dc-name { font-size: 13px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .dc-meta { font-size: 11px; color: rgba(255,255,255,0.5); margin-top: 1px; }
+        .dc-badge-done { font-size: 10.5px; font-weight: 700; color: #7ED957; background: rgba(126,217,87,0.12); border-radius: 999px; padding: 4px 9px; white-space: nowrap; flex-shrink: 0; }
+        .dc-badge-pending { font-size: 10.5px; font-weight: 700; color: rgba(255,255,255,0.5); background: rgba(255,255,255,0.08); border-radius: 999px; padding: 4px 9px; white-space: nowrap; flex-shrink: 0; }
       `}</style>
 
-      <div style={styles.header}>
-        <div className="ch-title" style={styles.mainTitle}>Desafíos Retroke</div>
-        <div style={styles.subtitle}>Cumple metas, gana XP extra.</div>
+      <div className="world-inner">
+        <header className="world-hero">
+          <div className="world-hero-eyebrow">MISIONES Y DESAFÍOS</div>
+          <h1 className="world-hero-title">Cumple metas, gana XP extra</h1>
+          <p className="world-hero-subtitle">Misiones del sistema y desafíos entre cantantes, todo en un lugar.</p>
+        </header>
+
+        <WorldSection
+          size="lg"
+          eyebrow="Misiones"
+          title="🎯 Misiones Retroke"
+          subtitle="Objetivos activos — se reinician cada semana o mes"
+        >
+          {challenges === null && <WorldSkeleton lines={3} />}
+          {challenges !== null && challenges.length === 0 && (
+            <WorldEmptyState
+              icon="🎯"
+              message={hasParticipant ? 'No hay misiones activas por ahora.' : 'No pudimos identificar tu perfil en este dispositivo.'}
+            />
+          )}
+          {challenges !== null && challenges.length > 0 && (
+            <div className="ms-grid">
+              {challenges.map((c) => {
+                const p = progressByCode[c.code] || { progress: 0, completed_at: null }
+                const pct = Math.min(100, Math.round((p.progress / c.target_value) * 100))
+                const done = !!p.completed_at
+                return (
+                  <div key={c.code} className="ms-card">
+                    <div className="ms-card-header">
+                      <span className="ms-icon">{c.icon}</span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div className="ms-title">{c.title}</div>
+                        <div className="ms-period">{PERIOD_LABEL[c.period] || c.period}</div>
+                      </div>
+                      {done && <span className="ms-done-badge">Completado ✓</span>}
+                    </div>
+                    <div className="ms-desc">{c.description}</div>
+                    <div className="ms-track">
+                      <div
+                        className="ms-fill"
+                        style={{
+                          width: pct + '%',
+                          background: done ? '#7ED957' : 'linear-gradient(90deg, #E91E8C, #8B5CF6)'
+                        }}
+                      />
+                    </div>
+                    <div className="ms-label">
+                      {Math.min(p.progress, c.target_value)} / {c.target_value} · +{c.xp_reward} XP
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </WorldSection>
+
+        {hasParticipant && (
+          <WorldSection
+            eyebrow="1 a 1"
+            title="🥊 Desafíos entre cantantes"
+            subtitle="Reta a alguien del Ranking Retroke a superar tu nota"
+          >
+            <div>
+              <div className="dc-subtitle">Te desafiaron</div>
+              {receivedChallenges === null && <WorldSkeleton lines={2} />}
+              {receivedChallenges !== null && receivedChallenges.length === 0 && (
+                <div className="dc-empty">Nadie te ha desafiado todavía.</div>
+              )}
+              {receivedChallenges !== null && receivedChallenges.length > 0 && (
+                <div className="dc-list">
+                  {receivedChallenges.map((r) => {
+                    const done = myBestScore !== null && myBestScore >= Number(r.targetScore)
+                    return (
+                      <div key={r.id} className="dc-row">
+                        <span className="dc-avatar">{r.fromAvatar}</span>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div className="dc-name">{r.fromName} te desafía</div>
+                          <div className="dc-meta">Superar su nota: {r.targetScore}</div>
+                        </div>
+                        <span className={done ? 'dc-badge-done' : 'dc-badge-pending'}>{done ? 'Superado ✓' : 'Pendiente'}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div style={{ marginTop: 6 }}>
+              <div className="dc-subtitle">Tus desafíos enviados</div>
+              {sentChallenges === null && <WorldSkeleton lines={2} />}
+              {sentChallenges !== null && sentChallenges.length === 0 && (
+                <div className="dc-empty">
+                  Aún no has desafiado a nadie. Ve al <Link to="/ranking" className="dc-link">Ranking Retroke</Link> y desafía a alguien a superar tu nota.
+                </div>
+              )}
+              {sentChallenges !== null && sentChallenges.length > 0 && (
+                <div className="dc-list">
+                  {sentChallenges.map((s) => {
+                    const done = s.toBestScore !== null && Number(s.toBestScore) >= Number(s.targetScore)
+                    return (
+                      <div key={s.id} className="dc-row">
+                        <span className="dc-avatar">{s.toAvatar}</span>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div className="dc-name">Desafiaste a {s.toName}</div>
+                          <div className="dc-meta">Superar tu nota: {s.targetScore}</div>
+                        </div>
+                        <span className={done ? 'dc-badge-done' : 'dc-badge-pending'}>{done ? 'Superado ✓' : 'Pendiente'}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          </WorldSection>
+        )}
+
+        <Link to="/world" className="world-footer-link">← Retroke World</Link>
       </div>
-
-      {challenges === null && <div style={styles.loading}>Cargando desafíos...</div>}
-
-      {challenges !== null && challenges.length === 0 && (
-        <div style={styles.loading}>
-          {hasParticipant ? 'No hay desafíos activos por ahora.' : 'No pudimos identificar tu perfil en este dispositivo.'}
-        </div>
-      )}
-
-      {challenges !== null && challenges.length > 0 && (
-        <div style={styles.list}>
-          {challenges.map((c) => {
-            const p = progressByCode[c.code] || { progress: 0, completed_at: null }
-            const pct = Math.min(100, Math.round((p.progress / c.target_value) * 100))
-            const done = !!p.completed_at
-            return (
-              <div key={c.code} style={styles.card}>
-                <div style={styles.cardHeader}>
-                  <span style={styles.cardIcon}>{c.icon}</span>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={styles.cardTitle}>{c.title}</div>
-                    <div style={styles.cardPeriod}>{PERIOD_LABEL[c.period] || c.period}</div>
-                  </div>
-                  {done && <span style={styles.doneBadge}>Completado ✓</span>}
-                </div>
-                <div style={styles.cardDesc}>{c.description}</div>
-                <div style={styles.progressTrack}>
-                  <div
-                    style={{
-                      ...styles.progressFill,
-                      width: pct + '%',
-                      background: done ? '#7ED957' : 'linear-gradient(90deg, #E91E8C, #8B5CF6)'
-                    }}
-                  />
-                </div>
-                <div style={styles.progressLabel}>
-                  {Math.min(p.progress, c.target_value)} / {c.target_value} · +{c.xp_reward} XP
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      )}
-
-      {hasParticipant && (
-        <div style={styles.dcSection}>
-          <div style={styles.dcSectionHeader}>
-            <div style={styles.dcSectionTitle}>🥊 Desafíos entre cantantes</div>
-            <div style={styles.subtitle}>Reta a alguien del Ranking Retroke a superar tu nota</div>
-          </div>
-
-          <div style={styles.dcSubTitle}>Te desafiaron</div>
-          {receivedChallenges === null && <div style={styles.loading}>Cargando…</div>}
-          {receivedChallenges !== null && receivedChallenges.length === 0 && (
-            <div style={styles.dcEmpty}>Nadie te ha desafiado todavía.</div>
-          )}
-          {receivedChallenges !== null && receivedChallenges.length > 0 && (
-            <div style={styles.list}>
-              {receivedChallenges.map((r) => {
-                const done = myBestScore !== null && myBestScore >= Number(r.targetScore)
-                return (
-                  <div key={r.id} style={styles.dcCard}>
-                    <span style={styles.dcAvatar}>{r.fromAvatar}</span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={styles.dcName}>{r.fromName} te desafía</div>
-                      <div style={styles.dcMeta}>Superar su nota: {r.targetScore}</div>
-                    </div>
-                    <span style={done ? styles.doneBadge : styles.pendingBadge}>{done ? 'Superado ✓' : 'Pendiente'}</span>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-
-          <div style={{ ...styles.dcSubTitle, marginTop: 18 }}>Tus desafíos enviados</div>
-          {sentChallenges === null && <div style={styles.loading}>Cargando…</div>}
-          {sentChallenges !== null && sentChallenges.length === 0 && (
-            <div style={styles.dcEmpty}>
-              Aún no has desafiado a nadie. Ve al <Link to="/ranking" style={styles.dcLink}>Ranking Retroke</Link> y desafía a alguien a superar tu nota.
-            </div>
-          )}
-          {sentChallenges !== null && sentChallenges.length > 0 && (
-            <div style={styles.list}>
-              {sentChallenges.map((s) => {
-                const done = s.toBestScore !== null && Number(s.toBestScore) >= Number(s.targetScore)
-                return (
-                  <div key={s.id} style={styles.dcCard}>
-                    <span style={styles.dcAvatar}>{s.toAvatar}</span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={styles.dcName}>Desafiaste a {s.toName}</div>
-                      <div style={styles.dcMeta}>Superar tu nota: {s.targetScore}</div>
-                    </div>
-                    <span style={done ? styles.doneBadge : styles.pendingBadge}>{done ? 'Superado ✓' : 'Pendiente'}</span>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </div>
-      )}
-
-      <Link to="/inicio" style={styles.link}>← Volver a Retroke</Link>
     </div>
   )
-}
-
-const styles = {
-  page: {
-    minHeight: '100vh',
-    background: 'radial-gradient(circle at 50% 0%, #1a0b2e 0%, #0a0512 55%, #05030a 100%)',
-    color: '#fff',
-    fontFamily: 'system-ui, sans-serif',
-    padding: '40px 18px 60px',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: 32
-  },
-  header: { textAlign: 'center' },
-  mainTitle: { fontSize: 34 },
-  subtitle: { marginTop: 6, fontSize: 13, color: 'rgba(255,255,255,0.5)' },
-  loading: { fontSize: 13, color: 'rgba(255,255,255,0.4)', padding: '20px 0', textAlign: 'center' },
-  list: { width: '100%', maxWidth: 480, display: 'flex', flexDirection: 'column', gap: 14 },
-  card: {
-    padding: '16px 18px',
-    borderRadius: 18,
-    background: 'rgba(255,255,255,0.05)',
-    border: '1px solid rgba(255,255,255,0.12)'
-  },
-  cardHeader: { display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 },
-  cardIcon: { fontSize: 26 },
-  cardTitle: { fontSize: 15, fontWeight: 700 },
-  cardPeriod: { fontSize: 11, color: 'rgba(255,255,255,0.45)', marginTop: 1 },
-  doneBadge: {
-    fontSize: 11,
-    fontWeight: 700,
-    color: '#7ED957',
-    background: 'rgba(126,217,87,0.12)',
-    borderRadius: 999,
-    padding: '4px 10px',
-    whiteSpace: 'nowrap'
-  },
-  cardDesc: { fontSize: 12.5, color: 'rgba(255,255,255,0.6)', marginBottom: 12 },
-  progressTrack: { height: 8, borderRadius: 999, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' },
-  progressFill: { height: '100%', borderRadius: 999, transition: 'width 0.3s ease' },
-  progressLabel: { marginTop: 6, fontSize: 11, color: 'rgba(255,255,255,0.5)' },
-  link: { color: 'rgba(255,255,255,0.5)', fontSize: 13, textDecoration: 'underline' },
-
-  dcSection: { width: '100%', maxWidth: 480, display: 'flex', flexDirection: 'column', gap: 10 },
-  dcSectionHeader: { textAlign: 'center', marginBottom: 4 },
-  dcSectionTitle: { fontSize: 20, fontWeight: 700 },
-  dcSubTitle: { fontSize: 12.5, fontWeight: 700, color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: '0.06em' },
-  dcEmpty: { fontSize: 12.5, color: 'rgba(255,255,255,0.45)', padding: '4px 0 8px' },
-  dcLink: { color: '#F4D03F', textDecoration: 'underline' },
-  dcCard: {
-    display: 'flex', alignItems: 'center', gap: 12,
-    padding: '12px 14px', borderRadius: 16,
-    background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)'
-  },
-  dcAvatar: { fontSize: 22, flexShrink: 0 },
-  dcName: { fontSize: 13.5, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
-  dcMeta: { fontSize: 11.5, color: 'rgba(255,255,255,0.5)', marginTop: 2 },
-  pendingBadge: {
-    fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)',
-    background: 'rgba(255,255,255,0.08)', borderRadius: 999, padding: '4px 10px', whiteSpace: 'nowrap'
-  }
 }

@@ -260,11 +260,27 @@ export default function Profile() {
         .profile-stat-label { font-size: 11px; color: rgba(255,255,255,0.55); text-transform: uppercase; letter-spacing: 0.05em; }
         .profile-stat-value { font-size: 20px; font-weight: 700; margin-top: 2px; color: #F4D03F; }
         .profile-achv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; margin-top: 10px; }
-        .profile-achv { border-radius: 14px; padding: 12px 10px; text-align: center; background: rgba(255,255,255,0.05); }
-        .profile-achv.locked { opacity: 0.35; }
-        .profile-achv-icon { font-size: 26px; }
-        .profile-achv-name { font-size: 12px; font-weight: 600; margin-top: 6px; }
+        .profile-achv {
+          border-radius: 16px; padding: 14px 10px; text-align: center;
+          background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
+          transition: transform 0.15s ease;
+        }
+        .profile-achv.unlocked {
+          border-color: rgba(244,208,63,0.4);
+          background: linear-gradient(160deg, rgba(244,208,63,0.1), rgba(233,30,140,0.06));
+          box-shadow: 0 0 0 1px rgba(244,208,63,0.15), 0 6px 18px -8px rgba(244,208,63,0.35);
+        }
+        .profile-achv.locked { opacity: 0.4; filter: grayscale(0.6); }
+        .profile-achv-icon-wrap {
+          width: 42px; height: 42px; margin: 0 auto; border-radius: 9999px;
+          display: flex; align-items: center; justify-content: center;
+          background: rgba(255,255,255,0.06);
+        }
+        .profile-achv.unlocked .profile-achv-icon-wrap { background: rgba(244,208,63,0.15); }
+        .profile-achv-icon { font-size: 22px; }
+        .profile-achv-name { font-size: 12px; font-weight: 700; margin-top: 8px; }
         .profile-achv-date { font-size: 10px; color: rgba(255,255,255,0.5); margin-top: 2px; }
+        .profile-achv-date.unlocked-date { color: #F4D03F; font-weight: 600; }
         .profile-history-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.08); }
         .profile-history-art { width: 44px; height: 44px; border-radius: 10px; object-fit: cover; flex-shrink: 0; background: rgba(255,255,255,0.07); display: flex; align-items: center; justify-content: center; font-size: 18px; }
         .profile-history-text { min-width: 0; flex: 1; }
@@ -448,16 +464,20 @@ export default function Profile() {
         </div>
 
         <div className="profile-card">
-          <div style={{ fontWeight: 700, marginBottom: 4 }}>Logros</div>
+          <div style={{ fontWeight: 700, marginBottom: 4 }}>
+            🏅 Logros {achievements.length > 0 && <span style={{ fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,0.45)' }}>· {Object.keys(unlockedMap).length}/{achievements.length}</span>}
+          </div>
           <div className="profile-achv-grid">
             {achievements.map(function (a) {
               var unlockedAt = unlockedMap[a.code]
               return (
-                <div key={a.code} className={'profile-achv' + (unlockedAt ? '' : ' locked')} title={a.description || ''}>
-                  <div className="profile-achv-icon">{a.icon || '🏅'}</div>
+                <div key={a.code} className={'profile-achv' + (unlockedAt ? ' unlocked' : ' locked')} title={a.description || ''}>
+                  <div className="profile-achv-icon-wrap">
+                    <span className="profile-achv-icon">{a.icon || '🏅'}</span>
+                  </div>
                   <div className="profile-achv-name">{a.name}</div>
                   {unlockedAt ? (
-                    <div className="profile-achv-date">{formatDate(unlockedAt)}</div>
+                    <div className="profile-achv-date unlocked-date">{formatDate(unlockedAt)}</div>
                   ) : (
                     <div className="profile-achv-date">Bloqueado</div>
                   )}
