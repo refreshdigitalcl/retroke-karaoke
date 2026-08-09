@@ -68,7 +68,7 @@ export default function PublicProfile() {
     async function load() {
       const { data: p } = await supabase
         .from('participants')
-        .select('id, display_name, avatar, photo_url, user_id')
+        .select('id, display_name, avatar, photo_url, user_id, instagram_handle, show_instagram')
         .eq('id', participantId)
         .maybeSingle()
       if (cancelled) return
@@ -229,6 +229,16 @@ export default function PublicProfile() {
               <div>
                 <h1 className="world-hero-title" style={{ fontSize: 26 }}>{target.display_name || 'Cantante Retroke'}</h1>
                 <p className="world-hero-subtitle" style={{ marginTop: 2 }}>🏅 {levelInfo ? levelInfo.name : 'Novato del Micrófono'}</p>
+                {target.show_instagram && target.instagram_handle && (
+                  <a
+                    href={'https://instagram.com/' + target.instagram_handle}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ fontSize: 12.5, color: '#F4D03F', marginTop: 4, display: 'inline-block' }}
+                  >
+                    📷 @{target.instagram_handle}
+                  </a>
+                )}
               </div>
 
               <div className="pp-counts">

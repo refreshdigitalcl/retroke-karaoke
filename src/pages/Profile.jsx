@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { LEVELS, computeLevel } from '../lib/gamification'
-import { getOrCreateParticipant, touchParticipantProfile, updateParticipantPhoto, signInWithGoogle, signOutParticipant } from '../lib/participant'
+import { getOrCreateParticipant, touchParticipantProfile, updateParticipantPhoto, updateInstagramSettings, signInWithGoogle, signOutParticipant } from '../lib/participant'
 import { getGlobalXpRank } from '../lib/ranking'
 import { loadReceivedChallenges } from '../lib/challenges'
 import { loadFollowCounts, loadFollowingList, loadFollowersList } from '../lib/follows'
@@ -81,6 +81,10 @@ export default function Profile() {
   var [statusDraft, setStatusDraft] = useState('')
   var [postingStatus, setPostingStatus] = useState(false)
   var [statusError, setStatusError] = useState(null)
+  var [editingInstagram, setEditingInstagram] = useState(false)
+  var [instagramDraft, setInstagramDraft] = useState('')
+  var [showInstagramDraft, setShowInstagramDraft] = useState(false)
+  var [savingInstagram, setSavingInstagram] = useState(false)
 
   var load = useCallback(function () {
     setLoading(true)
@@ -259,6 +263,30 @@ export default function Profile() {
     deleteStatus(supabase, statusId).then(function (result) {
       if (!result.error) {
         setStatuses(function (prev) { return (prev || []).filter(function (s) { return s.id !== statusId }) })
+      }
+    })
+  }
+
+  // Fase 10: puente opcional a Instagram, apagado por defecto (ver
+  // lib/participant.js). Solo un link de referencia, no una conexion real
+  // con la API de Instagram.
+  function startEditInstagram() {
+    setInstagramDraft(participant && participant.instagram_handle ? participant.instagram_handle : '')
+    setShowInstagramDraft(!!(participant && participant.show_instagram))
+    setEditingInstagram(true)
+  }
+
+  function saveInstagram() {
+    if (!participant) return
+    setSavingInstagram(true)
+    updateInstagramSettings(supabase, participant.id, instagramDraft, showInstagramDraft).then(function (result) {
+      setSavingInstagram(false)
+      if (!result.error) {
+        var cleanHandle = instagramDraft.trim().replace(/^@/, '')
+        setParticipant(function (prev) {
+          return prev ? { ...prev, instagram_handle: cleanHandle || null, show_instagram: !!showInstagramDraft && !!cleanHandle } : prev
+        })
+        setEditingInstagram(false)
       }
     })
   }
@@ -465,6 +493,59 @@ export default function Profile() {
               )}
             </div>
           </div>
+        </div>
+
+        <div className="profile-card">
+          <div style={{ fontWeight: 700, marginBottom: 8 }}>📷 Instagram</div>
+          {!editingInstagram && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+              <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>
+                {participant.show_instagram && participant.instagram_handle ? (
+                  <a
+                    href={'https://instagram.com/' + participant.instagram_handle}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ color: '#F4D03F' }}
+                  >
+                    @{participant.instagram_handle} · visible en tu perfil público
+                  </a>
+                ) : participant.instagram_handle ? (
+                  '@' + participant.instagram_handle + ' · oculto de tu perfil público'
+                ) : (
+                  'No has agregado tu Instagram todavía (opcional).'
+                )}
+              </div>
+              <button type="button" onClick={startEditInstagram} className="profile-photo-btn">Editar</button>
+            </div>
+          )}
+          {editingInstagram && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <input
+                className="profile-name-input"
+                style={{ fontSize: 14, fontWeight: 500 }}
+                value={instagramDraft}
+                onChange={function (e) { setInstagramDraft(e.target.value) }}
+                placeholder="tu_usuario"
+                autoFocus
+              />
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: 'rgba(255,255,255,0.6)' }}>
+                <input
+                  type="checkbox"
+                  checked={showInstagramDraft}
+                  onChange={function (e) { setShowInstagramDraft(e.target.checked) }}
+                />
+                Mostrar en mi perfil público (apagado por defecto)
+              </label>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button type="button" onClick={saveInstagram} disabled={savingInstagram} style={{ color: '#F4D03F', fontWeight: 700 }}>
+                  {savingInstagram ? 'Guardando…' : 'Guardar'}
+                </button>
+                <button type="button" onClick={function () { setEditingInstagram(false) }} style={{ color: 'rgba(255,255,255,0.5)' }}>
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {pickingAvatar && !participant.photo_url && (

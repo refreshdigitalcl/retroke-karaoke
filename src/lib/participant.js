@@ -34,7 +34,7 @@ export function getDeviceId() {
   }
 }
 
-var PARTICIPANT_FIELDS = 'id, display_name, avatar, photo_url, username, user_id, claimed_at'
+var PARTICIPANT_FIELDS = 'id, display_name, avatar, photo_url, username, user_id, claimed_at, instagram_handle, show_instagram'
 
 // Si hay una sesion de Google activa, la identidad real es esa cuenta, no
 // el dispositivo. Devuelve el usuario autenticado o null si esta cantando
@@ -164,6 +164,24 @@ export async function updateParticipantPhoto(supabase, participantId, photoUrl) 
     return { error: result.error ? result.error.message : null }
   } catch (e) {
     return { error: e && e.message ? e.message : 'No se pudo guardar la foto' }
+  }
+}
+
+// Fase 10 de Retroke World: puente opcional a Instagram (punto 21 del
+// prompt maestro) -- apagado por defecto, la persona decide si lo activa.
+// No es una conexion real con la API de Instagram, es solo el handle que
+// la persona escribe a mano, igual de simple que el nombre o el avatar.
+export async function updateInstagramSettings(supabase, participantId, handle, show) {
+  if (!participantId) return { error: 'Sin perfil' }
+  try {
+    var cleanHandle = (handle || '').trim().replace(/^@/, '')
+    var result = await supabase
+      .from('participants')
+      .update({ instagram_handle: cleanHandle || null, show_instagram: !!show && !!cleanHandle })
+      .eq('id', participantId)
+    return { error: result.error ? result.error.message : null }
+  } catch (e) {
+    return { error: e && e.message ? e.message : 'No se pudo guardar' }
   }
 }
 
