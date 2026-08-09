@@ -34,7 +34,7 @@ export function getDeviceId() {
   }
 }
 
-var PARTICIPANT_FIELDS = 'id, display_name, avatar, username, user_id, claimed_at'
+var PARTICIPANT_FIELDS = 'id, display_name, avatar, photo_url, username, user_id, claimed_at'
 
 // Si hay una sesion de Google activa, la identidad real es esa cuenta, no
 // el dispositivo. Devuelve el usuario autenticado o null si esta cantando
@@ -147,6 +147,24 @@ export async function touchParticipantProfile(supabase, participantId, displayNa
       .update({ display_name: displayName, avatar: avatar })
       .eq('id', participantId)
   } catch (e) {}
+}
+
+// Foto de perfil real (opcional), separada del emoji de avatar -- se guarda
+// desde /perfil y despues se usa como prellenado en el circulo de "selfie"
+// del formulario de inscripcion, para no tener que subirla cada vez que se
+// va a cantar. Igual que el resto de este archivo, nunca lanza error: si
+// falla, el perfil sigue funcionando con el emoji de siempre.
+export async function updateParticipantPhoto(supabase, participantId, photoUrl) {
+  if (!participantId) return { error: 'Sin perfil' }
+  try {
+    var result = await supabase
+      .from('participants')
+      .update({ photo_url: photoUrl })
+      .eq('id', participantId)
+    return { error: result.error ? result.error.message : null }
+  } catch (e) {
+    return { error: e && e.message ? e.message : 'No se pudo guardar la foto' }
+  }
 }
 
 // Login opcional: conecta la cuenta de Google de la persona con su perfil.

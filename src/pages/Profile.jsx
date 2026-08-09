@@ -2,7 +2,35 @@ import { useEffect, useState, useCallback } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { LEVELS, computeLevel } from '../lib/gamification'
-import { getOrCreateParticipant, touchParticipantProfile, signInWithGoogle, signOutParticipant } from '../lib/participant'
+import { getOrCreateParticipant, touchParticipantProfile, updateParticipantPhoto, signInWithGoogle, signOutParticipant } from '../lib/participant'
+
+// Misma tecnica que resizeToSquareJpeg en RegisterForm.jsx (PNG en vez de
+// JPEG a proposito: algunos Smart TV con Chrome embebido decodifican mal el
+// JPEG que genera el canvas del celular y la foto sale con tono verde).
+function resizeToSquarePng(file) {
+  return new Promise(function (resolve, reject) {
+    var reader = new FileReader()
+    reader.onload = function (e) {
+      var img = new Image()
+      img.onload = function () {
+        var size = 240
+        var canvas = document.createElement('canvas')
+        canvas.width = size
+        canvas.height = size
+        var ctx = canvas.getContext('2d')
+        var side = Math.min(img.width, img.height)
+        var sx = (img.width - side) / 2
+        var sy = (img.height - side) / 2
+        ctx.drawImage(img, sx, sy, side, side, 0, 0, size, size)
+        resolve(canvas.toDataURL('image/png'))
+      }
+      img.onerror = reject
+      img.src = e.target.result
+    }
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
+}
 
 // "Esto soy yo, esto he logrado" — el perfil propio del participante.
 // Funciona igual sin login (identidad por dispositivo, Fase B) o con Google
@@ -39,6 +67,7 @@ export default function Profile() {
   var [nameDraft, setNameDraft] = useState('')
   var [pickingAvatar, setPickingAvatar] = useState(false)
   var [connectState, setConnectState] = useState('')
+  var [uploadingPhoto, setUploadingPhoto] = useState(false)
 
   var load = useCallback(function () {
     setLoading(true)
@@ -137,6 +166,33 @@ export default function Profile() {
     })
   }
 
+  function handlePhotoChange(e) {
+    var file = e.target.files && e.target.files[0]
+    if (!file || !participant) return
+    setUploadingPhoto(true)
+    resizeToSquarePng(file)
+      .then(function (dataUrl) {
+        return updateParticipantPhoto(supabase, participant.id, dataUrl).then(function (result) {
+          setUploadingPhoto(false)
+          if (!result.error) {
+            setParticipant(function (prev) { return prev ? { ...prev, photo_url: dataUrl } : prev })
+          }
+        })
+      })
+      .catch(function () {
+        setUploadingPhoto(false)
+      })
+  }
+
+  function handleRemovePhoto() {
+    if (!participant) return
+    updateParticipantPhoto(supabase, participant.id, null).then(function (result) {
+      if (!result.error) {
+        setParticipant(function (prev) { return prev ? { ...prev, photo_url: null } : prev })
+      }
+    })
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-page)', color: '#fff' }}>
@@ -190,12 +246,23 @@ export default function Profile() {
         .profile-history-meta { font-size: 12px; color: rgba(255,255,255,0.5); }
         .profile-history-nota { font-weight: 700; color: #F4D03F; flex-shrink: 0; }
         .profile-connect-banner { border-radius: 16px; padding: 14px 16px; background: rgba(139,92,246,0.15); border: 1px solid rgba(139,92,246,0.4); display: flex; flex-direction: column; gap: 8px; }
+        .profile-avatar-btn { overflow: hidden; padding: 0; }
+        .profile-avatar-photo { width: 100%; height: 100%; object-fit: cover; border-radius: 9999px; }
+        .profile-photo-btn { font-size: 12px; font-weight: 600; color: #8B5CF6; cursor: pointer; }
       `}</style>
 
       <div className="profile-wrap">
         <div className="profile-card" style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-          <button type="button" className="profile-avatar-btn" onClick={function () { setPickingAvatar(!pickingAvatar) }}>
-            {participant.avatar || '🎤'}
+          <button
+            type="button"
+            className="profile-avatar-btn"
+            onClick={function () { if (!participant.photo_url) setPickingAvatar(!pickingAvatar) }}
+          >
+            {participant.photo_url ? (
+              <img src={participant.photo_url} alt="" className="profile-avatar-photo" />
+            ) : (
+              participant.avatar || '🎤'
+            )}
           </button>
           <div style={{ flex: 1, minWidth: 0 }}>
             {editingName ? (
@@ -214,10 +281,21 @@ export default function Profile() {
               </div>
             )}
             <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', marginTop: 4 }}>🏅 {levelInfo.name}</div>
+            <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
+              <label className="profile-photo-btn">
+                {uploadingPhoto ? 'Subiendo...' : participant.photo_url ? '📷 Cambiar foto' : '📷 Subir foto'}
+                <input type="file" accept="image/*" onChange={handlePhotoChange} disabled={uploadingPhoto} className="hidden" />
+              </label>
+              {participant.photo_url && (
+                <button type="button" onClick={handleRemovePhoto} className="profile-photo-btn" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                  Quitar foto
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
-        {pickingAvatar && (
+        {pickingAvatar && !participant.photo_url && (
           <div className="profile-card">
             <div className="profile-avatar-grid">
               {AVATAR_OPTIONS.map(function (emoji) {

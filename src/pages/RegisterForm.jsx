@@ -925,6 +925,11 @@ export default function RegisterForm() {
         prefilledFromParticipantRef.current = true
         if (p.display_name) setName(p.display_name)
         if (p.avatar) setAvatar(p.avatar)
+        // Si ya subio una foto de perfil desde /perfil, se usa como selfie
+        // por defecto -- asi no tiene que volver a tomarsela cada vez que
+        // se anota para cantar. Igual puede cambiarla o quitarla en el
+        // formulario como antes.
+        if (p.photo_url) setPhoto(p.photo_url)
       }
     })
     return function () { cancelled = true }
