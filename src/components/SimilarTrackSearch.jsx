@@ -57,7 +57,11 @@ export default function SimilarTrackSearch(props) {
       var items = (data && data.items) || []
       setResults(items)
       nextTokenRef.current = (data && data.nextPageToken) || null
-      setStatus(items.length > 0 ? 'done' : 'empty')
+      if (data && data.error === 'quota') {
+        setStatus('quota')
+      } else {
+        setStatus(items.length > 0 ? 'done' : 'empty')
+      }
     })
   }
 
@@ -109,6 +113,21 @@ export default function SimilarTrackSearch(props) {
         <div>
           <p className="text-xs mb-1.5" style={{ color: 'var(--text-muted)' }}>
             No se encontraron resultados por ahora.
+          </p>
+          <button
+            onClick={handleSearch}
+            className="text-xs px-3 py-1.5 rounded-lg border"
+            style={{ borderColor: 'var(--accent-yellow)', color: 'var(--accent-yellow)' }}
+          >
+            Reintentar busqueda
+          </button>
+        </div>
+      )}
+
+      {status === 'quota' && (
+        <div>
+          <p className="text-xs mb-1.5" style={{ color: 'var(--accent-magenta)' }}>
+            Se alcanzo el limite diario de busquedas de YouTube. Puedes pegar el link manualmente, o intenta de nuevo mas tarde.
           </p>
           <button
             onClick={handleSearch}

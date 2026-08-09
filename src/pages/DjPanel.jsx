@@ -1688,7 +1688,6 @@ function DjPanelInner() {
               )}
               {screenMode === 'rating' && (
                 <>
-                  <DjRatingShortcut submitRating={submitRating} />
                   <button
                     onClick={closeVoting}
                     className="px-4 h-10 rounded-lg text-sm font-medium text-white"
@@ -2152,19 +2151,6 @@ function screenLabel(mode) {
   if (mode === 'reactions') return 'reacciones en vivo'
   if (mode === 'rating') return 'calificacion'
   return 'cola'
-}
-
-function DjRatingShortcut(props) {
-  return (
-    <button
-      onClick={function () { props.submitRating(8) }}
-      className="px-4 h-10 rounded-lg text-sm border"
-      style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}
-      title="Solo para pruebas"
-    >
-      Simular voto de prueba
-    </button>
-  )
 }
 
 class DjPanelErrorBoundary extends Component {
