@@ -6,6 +6,7 @@ import { getOrCreateParticipant, touchParticipantProfile, updateParticipantPhoto
 import { getGlobalXpRank } from '../lib/ranking'
 import { loadReceivedChallenges } from '../lib/challenges'
 import { loadFollowCounts, loadFollowingList, loadFollowersList } from '../lib/follows'
+import { loadStatuses, createStatus, deleteStatus, STATUS_MAX_LENGTH } from '../lib/statuses'
 
 // Misma tecnica que resizeToSquareJpeg en RegisterForm.jsx (PNG en vez de
 // JPEG a proposito: algunos Smart TV con Chrome embebido decodifican mal el
@@ -76,6 +77,10 @@ export default function Profile() {
   var [followCounts, setFollowCounts] = useState(null)
   var [followingList, setFollowingList] = useState(null)
   var [followersList, setFollowersList] = useState(null)
+  var [statuses, setStatuses] = useState(null)
+  var [statusDraft, setStatusDraft] = useState('')
+  var [postingStatus, setPostingStatus] = useState(false)
+  var [statusError, setStatusError] = useState(null)
 
   var load = useCallback(function () {
     setLoading(true)
@@ -100,7 +105,8 @@ export default function Profile() {
           loadReceivedChallenges(supabase, p.id),
           loadFollowCounts(supabase, p.id),
           loadFollowingList(supabase, p.id),
-          loadFollowersList(supabase, p.id)
+          loadFollowersList(supabase, p.id),
+          loadStatuses(supabase, p.id, p.id)
         ]).then(function (results) {
           var statsResult = results[0]
           var achievementsResult = results[1]
@@ -111,6 +117,7 @@ export default function Profile() {
           setFollowCounts(results[5])
           setFollowingList(results[6] || [])
           setFollowersList(results[7] || [])
+          setStatuses(results[8] || [])
 
           setStats(statsResult.data || null)
           setAchievements(achievementsResult.data || [])
@@ -230,6 +237,32 @@ export default function Profile() {
     })
   }
 
+  // Fase 9: "Estados" -- texto libre corto, solo con Google conectado (ver
+  // lib/statuses.js). Sin edicion: si algo esta mal, se borra y se publica
+  // de nuevo.
+  function handlePostStatus() {
+    if (!participant) return
+    setStatusError(null)
+    setPostingStatus(true)
+    createStatus(supabase, participant.id, statusDraft).then(function (result) {
+      setPostingStatus(false)
+      if (result.error) {
+        setStatusError(result.error)
+        return
+      }
+      setStatusDraft('')
+      loadStatuses(supabase, participant.id, participant.id).then(setStatuses)
+    })
+  }
+
+  function handleDeleteStatus(statusId) {
+    deleteStatus(supabase, statusId).then(function (result) {
+      if (!result.error) {
+        setStatuses(function (prev) { return (prev || []).filter(function (s) { return s.id !== statusId }) })
+      }
+    })
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-page)', color: '#fff' }}>
@@ -310,6 +343,20 @@ export default function Profile() {
         .profile-follow-row:hover { background: rgba(255,255,255,0.05); }
         .profile-follow-avatar { font-size: 19px; flex-shrink: 0; }
         .profile-follow-name { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .profile-status-input {
+          width: 100%; resize: none; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2);
+          border-radius: 12px; padding: 10px 12px; color: #fff; font-size: 13.5px; font-family: inherit;
+        }
+        .profile-status-post-btn {
+          font-size: 12.5px; font-weight: 700; color: #fff; padding: 7px 16px; border-radius: 999px; border: none; cursor: pointer;
+          background: linear-gradient(90deg, #E91E8C, #8B5CF6);
+        }
+        .profile-status-post-btn:disabled { opacity: 0.4; cursor: default; }
+        .profile-status-card { padding: 10px 12px; border-radius: 12px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); }
+        .profile-status-text { font-size: 13px; line-height: 1.5; word-break: break-word; }
+        .profile-status-footer { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 6px; }
+        .profile-status-date { font-size: 10.5px; color: rgba(255,255,255,0.4); }
+        .profile-status-delete { font-size: 11px; color: rgba(255,255,255,0.4); background: none; border: none; cursor: pointer; text-decoration: underline; }
       `}</style>
 
       <div className="profile-wrap">
@@ -455,6 +502,54 @@ export default function Profile() {
           <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span>Conectado como {authUser.email}</span>
             <button type="button" onClick={handleSignOut} className="underline">Cerrar sesión</button>
+          </div>
+        )}
+
+        {authUser && (
+          <div className="profile-card">
+            <div style={{ fontWeight: 700, marginBottom: 8 }}>💬 Tus estados</div>
+            <textarea
+              className="profile-status-input"
+              value={statusDraft}
+              onChange={function (e) { setStatusDraft(e.target.value) }}
+              placeholder="¿Qué está pasando? (sin comentarios ni DMs, solo reacciones)"
+              maxLength={STATUS_MAX_LENGTH}
+              rows={2}
+            />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
+              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>{statusDraft.length}/{STATUS_MAX_LENGTH}</span>
+              <button
+                type="button"
+                onClick={handlePostStatus}
+                disabled={postingStatus || !statusDraft.trim()}
+                className="profile-status-post-btn"
+              >
+                {postingStatus ? 'Publicando…' : 'Publicar'}
+              </button>
+            </div>
+            {statusError && <div style={{ fontSize: 11.5, color: '#FF6B6B', marginTop: 6 }}>{statusError}</div>}
+
+            {statuses === null && <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginTop: 12 }}>Cargando…</div>}
+            {statuses !== null && statuses.length === 0 && (
+              <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', marginTop: 12 }}>Todavía no has publicado nada.</div>
+            )}
+            {statuses !== null && statuses.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12 }}>
+                {statuses.map(function (s) {
+                  return (
+                    <div key={s.id} className="profile-status-card">
+                      <div className="profile-status-text">{s.text}</div>
+                      <div className="profile-status-footer">
+                        <span className="profile-status-date">
+                          {formatDate(s.createdAt)}{s.totalReactions > 0 ? ' · ' + s.totalReactions + (s.totalReactions === 1 ? ' reacción' : ' reacciones') : ''}
+                        </span>
+                        <button type="button" className="profile-status-delete" onClick={function () { handleDeleteStatus(s.id) }}>Borrar</button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
           </div>
         )}
 

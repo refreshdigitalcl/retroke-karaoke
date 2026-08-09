@@ -5,6 +5,7 @@ import { getOrCreateParticipant } from '../lib/participant'
 import { LEVELS, computeLevel } from '../lib/gamification'
 import { getGlobalXpRank } from '../lib/ranking'
 import { createFollow, deleteFollow, loadFollowCounts } from '../lib/follows'
+import { loadStatuses, toggleReaction, REACTION_EMOJIS } from '../lib/statuses'
 import WorldSection from '../components/world/WorldSection'
 import WorldEmptyState from '../components/world/WorldEmptyState'
 import WorldSkeleton from '../components/world/WorldSkeleton'
@@ -58,6 +59,9 @@ export default function PublicProfile() {
   const [followBusy, setFollowBusy] = useState(false)
   const [followError, setFollowError] = useState(null)
 
+  const [statuses, setStatuses] = useState(null)
+  const [reactingId, setReactingId] = useState(null)
+
   useEffect(() => {
     let cancelled = false
 
@@ -74,15 +78,17 @@ export default function PublicProfile() {
       }
       setTarget(p)
 
-      const [statsResult, achievementsResult, unlockedResult, performancesResult, countsResult] = await Promise.all([
+      const [statsResult, achievementsResult, unlockedResult, performancesResult, countsResult, statusesResult] = await Promise.all([
         supabase.from('participant_stats').select('*').eq('participant_id', p.id).maybeSingle(),
         supabase.from('achievements').select('*').order('sort_order', { ascending: true }),
         supabase.from('participant_achievements').select('achievement_code, unlocked_at').eq('participant_id', p.id),
         supabase.from('performances').select('id, song, artist_name, artwork_url, nota_final, created_at').eq('participant_id', p.id).order('created_at', { ascending: false }).limit(20),
-        loadFollowCounts(supabase, p.id)
+        loadFollowCounts(supabase, p.id),
+        loadStatuses(supabase, p.id, null)
       ])
       if (cancelled) return
 
+      setStatuses(statusesResult)
       setStats(statsResult.data || null)
       if (statsResult.data) getGlobalXpRank(supabase, statsResult.data.xp).then((r) => { if (!cancelled) setRank(r) })
       setAchievements(achievementsResult.data || [])
@@ -106,6 +112,11 @@ export default function PublicProfile() {
           .maybeSingle()
         if (!cancelled) setIsFollowing(!!existing)
       }
+
+      // Recarga los estados ahora que sabemos quien mira, para marcar cual
+      // reaccion es la propia (myReaction) -- la primera carga de arriba no
+      // podia saberlo todavia.
+      loadStatuses(supabase, p.id, myParticipant.id).then((s) => { if (!cancelled) setStatuses(s) })
     }
 
     load().catch(() => { if (!cancelled) setTarget(null) })
@@ -127,6 +138,22 @@ export default function PublicProfile() {
     }
     setIsFollowing(!isFollowing)
     setCounts((prev) => prev ? { ...prev, followers: prev.followers + (isFollowing ? -1 : 1) } : prev)
+  }
+
+  async function handleReact(status, emoji) {
+    if (!viewer || !viewer.hasGoogle) return
+    setReactingId(status.id)
+    const result = await toggleReaction(supabase, status.id, viewer.participantId, emoji, status.myReaction)
+    setReactingId(null)
+    if (result.error) return
+    setStatuses((prev) => prev.map((s) => {
+      if (s.id !== status.id) return s
+      const counts = { ...s.reactionCounts }
+      if (s.myReaction) counts[s.myReaction] = Math.max(0, (counts[s.myReaction] || 1) - 1)
+      if (result.myReaction) counts[result.myReaction] = (counts[result.myReaction] || 0) + 1
+      const total = Object.values(counts).reduce((a, b) => a + b, 0)
+      return { ...s, reactionCounts: counts, totalReactions: total, myReaction: result.myReaction }
+    }))
   }
 
   if (target === null) {
@@ -176,6 +203,18 @@ export default function PublicProfile() {
         .pp-hist-song { font-weight: 700; font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .pp-hist-meta { font-size: 11.5px; color: rgba(255,255,255,0.5); }
         .pp-hist-nota { font-weight: 700; color: #F4D03F; flex-shrink: 0; }
+        .pp-status-list { display: flex; flex-direction: column; gap: 10px; }
+        .pp-status-card { padding: 12px 14px; border-radius: 14px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); }
+        .pp-status-text { font-size: 13.5px; line-height: 1.5; word-break: break-word; }
+        .pp-status-footer { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 8px; flex-wrap: wrap; }
+        .pp-status-date { font-size: 10.5px; color: rgba(255,255,255,0.4); }
+        .pp-status-reactions { display: flex; gap: 4px; flex-wrap: wrap; }
+        .pp-reaction-btn {
+          font-size: 12px; padding: 3px 7px; border-radius: 999px; cursor: pointer;
+          background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.8);
+        }
+        .pp-reaction-btn.mine { background: rgba(244,208,63,0.15); border-color: rgba(244,208,63,0.5); }
+        .pp-reaction-btn:disabled { cursor: default; opacity: 0.6; }
       `}</style>
 
       <div className="world-inner">
@@ -215,6 +254,42 @@ export default function PublicProfile() {
                 </div>
               )}
             </div>
+
+            <WorldSection eyebrow="Estados" title="💬 Estados">
+              {statuses === null && <WorldSkeleton lines={2} />}
+              {statuses !== null && statuses.length === 0 && (
+                <WorldEmptyState icon="💬" message="Todavía no ha publicado nada." />
+              )}
+              {statuses !== null && statuses.length > 0 && (
+                <div className="pp-status-list">
+                  {statuses.map((s) => (
+                    <div key={s.id} className="pp-status-card">
+                      <div className="pp-status-text">{s.text}</div>
+                      <div className="pp-status-footer">
+                        <span className="pp-status-date">{formatDate(s.createdAt)}</span>
+                        <div className="pp-status-reactions">
+                          {REACTION_EMOJIS.map((emoji) => {
+                            const count = s.reactionCounts[emoji] || 0
+                            const mine = s.myReaction === emoji
+                            return (
+                              <button
+                                key={emoji}
+                                type="button"
+                                className={'pp-reaction-btn' + (mine ? ' mine' : '')}
+                                onClick={() => handleReact(s, emoji)}
+                                disabled={!viewer || !viewer.hasGoogle || reactingId === s.id}
+                              >
+                                {emoji}{count > 0 ? ' ' + count : ''}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </WorldSection>
 
             <WorldSection eyebrow="Experiencia" title="⭐ Su experiencia">
               <div className="world-xp-track">
