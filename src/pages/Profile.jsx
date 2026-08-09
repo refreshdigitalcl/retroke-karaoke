@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { LEVELS, computeLevel } from '../lib/gamification'
 import { getOrCreateParticipant, touchParticipantProfile, updateParticipantPhoto, signInWithGoogle, signOutParticipant } from '../lib/participant'
+import { getGlobalXpRank } from '../lib/ranking'
 
 // Misma tecnica que resizeToSquareJpeg en RegisterForm.jsx (PNG en vez de
 // JPEG a proposito: algunos Smart TV con Chrome embebido decodifican mal el
@@ -68,6 +69,7 @@ export default function Profile() {
   var [pickingAvatar, setPickingAvatar] = useState(false)
   var [connectState, setConnectState] = useState('')
   var [uploadingPhoto, setUploadingPhoto] = useState(false)
+  var [rank, setRank] = useState(null)
 
   var load = useCallback(function () {
     setLoading(true)
@@ -97,6 +99,7 @@ export default function Profile() {
 
           setStats(statsResult.data || null)
           setAchievements(achievementsResult.data || [])
+          getGlobalXpRank(supabase, statsResult.data ? statsResult.data.xp : 0).then(setRank)
 
           var map = {}
           ;(unlockedResult.data || []).forEach(function (row) {
@@ -299,7 +302,24 @@ export default function Profile() {
                 {participant.display_name || 'Cantante Retroke'} <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>✏️</span>
               </div>
             )}
-            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', marginTop: 4 }}>🏅 {levelInfo.name}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>🏅 {levelInfo.name}</span>
+              {rank && (
+                <span
+                  style={{
+                    fontSize: 11.5,
+                    fontWeight: 700,
+                    color: '#F4D03F',
+                    background: 'rgba(244,208,63,0.12)',
+                    border: '1px solid rgba(244,208,63,0.4)',
+                    borderRadius: 999,
+                    padding: '2px 9px'
+                  }}
+                >
+                  #{rank.rank} de {rank.total} en Retroke
+                </span>
+              )}
+            </div>
             <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
               <label className="profile-photo-btn">
                 {uploadingPhoto ? 'Subiendo...' : participant.photo_url ? '📷 Cambiar foto' : '📷 Subir foto'}

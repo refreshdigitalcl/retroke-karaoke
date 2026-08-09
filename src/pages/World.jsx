@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { getOrCreateParticipant } from '../lib/participant'
 import { LEVELS, computeLevel } from '../lib/gamification'
+import { getGlobalXpRank } from '../lib/ranking'
 import WorldHero from '../components/world/WorldHero'
 import WorldLive from '../components/world/WorldLive'
 import WorldSection from '../components/world/WorldSection'
@@ -110,7 +111,8 @@ async function loadMyExperience() {
     .select('xp, level_name, total_performances, current_streak, best_score')
     .eq('participant_id', participant.id)
     .maybeSingle()
-  return { participant, stats: stats || null }
+  const rank = await getGlobalXpRank(supabase, stats ? stats.xp : 0)
+  return { participant, stats: stats || null, rank }
 }
 
 function NowPlayingCard(props) {
@@ -352,11 +354,12 @@ export default function World() {
           </WorldSection>
 
           <WorldSection
+            size="lg"
             eyebrow="Tu progreso"
             title="⭐ Tu Experiencia"
-            action={<Link to="/perfil" className="world-section-action">Ver perfil →</Link>}
+            action={<Link to="/perfil" className="world-section-action">Ver perfil completo →</Link>}
           >
-            {experience === undefined && <WorldSkeleton lines={3} />}
+            {experience === undefined && <WorldSkeleton lines={4} />}
             {experience === null && (
               <WorldEmptyState
                 icon="🎤"
@@ -365,31 +368,68 @@ export default function World() {
             )}
             {experience && (
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
                   {experience.participant.photo_url ? (
                     <img
                       src={experience.participant.photo_url}
                       alt=""
-                      style={{ width: 32, height: 32, borderRadius: 9999, objectFit: 'cover', flexShrink: 0 }}
+                      style={{ width: 44, height: 44, borderRadius: 9999, objectFit: 'cover', flexShrink: 0, border: '2px solid rgba(244,208,63,0.5)' }}
                     />
                   ) : (
-                    <span style={{ fontSize: 26, flexShrink: 0 }}>{experience.participant.avatar || '🎤'}</span>
+                    <span
+                      style={{
+                        fontSize: 26, width: 44, height: 44, borderRadius: 9999, flexShrink: 0,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        background: 'rgba(233,30,140,0.15)', border: '2px solid rgba(244,208,63,0.5)'
+                      }}
+                    >
+                      {experience.participant.avatar || '🎤'}
+                    </span>
                   )}
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontWeight: 700, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ fontWeight: 700, fontSize: 16, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {experience.participant.display_name || 'Cantante Retroke'}
                     </div>
-                    <div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.5)' }}>
-                      {levelInfo ? levelInfo.name : 'Novato del Micrófono'}
+                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
+                      🏅 {levelInfo ? levelInfo.name : 'Novato del Micrófono'}
                     </div>
                   </div>
+                  {experience.rank && (
+                    <span
+                      style={{
+                        fontSize: 12, fontWeight: 700, color: '#F4D03F',
+                        background: 'rgba(244,208,63,0.12)', border: '1px solid rgba(244,208,63,0.4)',
+                        borderRadius: 999, padding: '4px 11px', whiteSpace: 'nowrap'
+                      }}
+                    >
+                      #{experience.rank.rank} de {experience.rank.total}
+                    </span>
+                  )}
                 </div>
+
                 <div className="world-xp-track">
                   <div className="world-xp-fill" style={{ width: xpProgressPct + '%' }} />
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 6 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 6, marginBottom: 14 }}>
                   <span>{experience.stats ? experience.stats.xp || 0 : 0} XP</span>
-                  <span>{experience.stats ? experience.stats.total_performances || 0 : 0} presentaciones</span>
+                  <span>{nextLevel ? nextLevel.minXp + ' XP para ' + nextLevel.name : 'Nivel máximo 🎉'}</span>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+                  <div style={{ textAlign: 'center', padding: '8px 4px', borderRadius: 12, background: 'rgba(255,255,255,0.05)' }}>
+                    <div style={{ fontSize: 17, fontWeight: 800 }}>{experience.stats ? experience.stats.total_performances || 0 : 0}</div>
+                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>Presentaciones</div>
+                  </div>
+                  <div style={{ textAlign: 'center', padding: '8px 4px', borderRadius: 12, background: 'rgba(255,255,255,0.05)' }}>
+                    <div style={{ fontSize: 17, fontWeight: 800 }}>
+                      {experience.stats && experience.stats.best_score !== null && experience.stats.best_score !== undefined ? experience.stats.best_score : '—'}
+                    </div>
+                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>Retroke Score</div>
+                  </div>
+                  <div style={{ textAlign: 'center', padding: '8px 4px', borderRadius: 12, background: 'rgba(255,255,255,0.05)' }}>
+                    <div style={{ fontSize: 17, fontWeight: 800 }}>{experience.stats ? experience.stats.current_streak || 0 : 0} 🔥</div>
+                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>Racha actual</div>
+                  </div>
                 </div>
               </div>
             )}
