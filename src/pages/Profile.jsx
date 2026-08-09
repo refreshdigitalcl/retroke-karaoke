@@ -5,6 +5,7 @@ import { LEVELS, computeLevel } from '../lib/gamification'
 import { getOrCreateParticipant, touchParticipantProfile, updateParticipantPhoto, signInWithGoogle, signOutParticipant } from '../lib/participant'
 import { getGlobalXpRank } from '../lib/ranking'
 import { loadReceivedChallenges } from '../lib/challenges'
+import { loadFollowCounts, loadFollowingList, loadFollowersList } from '../lib/follows'
 
 // Misma tecnica que resizeToSquareJpeg en RegisterForm.jsx (PNG en vez de
 // JPEG a proposito: algunos Smart TV con Chrome embebido decodifican mal el
@@ -72,6 +73,9 @@ export default function Profile() {
   var [uploadingPhoto, setUploadingPhoto] = useState(false)
   var [rank, setRank] = useState(null)
   var [pendingChallengeCount, setPendingChallengeCount] = useState(0)
+  var [followCounts, setFollowCounts] = useState(null)
+  var [followingList, setFollowingList] = useState(null)
+  var [followersList, setFollowersList] = useState(null)
 
   var load = useCallback(function () {
     setLoading(true)
@@ -93,13 +97,20 @@ export default function Profile() {
           supabase.from('achievements').select('*').order('sort_order', { ascending: true }),
           supabase.from('participant_achievements').select('achievement_code, unlocked_at').eq('participant_id', p.id),
           supabase.from('performances').select('id, song, artist_name, artwork_url, nota_final, vocal_score, created_at').eq('participant_id', p.id).order('created_at', { ascending: false }).limit(50),
-          loadReceivedChallenges(supabase, p.id)
+          loadReceivedChallenges(supabase, p.id),
+          loadFollowCounts(supabase, p.id),
+          loadFollowingList(supabase, p.id),
+          loadFollowersList(supabase, p.id)
         ]).then(function (results) {
           var statsResult = results[0]
           var achievementsResult = results[1]
           var unlockedResult = results[2]
           var performancesResult = results[3]
           var receivedChallenges = results[4] || []
+
+          setFollowCounts(results[5])
+          setFollowingList(results[6] || [])
+          setFollowersList(results[7] || [])
 
           setStats(statsResult.data || null)
           setAchievements(achievementsResult.data || [])
@@ -291,6 +302,14 @@ export default function Profile() {
         .profile-avatar-btn { overflow: hidden; padding: 0; }
         .profile-avatar-photo { width: 100%; height: 100%; object-fit: cover; border-radius: 9999px; }
         .profile-photo-btn { font-size: 12px; font-weight: 600; color: #8B5CF6; cursor: pointer; }
+        .profile-follow-subtitle { font-size: 11.5px; font-weight: 700; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+        .profile-follow-empty { font-size: 12.5px; color: rgba(255,255,255,0.45); padding: 2px 0 4px; }
+        .profile-follow-link { color: #F4D03F; text-decoration: underline; }
+        .profile-follow-list { display: flex; flex-direction: column; gap: 2px; }
+        .profile-follow-row { display: flex; align-items: center; gap: 10px; padding: 7px 4px; border-radius: 10px; text-decoration: none; color: inherit; }
+        .profile-follow-row:hover { background: rgba(255,255,255,0.05); }
+        .profile-follow-avatar { font-size: 19px; flex-shrink: 0; }
+        .profile-follow-name { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       `}</style>
 
       <div className="profile-wrap">
@@ -379,6 +398,11 @@ export default function Profile() {
                   }}
                 >
                   #{rank.rank} de {rank.total} en Retroke
+                </span>
+              )}
+              {followCounts && (
+                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
+                  <strong style={{ color: '#fff' }}>{followCounts.followers}</strong> seguidores · <strong style={{ color: '#fff' }}>{followCounts.following}</strong> siguiendo
                 </span>
               )}
             </div>
@@ -515,6 +539,48 @@ export default function Profile() {
               </div>
             )
           })}
+        </div>
+
+        <div className="profile-card">
+          <div style={{ fontWeight: 700, marginBottom: 8 }}>👥 Comunidad</div>
+
+          <div className="profile-follow-subtitle">Sigues a</div>
+          {followingList === null && <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>Cargando…</div>}
+          {followingList !== null && followingList.length === 0 && (
+            <div className="profile-follow-empty">
+              Todavía no sigues a nadie. Ve al <Link to="/ranking" className="profile-follow-link">Ranking Retroke</Link> y sigue a alguien.
+            </div>
+          )}
+          {followingList !== null && followingList.length > 0 && (
+            <div className="profile-follow-list">
+              {followingList.map(function (f) {
+                return (
+                  <Link key={f.participantId} to={'/u/' + f.participantId} className="profile-follow-row">
+                    <span className="profile-follow-avatar">{f.avatar}</span>
+                    <span className="profile-follow-name">{f.name}</span>
+                  </Link>
+                )
+              })}
+            </div>
+          )}
+
+          <div className="profile-follow-subtitle" style={{ marginTop: 16 }}>Te siguen</div>
+          {followersList === null && <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>Cargando…</div>}
+          {followersList !== null && followersList.length === 0 && (
+            <div className="profile-follow-empty">Todavía nadie te sigue.</div>
+          )}
+          {followersList !== null && followersList.length > 0 && (
+            <div className="profile-follow-list">
+              {followersList.map(function (f) {
+                return (
+                  <Link key={f.participantId} to={'/u/' + f.participantId} className="profile-follow-row">
+                    <span className="profile-follow-avatar">{f.avatar}</span>
+                    <span className="profile-follow-name">{f.name}</span>
+                  </Link>
+                )
+              })}
+            </div>
+          )}
         </div>
 
         <Link to={backToRegistroHref} className="text-center text-sm underline" style={{ color: 'rgba(255,255,255,0.5)' }}>

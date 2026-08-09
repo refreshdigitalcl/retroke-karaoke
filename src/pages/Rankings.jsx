@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { getOrCreateParticipant } from '../lib/participant'
 import { createDirectChallenge } from '../lib/challenges'
+import { loadFollowingIds, createFollow, deleteFollow } from '../lib/follows'
 import { resolveVenue, loadVenueRanking as loadVenueRankingRows } from '../lib/venue'
 import WorldSection from '../components/world/WorldSection'
 import WorldEmptyState from '../components/world/WorldEmptyState'
@@ -168,13 +169,20 @@ async function loadVenueRanking(barSlug, wsId) {
 // tambien tiene cuenta Google (si no, el desafio ni se podria ver despues,
 // ver lib/challenges.js). Sin aceptar/rechazar: al confirmar se crea el
 // desafio y aparece directo en "Desafios recibidos" de esa persona.
+//
+// Fase 8: boton "Seguir" al lado -- mismo criterio de Google en ambos
+// lados. El nombre/avatar de cada fila ademas linkea al perfil publico
+// (/u/:id, ver lib/follows.js y PublicProfile.jsx).
 function RankingList(props) {
   const rows = props.rows
   const viewer = props.viewer
+  const followingIds = props.followingIds
+  const onToggleFollow = props.onToggleFollow
   const [confirmingId, setConfirmingId] = useState(null)
   const [sendingId, setSendingId] = useState(null)
   const [sentIds, setSentIds] = useState({})
   const [errorId, setErrorId] = useState(null)
+  const [followBusyId, setFollowBusyId] = useState(null)
 
   if (rows === null) return <WorldSkeleton lines={4} />
   if (rows.length === 0) return <WorldEmptyState icon="🏆" message={props.emptyMessage} />
@@ -192,6 +200,12 @@ function RankingList(props) {
     }
   }
 
+  async function handleToggleFollow(row) {
+    setFollowBusyId(row.participantId)
+    await onToggleFollow(row)
+    setFollowBusyId(null)
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       {rows.map((row, i) => {
@@ -199,34 +213,54 @@ function RankingList(props) {
           viewer && viewer.hasGoogle && viewer.bestScore !== null &&
           row.hasGoogle && row.participantId !== viewer.participantId
         )
+        const canFollow = !!(
+          viewer && viewer.hasGoogle &&
+          row.hasGoogle && row.participantId !== viewer.participantId
+        )
+        const isFollowing = followingIds && followingIds.has(row.participantId)
         return (
           <div key={row.participantId + i}>
             <div className="world-rank-row">
               <div className="world-rank-medal">{MEDALS[i] || '#' + (i + 1)}</div>
-              <div className="world-rank-avatar">{row.avatar}</div>
-              <div className="world-rank-info">
-                <div className="world-rank-name">{row.name}</div>
-                {row.meta && <div className="world-rank-level">{row.meta}</div>}
-              </div>
+              <Link to={'/u/' + row.participantId} style={{ display: 'contents', color: 'inherit', textDecoration: 'none' }}>
+                <div className="world-rank-avatar">{row.avatar}</div>
+                <div className="world-rank-info">
+                  <div className="world-rank-name">{row.name}</div>
+                  {row.meta && <div className="world-rank-level">{row.meta}</div>}
+                </div>
+              </Link>
               <div className="world-rank-xp">{row.primary}</div>
             </div>
 
-            {canChallenge && (
-              <div className="rk-challenge-row">
-                {sentIds[row.participantId] ? (
-                  <span className="rk-challenge-sent">Desafío enviado ✓</span>
-                ) : confirmingId === row.participantId ? (
-                  <span className="rk-challenge-confirm">
-                    ¿Retarlo a superar tu {viewer.bestScore}?
-                    <button type="button" className="rk-challenge-yes" onClick={() => handleConfirm(row)} disabled={sendingId === row.participantId}>
-                      {sendingId === row.participantId ? 'Enviando…' : 'Sí, desafiar'}
-                    </button>
-                    <button type="button" className="rk-challenge-no" onClick={() => setConfirmingId(null)}>Cancelar</button>
-                  </span>
-                ) : (
-                  <button type="button" className="rk-challenge-btn" onClick={() => setConfirmingId(row.participantId)}>
-                    🥊 Desafiar a superar tu {viewer.bestScore}
+            {(canChallenge || canFollow) && (
+              <div className="rk-challenge-row" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                {canFollow && (
+                  <button
+                    type="button"
+                    className={'rk-follow-btn' + (isFollowing ? ' following' : '')}
+                    onClick={() => handleToggleFollow(row)}
+                    disabled={followBusyId === row.participantId}
+                  >
+                    {followBusyId === row.participantId ? '...' : isFollowing ? '✓ Siguiendo' : '➕ Seguir'}
                   </button>
+                )}
+
+                {canChallenge && (
+                  sentIds[row.participantId] ? (
+                    <span className="rk-challenge-sent">Desafío enviado ✓</span>
+                  ) : confirmingId === row.participantId ? (
+                    <span className="rk-challenge-confirm">
+                      ¿Retarlo a superar tu {viewer.bestScore}?
+                      <button type="button" className="rk-challenge-yes" onClick={() => handleConfirm(row)} disabled={sendingId === row.participantId}>
+                        {sendingId === row.participantId ? 'Enviando…' : 'Sí, desafiar'}
+                      </button>
+                      <button type="button" className="rk-challenge-no" onClick={() => setConfirmingId(null)}>Cancelar</button>
+                    </span>
+                  ) : (
+                    <button type="button" className="rk-challenge-btn" onClick={() => setConfirmingId(row.participantId)}>
+                      🥊 Desafiar a superar tu {viewer.bestScore}
+                    </button>
+                  )
                 )}
                 {errorId === row.participantId && <span className="rk-challenge-error">No se pudo enviar, intenta de nuevo.</span>}
               </div>
@@ -246,6 +280,7 @@ export default function Rankings() {
   const [cities, setCities] = useState([])
   const [rows, setRows] = useState(null)
   const [viewer, setViewer] = useState(null)
+  const [followingIds, setFollowingIds] = useState(new Set())
 
   const barSlug = getParam('bar')
   const wsId = getParam('ws')
@@ -253,8 +288,38 @@ export default function Rankings() {
 
   useEffect(() => {
     loadAvailableCities().then(setCities).catch(() => setCities([]))
-    loadViewerContext().then(setViewer).catch(() => setViewer(null))
+    loadViewerContext().then((v) => {
+      setViewer(v)
+      if (v && v.hasGoogle) {
+        loadFollowingIds(supabase, v.participantId).then(setFollowingIds)
+      }
+    }).catch(() => setViewer(null))
   }, [])
+
+  // Fase 8: toggle optimista -- actualiza el set local antes de esperar la
+  // red, y revierte si el insert/delete falla (RLS lo rechaza, sin
+  // conexion, etc.).
+  async function toggleFollow(row) {
+    if (!viewer) return
+    const already = followingIds.has(row.participantId)
+    setFollowingIds((prev) => {
+      const next = new Set(prev)
+      if (already) next.delete(row.participantId)
+      else next.add(row.participantId)
+      return next
+    })
+    const result = already
+      ? await deleteFollow(supabase, viewer.participantId, row.participantId)
+      : await createFollow(supabase, viewer.participantId, row.participantId)
+    if (result.error) {
+      setFollowingIds((prev) => {
+        const next = new Set(prev)
+        if (already) next.add(row.participantId)
+        else next.delete(row.participantId)
+        return next
+      })
+    }
+  }
 
   useEffect(() => {
     setRows(null)
@@ -318,6 +383,16 @@ export default function Rankings() {
         }
         .rk-challenge-sent { font-size: 11.5px; font-weight: 700; color: #7ED957; }
         .rk-challenge-error { font-size: 11px; color: #FF6B6B; margin-left: 8px; }
+
+        .rk-follow-btn {
+          font-size: 11.5px; font-weight: 700; color: #fff;
+          background: linear-gradient(90deg, #E91E8C, #8B5CF6); border: none;
+          border-radius: 999px; padding: 5px 12px; cursor: pointer;
+        }
+        .rk-follow-btn.following {
+          background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.7);
+          border: 1px solid rgba(255,255,255,0.2);
+        }
       `}</style>
 
       <div className="world-inner">
@@ -369,7 +444,7 @@ export default function Rankings() {
           )}
 
           <div style={{ marginTop: 4 }}>
-            <RankingList rows={rows} emptyMessage={emptyMessages[activeTab]} viewer={viewer} />
+            <RankingList rows={rows} emptyMessage={emptyMessages[activeTab]} viewer={viewer} followingIds={followingIds} onToggleFollow={toggleFollow} />
           </div>
         </WorldSection>
 
@@ -392,7 +467,7 @@ export default function Rankings() {
             {!venueState && <WorldSkeleton lines={4} />}
             {venueState && venueState.error && <WorldEmptyState icon="🔍" message="No encontramos esta sala." />}
             {venueState && !venueState.error && (
-              <RankingList rows={venueState.rows} emptyMessage="Esta sala todavía no tiene presentaciones calificadas." />
+              <RankingList rows={venueState.rows} emptyMessage="Esta sala todavía no tiene presentaciones calificadas." viewer={viewer} followingIds={followingIds} onToggleFollow={toggleFollow} />
             )}
           </WorldSection>
         )}

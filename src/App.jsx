@@ -19,6 +19,7 @@ import Challenges from './pages/Challenges'
 import Profile from './pages/Profile'
 import World from './pages/World'
 import Escenario from './pages/Escenario'
+import PublicProfile from './pages/PublicProfile'
 
 export default function App() {
   return (
@@ -74,6 +75,9 @@ export default function App() {
 
             {/* Fase 7: ficha publica de un escenario puntual (?bar=slug o ?ws=id) */}
             <Route path="/escenario" element={<Escenario />} />
+
+            {/* Fase 8: perfil publico de lectura de cualquier participante (seguir, logros, historial) */}
+            <Route path="/u/:participantId" element={<PublicProfile />} />
           </Routes>
         </BrowserRouter>
         </KaraokeSessionProvider>
