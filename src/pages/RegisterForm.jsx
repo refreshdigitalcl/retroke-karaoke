@@ -615,6 +615,176 @@ function YourTurnScreen(props) {
   )
 }
 
+// Tarjeta compartible accesible DESPUES de cantar, para cualquier modalidad
+// (Home, DJ, Bar) -- no solo Retroke Home. Antes, una vez que la persona
+// pasaba a la pantalla de "ya estas en la cola" / "gracias por participar",
+// solo se ofrecia compartir un LINK (ShareResultButton), nunca la imagen con
+// el puntaje. En Home eso pasaba porque la tarjeta con imagen solo vivia
+// dentro de YourTurnScreen, antes de tocar "Listo". En DJ/Bar pasaba porque
+// nunca hubo tarjeta con imagen en absoluto: no hay analisis de voz por
+// microfono ahi (eso es exclusivo de Home), asi que solo existia el puntaje
+// del publico (nota_final en la tabla performances).
+//
+// Esta pantalla busca esos datos directamente desde la base (performances +
+// vocal_results si existen) apenas se abre, y arma la misma ShareResultCard
+// que ya se usa en Home y en /r/:id. Si no hay puntaje de voz (DJ/Bar), la
+// tarjeta simplemente no muestra esa fila -- ShareResultCard ya esta hecha
+// para eso (ver hasVocalScore / activeSubScores ahi).
+function PerformanceShareScreen(props) {
+  var performanceId = props.performanceId
+  var participantId = props.participantId
+  var fallbackName = props.name
+  var fallbackAvatar = props.avatar
+  var fallbackPhoto = props.photo
+  var fallbackSong = props.song
+  var onBack = props.onBack
+
+  var dataState = useState(null)
+  var data = dataState[0]
+  var setData = dataState[1]
+
+  var levelNameState = useState('')
+  var levelName = levelNameState[0]
+  var setLevelName = levelNameState[1]
+
+  var shareCardRef = useRef(null)
+  var shareImageStateHook = useState('')
+  var shareImageState = shareImageStateHook[0]
+  var setShareImageState = shareImageStateHook[1]
+
+  useEffect(function () {
+    var cancelled = false
+    supabase
+      .from('performances')
+      .select('nota_final, vocal_score, vocal_confidence, artist_name, artwork_url, queue_entry_id')
+      .eq('id', performanceId)
+      .maybeSingle()
+      .then(function (result) {
+        if (cancelled || !result.data) return
+        var perf = result.data
+
+        function finish(subScores) {
+          if (cancelled) return
+          setData({
+            notaFinal: perf.nota_final,
+            vocalScore: perf.vocal_score,
+            confidence: perf.vocal_confidence,
+            artistName: perf.artist_name || '',
+            artworkUrl: perf.artwork_url || '',
+            subScores: subScores || null
+          })
+        }
+
+        if (!perf.queue_entry_id) {
+          finish(null)
+          return
+        }
+
+        supabase
+          .from('vocal_results')
+          .select('pitch_score, rhythm_score, stability_score, energy_score')
+          .eq('queue_entry_id', perf.queue_entry_id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+          .then(function (vr) {
+            var subScores = vr.data
+              ? {
+                  pitchScore: vr.data.pitch_score,
+                  rhythmScore: vr.data.rhythm_score,
+                  stabilityScore: vr.data.stability_score,
+                  energyScore: vr.data.energy_score
+                }
+              : null
+            finish(subScores)
+          })
+          .catch(function () { finish(null) })
+      })
+      .catch(function () {})
+    return function () { cancelled = true }
+  }, [performanceId])
+
+  useEffect(function () {
+    if (!participantId) return
+    var cancelled = false
+    supabase
+      .from('participant_stats')
+      .select('level_name')
+      .eq('participant_id', participantId)
+      .maybeSingle()
+      .then(function (result) {
+        if (cancelled) return
+        setLevelName(result.data && result.data.level_name ? result.data.level_name : LEVELS[0].name)
+      })
+      .catch(function () {})
+    return function () { cancelled = true }
+  }, [participantId])
+
+  function handleShareCardImage() {
+    setShareImageState('Generando...')
+    var text = buildShareText({
+      song: fallbackSong,
+      artistName: data ? data.artistName : '',
+      notaFinal: data ? data.notaFinal : null
+    })
+    shareCardAsImage(shareCardRef.current, {
+      filename: 'retroke-' + (fallbackName || 'resultado') + '.png',
+      title: 'Mi resultado en Retroke',
+      text: text
+    }).then(function (result) {
+      if (result.error) setShareImageState('No se pudo compartir')
+      else if (result.method === 'download') setShareImageState('Descargada ✓')
+      else setShareImageState('')
+      setTimeout(function () { setShareImageState('') }, 2500)
+    })
+  }
+
+  if (!data) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-6" style={{ background: 'var(--bg-page)' }}>
+        <div className="w-8 h-8 rounded-full border-4 border-t-transparent animate-spin" style={{ borderColor: 'var(--accent-purple)', borderTopColor: 'transparent' }} />
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center px-6 py-10 gap-5" style={{ background: 'var(--bg-page)' }}>
+      <ShareResultCard
+        ref={shareCardRef}
+        singerName={fallbackName}
+        avatar={fallbackAvatar}
+        photoUrl={fallbackPhoto || null}
+        song={fallbackSong}
+        artistName={data.artistName}
+        artworkUrl={data.artworkUrl}
+        notaFinal={data.notaFinal}
+        vocalScore={data.vocalScore}
+        subScores={data.subScores}
+        confidence={data.confidence}
+        levelName={levelName}
+      />
+      <div className="w-full max-w-sm flex flex-col gap-3">
+        <button
+          type="button"
+          onClick={handleShareCardImage}
+          className="w-full h-12 rounded-xl font-bold text-white"
+          style={{ background: 'linear-gradient(90deg, #E91E8C, #8B5CF6)' }}
+        >
+          Compartir tarjeta 📲 {shareImageState && '· ' + shareImageState}
+        </button>
+        <button
+          type="button"
+          onClick={onBack}
+          className="w-full h-11 rounded-xl font-medium"
+          style={{ color: 'var(--text-secondary)' }}
+        >
+          ← Volver
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function RegisterForm() {
   // Igual que en YourTurnScreen: se propaga el query string actual
   // (?bar=... / ?ws=...) al link de "Mi perfil" para no perder el
@@ -1033,6 +1203,12 @@ export default function RegisterForm() {
   var showThanks = showThanksState[0]
   var setShowThanks = showThanksState[1]
 
+  // Tarjeta compartible accesible desde "ya estas en la cola" / "gracias
+  // por participar", para cualquier modalidad (antes solo existia el link).
+  var showShareCardScreenState = useState(false)
+  var showShareCardScreen = showShareCardScreenState[0]
+  var setShowShareCardScreen = showShareCardScreenState[1]
+
   useEffect(function () {
     if (itsMyTurn) setShowPerformance(true)
   }, [itsMyTurn])
@@ -1276,6 +1452,20 @@ export default function RegisterForm() {
     )
   }
 
+  if (showShareCardScreen && myPerformanceId) {
+    return (
+      <PerformanceShareScreen
+        performanceId={myPerformanceId}
+        name={name}
+        avatar={avatar}
+        photo={photo}
+        song={song}
+        participantId={participant ? participant.id : null}
+        onBack={function () { setShowShareCardScreen(false) }}
+      />
+    )
+  }
+
   if (showThanks) {
     return (
       <div className="min-h-screen flex items-center justify-center px-6" style={{ background: 'var(--bg-page)' }}>
@@ -1295,7 +1485,17 @@ export default function RegisterForm() {
             Recuerda que puedes unirte nuevamente cuando quieras.
           </p>
           {myPerformanceId && (
-            <ShareResultButton performanceId={myPerformanceId} song={song} artistName={detectedArtist} />
+            <>
+              <button
+                type="button"
+                onClick={function () { setShowShareCardScreen(true) }}
+                className="w-full h-11 rounded-xl font-bold text-white mt-4"
+                style={{ background: 'linear-gradient(90deg, #E91E8C, #8B5CF6)' }}
+              >
+                Ver mi tarjeta 📲
+              </button>
+              <ShareResultButton performanceId={myPerformanceId} song={song} artistName={detectedArtist} />
+            </>
           )}
         </div>
       </div>
@@ -1337,7 +1537,17 @@ export default function RegisterForm() {
             Posicion {position} en la cola
           </p>
           {myPerformanceId && (
-            <ShareResultButton performanceId={myPerformanceId} song={song} artistName={detectedArtist} />
+            <>
+              <button
+                type="button"
+                onClick={function () { setShowShareCardScreen(true) }}
+                className="w-full h-11 rounded-xl font-bold text-white mt-4"
+                style={{ background: 'linear-gradient(90deg, #E91E8C, #8B5CF6)' }}
+              >
+                Ver mi tarjeta 📲
+              </button>
+              <ShareResultButton performanceId={myPerformanceId} song={song} artistName={detectedArtist} />
+            </>
           )}
         </div>
       </div>

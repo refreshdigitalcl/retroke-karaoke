@@ -255,7 +255,7 @@ function NewWorkspaceForm(props) {
             style={{ background: 'var(--bg-card-alt)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
           >
             <option value="BAR">Bar</option>
-            <option value="DJ">DJ Pro</option>
+            <option value="DJ">DJ</option>
             <option value="HOME">Home</option>
           </select>
           <select
