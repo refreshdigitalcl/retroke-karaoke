@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { resolveVenue, loadVenueRanking, loadVenueOverview, loadVenueNowPlaying } from '../lib/venue'
+import { subscribeToTableFiltered } from '../lib/realtime'
 import WorldSection from '../components/world/WorldSection'
 import WorldEmptyState from '../components/world/WorldEmptyState'
 import WorldSkeleton from '../components/world/WorldSkeleton'
@@ -81,6 +82,32 @@ export default function Escenario() {
 
     return () => { cancelled = true }
   }, [barSlug, wsId])
+
+  // Fase 15 ("Tiempo real"): estado en vivo, quien esta cantando y el
+  // ranking de este escenario se recargan solos apenas hay una sesion o
+  // presentacion nueva en ESTA sala -- filtrado por bar_id/workspace_id
+  // para no refetchear cuando cambia una sala distinta (ver
+  // subscribeToTableFiltered en lib/realtime.js).
+  useEffect(() => {
+    if (!venue) return
+    const column = venue.barId ? 'bar_id' : 'workspace_id'
+    const value = venue.barId || venue.workspaceId
+    const filter = column + '=eq.' + value
+
+    function refetch() {
+      loadVenueOverview(supabase, venue).then(setOverview)
+      loadVenueNowPlaying(supabase, venue).then(setNowPlaying)
+      loadVenueRanking(supabase, venue).then(setRanking)
+    }
+
+    const unsubSessions = subscribeToTableFiltered(supabase, 'escenario-sessions-' + value, 'sessions', filter, refetch)
+    const unsubPerformances = subscribeToTableFiltered(supabase, 'escenario-performances-' + value, 'performances', filter, refetch)
+
+    return () => {
+      unsubSessions()
+      unsubPerformances()
+    }
+  }, [venue])
 
   if (venue === null) {
     return (

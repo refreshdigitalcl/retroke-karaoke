@@ -6,6 +6,7 @@ import { LEVELS, computeLevel } from '../lib/gamification'
 import { getGlobalXpRank } from '../lib/ranking'
 import { createFollow, deleteFollow, loadFollowCounts } from '../lib/follows'
 import { loadStatuses, toggleReaction, REACTION_EMOJIS } from '../lib/statuses'
+import { subscribeToTableFiltered, subscribeToTables } from '../lib/realtime'
 import WorldSection from '../components/world/WorldSection'
 import WorldEmptyState from '../components/world/WorldEmptyState'
 import WorldSkeleton from '../components/world/WorldSkeleton'
@@ -123,6 +124,30 @@ export default function PublicProfile() {
 
     return () => { cancelled = true }
   }, [participantId])
+
+  // Fase 15 ("Tiempo real"): nuevos estados de esta persona y nuevas
+  // reacciones (de cualquiera, a cualquiera de sus estados) recargan la
+  // lista sola, sin que quien esta mirando tenga que refrescar. Filtrado
+  // por participant_id en `statuses` (solo lo que publica ESTA persona);
+  // `status_reactions` no tiene esa columna (la reaccion apunta a un
+  // status_id, no directo al dueno), asi que ese canal queda sin filtro --
+  // volumen bajo, mismo criterio que el resto de World (ver diagnostico).
+  useEffect(() => {
+    if (!target) return
+    const myId = viewer ? viewer.participantId : null
+
+    function refetch() {
+      loadStatuses(supabase, target.id, myId).then(setStatuses)
+    }
+
+    const unsubStatuses = subscribeToTableFiltered(supabase, 'pp-statuses-' + target.id, 'statuses', 'participant_id=eq.' + target.id, refetch)
+    const unsubReactions = subscribeToTables(supabase, 'pp-reactions-' + target.id, ['status_reactions'], refetch)
+
+    return () => {
+      unsubStatuses()
+      unsubReactions()
+    }
+  }, [target, viewer])
 
   async function handleToggleFollow() {
     if (!viewer || !target) return

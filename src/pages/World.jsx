@@ -5,6 +5,7 @@ import { getOrCreateParticipant } from '../lib/participant'
 import { LEVELS, computeLevel } from '../lib/gamification'
 import { getGlobalXpRank } from '../lib/ranking'
 import { loadActivityFeed } from '../lib/activity'
+import { subscribeToTables } from '../lib/realtime'
 import WorldHero from '../components/world/WorldHero'
 import WorldLive from '../components/world/WorldLive'
 import WorldSection from '../components/world/WorldSection'
@@ -283,6 +284,24 @@ export default function World() {
     loadActiveChallengesCount().then(setChallengesCount).catch(() => setChallengesCount(0))
     loadMyExperience().then(setExperience).catch(() => setExperience(null))
     loadActivityFeed(supabase, 10).then(setActivity).catch(() => setActivity([]))
+  }, [])
+
+  // Fase 15 ("Tiempo real"): Ranking Retroke y Actividad Retroke se
+  // recargan solos cuando cambia cualquiera de las tablas que los
+  // alimentan -- mismo patron que ya usaba el bloque "En vivo" de arriba
+  // (canal + refetch completo), solo que sobre las tablas sociales en vez
+  // de sessions.
+  useEffect(() => {
+    const unsubscribe = subscribeToTables(
+      supabase,
+      'world-social',
+      ['participant_stats', 'follows', 'statuses', 'direct_challenges', 'participant_achievements'],
+      () => {
+        loadRankingTop().then(setRankingTop).catch(() => {})
+        loadActivityFeed(supabase, 10).then(setActivity).catch(() => {})
+      }
+    )
+    return unsubscribe
   }, [])
 
   // OJO: "sin stats todavia" (participante identificado pero nunca canto)

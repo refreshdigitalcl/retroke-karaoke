@@ -5,6 +5,7 @@ import { getOrCreateParticipant } from '../lib/participant'
 import { createDirectChallenge } from '../lib/challenges'
 import { loadFollowingIds, createFollow, deleteFollow } from '../lib/follows'
 import { resolveVenue, loadVenueRanking as loadVenueRankingRows } from '../lib/venue'
+import { subscribeToTables } from '../lib/realtime'
 import WorldSection from '../components/world/WorldSection'
 import WorldEmptyState from '../components/world/WorldEmptyState'
 import WorldSkeleton from '../components/world/WorldSkeleton'
@@ -281,6 +282,7 @@ export default function Rankings() {
   const [rows, setRows] = useState(null)
   const [viewer, setViewer] = useState(null)
   const [followingIds, setFollowingIds] = useState(new Set())
+  const [liveTick, setLiveTick] = useState(0) // Fase 15: se incrementa cuando algo cambia en vivo
 
   const barSlug = getParam('bar')
   const wsId = getParam('ws')
@@ -294,6 +296,22 @@ export default function Rankings() {
         loadFollowingIds(supabase, v.participantId).then(setFollowingIds)
       }
     }).catch(() => setViewer(null))
+  }, [])
+
+  // Fase 15 ("Tiempo real"): la posicion y el XP se recalculan solos cuando
+  // alguien nuevo canta (performances) o su XP acumulado cambia
+  // (participant_stats) -- sin recargar la pagina. No se toca el
+  // fetch/estado directamente aca: solo se marca "algo cambio" y los dos
+  // efectos de abajo (que ya sabian recargar segun tab/ciudad/sala) lo
+  // recogen por su propia dependencia en liveTick.
+  useEffect(() => {
+    const unsubscribe = subscribeToTables(
+      supabase,
+      'rankings-live',
+      ['participant_stats', 'performances'],
+      () => setLiveTick((t) => t + 1)
+    )
+    return unsubscribe
   }, [])
 
   // Fase 8: toggle optimista -- actualiza el set local antes de esperar la
@@ -331,7 +349,7 @@ export default function Rankings() {
       .then((data) => { if (!cancelled) setRows(data) })
       .catch(() => { if (!cancelled) setRows([]) })
     return () => { cancelled = true }
-  }, [activeTab, activeCity])
+  }, [activeTab, activeCity, liveTick])
 
   useEffect(() => {
     if (!barSlug && !wsId) return
@@ -340,7 +358,7 @@ export default function Rankings() {
       .then((result) => { if (!cancelled) setVenueState(result) })
       .catch(() => { if (!cancelled) setVenueState({ error: true }) })
     return () => { cancelled = true }
-  }, [barSlug, wsId])
+  }, [barSlug, wsId, liveTick])
 
   const emptyMessages = {
     historico: 'Tu ciudad todavía está comenzando a cantar. Invita a alguien y arranca el ranking.',
