@@ -34,7 +34,7 @@
 
 /* Retroke Visual System 2.0 (Fase 2, ver retroke-visual-system-2.0-auditoria.md).
    Tokens globales para las pantallas de Retroke World -- no reemplazan las
-   variables --accent-*/--bg-* de arriba (esas siguen siendo del sistema
+   variables --accent-* y --bg-* de arriba (esas siguen siendo del sistema
    admin/claro-oscuro), son el vocabulario del sistema "premium" que ya vive
    en SessionHub/DisplayResult/ShareResultCard, formalizado para poder
    reutilizarlo en el resto de la app. Ningun color es nuevo -- son los
