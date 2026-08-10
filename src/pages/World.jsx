@@ -9,10 +9,15 @@ import { subscribeToTables } from '../lib/realtime'
 import { useRetrokeFont } from '../lib/fonts'
 import WorldHero from '../components/world/WorldHero'
 import WorldLive from '../components/world/WorldLive'
-import WorldSection from '../components/world/WorldSection'
-import WorldEmptyState from '../components/world/WorldEmptyState'
-import WorldSkeleton from '../components/world/WorldSkeleton'
 import { WORLD_STYLES } from '../components/world/worldStyles'
+import RetrokeSection from '../components/retroke/RetrokeSection'
+import RetrokeEmptyState from '../components/retroke/RetrokeEmptyState'
+import RetrokeSkeleton from '../components/retroke/RetrokeSkeleton'
+import RetrokeAtmosphere from '../components/retroke/RetrokeAtmosphere'
+import RetrokeScore from '../components/retroke/RetrokeScore'
+import RetrokePodium from '../components/retroke/RetrokePodium'
+import RetrokeIcon from '../components/retroke/RetrokeIcon'
+import { RETROKE_STYLES } from '../components/retroke/retrokeStyles'
 
 // RETROKE WORLD -- Fase 1 (Core), ver retroke-world-diagnostico-tecnico.md.
 // Punto 46 del prompt maestro: nunca inventar datos. Todo lo que se ve aca
@@ -22,6 +27,17 @@ import { WORLD_STYLES } from '../components/world/worldStyles'
 //
 // Publica (no requiere login), en linea con el modelo de confianza abierto
 // que ya usa el resto de la app (Rankings.jsx, Challenges.jsx).
+//
+// Fase 3 de "Retroke Visual System 2.0" (ver retroke-visual-system-2.0-
+// auditoria.md): esta pagina fue la primera en conectarse al sistema nuevo.
+// Ningun dato ni logica cambio -- WORLD_STYLES se mantiene inyectado junto a
+// RETROKE_STYLES porque las filas de contenido (NowPlayingCard, TrendRow,
+// ScenarioRow, ActivityRow) siguen usando sus clases .world-* de siempre,
+// que ya funcionaban bien. Lo que cambia es la capa de arriba: el fondo con
+// atmosfera (grid + horizonte), el contenedor de cada seccion (RetrokeSection
+// en vez de WorldSection, con peso visual real por variante/acento), el
+// tratamiento de los numeros importantes (RetrokeScore), el podio del Top 3
+// (RetrokePodium) y los iconos (RetrokeIcon en vez de emoji de interfaz).
 
 const LIVE_REFRESH_MS = 20000
 
@@ -148,7 +164,7 @@ function NowPlayingCard(props) {
       <div className="world-nowplaying-info">
         <div className="world-nowplaying-name">{row.singerName || 'Cantante Retroke'}</div>
         <div className="world-nowplaying-song">{row.song}{row.artistName ? ' · ' + row.artistName : ''}</div>
-        <div className="world-nowplaying-venue">📍 {venueLabel(row)}{venueSubLabel(row) ? ' · ' + venueSubLabel(row) : ''}</div>
+        <div className="world-nowplaying-venue"><RetrokeIcon name="pin" size={11} /> {venueLabel(row)}{venueSubLabel(row) ? ' · ' + venueSubLabel(row) : ''}</div>
       </div>
       <div className="world-nowplaying-badge">EN ESCENA</div>
     </div>
@@ -161,7 +177,7 @@ function TrendRow(props) {
   return (
     <div className="world-trend-row">
       <div className="world-trend-art">
-        {row.artworkUrl ? <img src={row.artworkUrl} alt="" /> : <span>🎵</span>}
+        {row.artworkUrl ? <img src={row.artworkUrl} alt="" /> : <RetrokeIcon name="music" size={16} />}
       </div>
       <div className="world-trend-info">
         <div className="world-trend-name">{row.song}</div>
@@ -307,9 +323,17 @@ export default function World() {
       ? 100
       : Math.max(0, Math.min(100, Math.round((((experience.stats ? experience.stats.xp : 0) - levelInfo.minXp) / (nextLevel.minXp - levelInfo.minXp)) * 100)))
 
+  const podiumEntries = (rankingTop || []).slice(0, 3).map((row, i) => ({
+    rank: i + 1,
+    avatar: row.avatar,
+    name: row.name,
+    score: row.xp + ' XP'
+  }))
+
   return (
     <div className="world-page">
-      <style>{WORLD_STYLES}{`
+      <style>{WORLD_STYLES}{RETROKE_STYLES}{`
+        .world-page { background: var(--rk-bg-gradient); }
         .world-activity-row { display: flex; align-items: flex-start; gap: 10px; padding: 7px 2px; }
         .world-activity-avatar { font-size: 18px; flex-shrink: 0; line-height: 1.4; }
         .world-activity-body { flex: 1; min-width: 0; }
@@ -317,23 +341,34 @@ export default function World() {
         .world-activity-name { color: #fff; font-weight: 700; text-decoration: none; }
         .world-activity-name:hover { text-decoration: underline; }
         .world-activity-time { font-size: 10.5px; color: rgba(255,255,255,0.4); margin-top: 2px; }
+
+        .rk-world-hero-wrap { position: relative; overflow: hidden; border-radius: var(--rk-radius-xl); padding: 12px 0 24px; margin-bottom: 4px; min-height: 320px; display: flex; align-items: center; }
+        .rk-world-hero-content { position: relative; z-index: 1; width: 100%; display: flex; flex-direction: column; gap: 28px; }
+        .rk-experience-stat { text-align: center; padding: 10px 4px; border-radius: var(--rk-radius-md); background: var(--rk-surface); }
+        .rk-experience-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
       `}</style>
 
       <div className="world-inner">
-        <WorldHero />
-        <WorldLive stats={live ? live.stats : null} loading={liveLoading} />
+        <div className="rk-world-hero-wrap">
+          <RetrokeAtmosphere variant="full" grid />
+          <div className="rk-world-hero-content">
+            <WorldHero />
+            <WorldLive stats={live ? live.stats : null} loading={liveLoading} />
+          </div>
+        </div>
 
         <div className="world-grid">
-          <WorldSection
+          <RetrokeSection
             size="lg"
+            accent="green"
             eyebrow="En vivo"
-            title="🎤 Ahora en Retroke"
+            title={<><RetrokeIcon name="mic" size={16} glow /> Ahora en Retroke</>}
             subtitle="Quién está arriba del escenario en este momento"
           >
-            {liveLoading && <WorldSkeleton lines={3} />}
+            {liveLoading && <RetrokeSkeleton lines={3} />}
             {!liveLoading && live && live.nowPlaying.length === 0 && (
-              <WorldEmptyState
-                icon="🌙"
+              <RetrokeEmptyState
+                icon={<RetrokeIcon name="moon" size={26} />}
                 message="Nadie está cantando en este momento. Vuelve más tarde o revisa los escenarios activos más abajo."
               />
             )}
@@ -344,24 +379,25 @@ export default function World() {
                 ))}
               </div>
             )}
-          </WorldSection>
+          </RetrokeSection>
 
-          <WorldSection
+          <RetrokeSection
             size="lg"
+            variant="hero"
             eyebrow="Tu progreso"
-            title="⭐ Tu Experiencia"
-            action={<Link to="/perfil" className="world-section-action">Ver perfil completo →</Link>}
+            title={<><RetrokeIcon name="star" size={16} glow /> Tu Experiencia</>}
+            action={<Link to="/perfil" className="rk-section-action">Ver perfil completo →</Link>}
           >
-            {experience === undefined && <WorldSkeleton lines={4} />}
+            {experience === undefined && <RetrokeSkeleton lines={4} />}
             {experience === null && (
-              <WorldEmptyState
-                icon="🎤"
+              <RetrokeEmptyState
+                icon={<RetrokeIcon name="mic" size={26} />}
                 message="Aún no identificamos tu perfil en este dispositivo. Anótate para cantar en cualquier sala y tu experiencia empieza a sumar sola."
               />
             )}
             {experience && (
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
+                <div className="rk-experience-head">
                   {experience.participant.photo_url ? (
                     <img
                       src={experience.participant.photo_url}
@@ -383,8 +419,8 @@ export default function World() {
                     <div style={{ fontWeight: 700, fontSize: 16, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {experience.participant.display_name || 'Cantante Retroke'}
                     </div>
-                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
-                      🏅 {levelInfo ? levelInfo.name : 'Novato del Micrófono'}
+                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <RetrokeIcon name="star" size={12} /> {levelInfo ? levelInfo.name : 'Novato del Micrófono'}
                     </div>
                   </div>
                   {experience.rank && (
@@ -409,59 +445,49 @@ export default function World() {
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-                  <div style={{ textAlign: 'center', padding: '8px 4px', borderRadius: 12, background: 'rgba(255,255,255,0.05)' }}>
-                    <div style={{ fontSize: 17, fontWeight: 800 }}>{experience.stats ? experience.stats.total_performances || 0 : 0}</div>
-                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>Presentaciones</div>
+                  <div className="rk-experience-stat">
+                    <RetrokeScore value={experience.stats ? experience.stats.total_performances || 0 : 0} label="Presentaciones" size="md" color="purple" />
                   </div>
-                  <div style={{ textAlign: 'center', padding: '8px 4px', borderRadius: 12, background: 'rgba(255,255,255,0.05)' }}>
-                    <div style={{ fontSize: 17, fontWeight: 800 }}>
-                      {experience.stats && experience.stats.best_score !== null && experience.stats.best_score !== undefined ? experience.stats.best_score : '—'}
-                    </div>
-                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>Retroke Score</div>
+                  <div className="rk-experience-stat">
+                    <RetrokeScore
+                      value={experience.stats && experience.stats.best_score !== null && experience.stats.best_score !== undefined ? experience.stats.best_score : '—'}
+                      label="Retroke Score"
+                      size="md"
+                      color="yellow"
+                    />
                   </div>
-                  <div style={{ textAlign: 'center', padding: '8px 4px', borderRadius: 12, background: 'rgba(255,255,255,0.05)' }}>
-                    <div style={{ fontSize: 17, fontWeight: 800 }}>{experience.stats ? experience.stats.current_streak || 0 : 0} 🔥</div>
-                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>Racha actual</div>
+                  <div className="rk-experience-stat">
+                    <RetrokeScore value={experience.stats ? experience.stats.current_streak || 0 : 0} label="Racha actual" size="md" color="magenta" />
                   </div>
                 </div>
               </div>
             )}
-          </WorldSection>
+          </RetrokeSection>
 
-          <WorldSection
+          <RetrokeSection
+            accent="yellow"
             eyebrow="Meta-partida"
-            title="🌎 Ranking Retroke"
-            action={<Link to="/ranking" className="world-section-action">Ver todo →</Link>}
+            title={<><RetrokeIcon name="globe" size={16} glow /> Ranking Retroke</>}
+            action={<Link to="/ranking" className="rk-section-action">Ver todo →</Link>}
           >
-            {rankingTop === null && <WorldSkeleton lines={3} />}
+            {rankingTop === null && <RetrokeSkeleton lines={3} />}
             {rankingTop !== null && rankingTop.length === 0 && (
-              <WorldEmptyState icon="🏆" message="Tu ciudad todavía está comenzando a cantar. Invita a alguien y arranca el ranking." />
+              <RetrokeEmptyState icon={<RetrokeIcon name="trophy" size={26} />} message="Tu ciudad todavía está comenzando a cantar. Invita a alguien y arranca el ranking." />
             )}
             {rankingTop !== null && rankingTop.length > 0 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {rankingTop.map((row, i) => (
-                  <div className="world-rank-row" key={row.participantId + i}>
-                    <div className="world-rank-medal">{['🥇', '🥈', '🥉'][i] || '#' + (i + 1)}</div>
-                    <div className="world-rank-avatar">{row.avatar}</div>
-                    <div className="world-rank-info">
-                      <div className="world-rank-name">{row.name}</div>
-                      <div className="world-rank-level">{row.levelName}</div>
-                    </div>
-                    <div className="world-rank-xp">{row.xp} XP</div>
-                  </div>
-                ))}
-              </div>
+              <RetrokePodium entries={podiumEntries} />
             )}
-          </WorldSection>
+          </RetrokeSection>
 
-          <WorldSection
+          <RetrokeSection
+            accent="magenta"
             eyebrow="Tendencia"
-            title="🎵 Lo más cantado"
+            title={<><RetrokeIcon name="music" size={16} glow /> Lo más cantado</>}
             subtitle="Las canciones que más suenan en Retroke"
           >
-            {trending === null && <WorldSkeleton lines={3} />}
+            {trending === null && <RetrokeSkeleton lines={3} />}
             {trending !== null && trending.length === 0 && (
-              <WorldEmptyState icon="🎶" message="Todavía no hay suficientes presentaciones para armar una tendencia. Sé el primero en cantar." />
+              <RetrokeEmptyState icon={<RetrokeIcon name="music" size={26} />} message="Todavía no hay suficientes presentaciones para armar una tendencia. Sé el primero en cantar." />
             )}
             {trending !== null && trending.length > 0 && (
               <div>
@@ -470,33 +496,32 @@ export default function World() {
                 ))}
               </div>
             )}
-          </WorldSection>
+          </RetrokeSection>
 
-          <WorldSection
+          <RetrokeSection
             eyebrow="Metas"
-            title="🔥 Desafíos Retroke"
+            title={<><RetrokeIcon name="fire" size={16} glow /> Desafíos Retroke</>}
             size="sm"
-            action={<Link to="/desafios" className="world-section-action">Ver →</Link>}
+            accent="yellow"
+            action={<Link to="/desafios" className="rk-section-action">Ver →</Link>}
           >
-            {challengesCount === null && <WorldSkeleton lines={1} />}
+            {challengesCount === null && <RetrokeSkeleton lines={1} />}
             {challengesCount !== null && (
               <div style={{ textAlign: 'center', padding: '6px 0' }}>
-                <div style={{ fontSize: 30, fontWeight: 800, color: '#F4D03F' }}>{challengesCount}</div>
-                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>
-                  {challengesCount === 1 ? 'desafío activo' : 'desafíos activos'}
-                </div>
+                <RetrokeScore value={challengesCount} label={challengesCount === 1 ? 'desafío activo' : 'desafíos activos'} size="lg" color="yellow" />
               </div>
             )}
-          </WorldSection>
+          </RetrokeSection>
 
-          <WorldSection
+          <RetrokeSection
+            accent="green"
             eyebrow="Dónde cantar"
-            title="🏟️ Escenarios"
+            title={<><RetrokeIcon name="pin" size={16} glow /> Escenarios</>}
             subtitle="Salas activas ahora mismo"
           >
-            {liveLoading && <WorldSkeleton lines={3} />}
+            {liveLoading && <RetrokeSkeleton lines={3} />}
             {!liveLoading && live && live.scenarios.length === 0 && (
-              <WorldEmptyState icon="🕯️" message="No hay escenarios activos en este momento." />
+              <RetrokeEmptyState icon={<RetrokeIcon name="moon" size={26} />} message="No hay escenarios activos en este momento." />
             )}
             {!liveLoading && live && live.scenarios.length > 0 && (
               <div>
@@ -505,17 +530,18 @@ export default function World() {
                 ))}
               </div>
             )}
-          </WorldSection>
+          </RetrokeSection>
 
-          <WorldSection
+          <RetrokeSection
             size="lg"
+            accent="purple"
             eyebrow="Comunidad"
-            title="🟣 Actividad Retroke"
+            title="Actividad Retroke"
             subtitle="Lo último que pasó entre cantantes"
           >
-            {activity === null && <WorldSkeleton lines={4} />}
+            {activity === null && <RetrokeSkeleton lines={4} />}
             {activity !== null && activity.length === 0 && (
-              <WorldEmptyState icon="🟣" message="Todavía no hay actividad reciente. Sigue a alguien, publica un estado o desafía a un cantante y va a aparecer acá." />
+              <RetrokeEmptyState icon={<RetrokeIcon name="star" size={26} />} message="Todavía no hay actividad reciente. Sigue a alguien, publica un estado o desafía a un cantante y va a aparecer acá." />
             )}
             {activity !== null && activity.length > 0 && (
               <div>
@@ -524,7 +550,7 @@ export default function World() {
                 ))}
               </div>
             )}
-          </WorldSection>
+          </RetrokeSection>
         </div>
 
         <Link to="/inicio" className="world-footer-link">← Volver a Retroke</Link>

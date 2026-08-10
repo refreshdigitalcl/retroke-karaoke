@@ -32,6 +32,76 @@
   --accent-yellow: #f4d03f;
 }
 
+/* Retroke Visual System 2.0 (Fase 2, ver retroke-visual-system-2.0-auditoria.md).
+   Tokens globales para las pantallas de Retroke World -- no reemplazan las
+   variables --accent-*/--bg-* de arriba (esas siguen siendo del sistema
+   admin/claro-oscuro), son el vocabulario del sistema "premium" que ya vive
+   en SessionHub/DisplayResult/ShareResultCard, formalizado para poder
+   reutilizarlo en el resto de la app. Ningun color es nuevo -- son los
+   mismos --accent-* de siempre, solo que aca tambien quedan sus variantes
+   de glow/rgba ya usadas en esas tres pantallas de referencia. */
+:root {
+  --rk-magenta: #e91e8c;
+  --rk-purple: #8b5cf6;
+  --rk-green: #7ed957;
+  --rk-yellow: #f4d03f;
+
+  --rk-bg-0: #05030a;
+  --rk-bg-1: #0a0512;
+  --rk-bg-2: #1a0b2e;
+  --rk-bg-gradient: radial-gradient(circle at 50% 0%, var(--rk-bg-2) 0%, var(--rk-bg-1) 55%, var(--rk-bg-0) 100%);
+
+  --rk-surface: rgba(255, 255, 255, 0.045);
+  --rk-surface-hover: rgba(255, 255, 255, 0.07);
+  --rk-surface-strong: rgba(255, 255, 255, 0.1);
+  --rk-border: rgba(255, 255, 255, 0.1);
+  --rk-border-strong: rgba(255, 255, 255, 0.18);
+
+  --rk-text: #ffffff;
+  --rk-text-soft: rgba(255, 255, 255, 0.55);
+  --rk-text-faint: rgba(255, 255, 255, 0.4);
+
+  --rk-font-display: 'Space Grotesk', system-ui, sans-serif;
+  --rk-font-body: system-ui, sans-serif;
+
+  --rk-space-1: 4px;
+  --rk-space-2: 8px;
+  --rk-space-3: 12px;
+  --rk-space-4: 16px;
+  --rk-space-5: 20px;
+  --rk-space-6: 28px;
+  --rk-space-7: 36px;
+  --rk-space-8: 44px;
+
+  --rk-radius-sm: 8px;
+  --rk-radius-md: 14px;
+  --rk-radius-lg: 22px;
+  --rk-radius-xl: 30px;
+  --rk-radius-pill: 999px;
+
+  --rk-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --rk-duration-fast: 150ms;
+  --rk-duration-base: 250ms;
+  --rk-duration-slow: 450ms;
+
+  --rk-glow-magenta: 0 0 22px -4px rgba(233, 30, 140, 0.65);
+  --rk-glow-magenta-strong: 0 0 36px -2px rgba(233, 30, 140, 0.85);
+  --rk-glow-purple: 0 0 22px -4px rgba(139, 92, 246, 0.65);
+  --rk-glow-purple-strong: 0 0 36px -2px rgba(139, 92, 246, 0.85);
+  --rk-glow-green: 0 0 22px -4px rgba(126, 217, 87, 0.65);
+  --rk-glow-green-strong: 0 0 36px -2px rgba(126, 217, 87, 0.85);
+  --rk-glow-yellow: 0 0 22px -4px rgba(244, 208, 63, 0.65);
+  --rk-glow-yellow-strong: 0 0 36px -2px rgba(244, 208, 63, 0.85);
+
+  --rk-z-decor: 0;
+  --rk-z-content: 10;
+  --rk-z-sticky: 40;
+  --rk-z-overlay: 50;
+
+  --rk-bp-md: 768px;
+  --rk-bp-lg: 1024px;
+}
+
 html,
 body {
   margin: 0;

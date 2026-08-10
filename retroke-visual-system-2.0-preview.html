@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Retroke Visual System 2.0 — Preview Fase 2</title>
+<style>
+  :root {
+    --rk-magenta: #e91e8c;
+    --rk-purple: #8b5cf6;
+    --rk-green: #7ed957;
+    --rk-yellow: #f4d03f;
+    --rk-bg-0: #05030a;
+    --rk-bg-1: #0a0512;
+    --rk-bg-2: #1a0b2e;
+    --rk-bg-gradient: radial-gradient(circle at 50% 0%, var(--rk-bg-2) 0%, var(--rk-bg-1) 55%, var(--rk-bg-0) 100%);
+    --rk-surface: rgba(255, 255, 255, 0.045);
+    --rk-surface-hover: rgba(255, 255, 255, 0.07);
+    --rk-surface-strong: rgba(255, 255, 255, 0.1);
+    --rk-border: rgba(255, 255, 255, 0.1);
+    --rk-border-strong: rgba(255, 255, 255, 0.18);
+    --rk-text: #ffffff;
+    --rk-text-soft: rgba(255, 255, 255, 0.55);
+    --rk-text-faint: rgba(255, 255, 255, 0.4);
+    --rk-font-display: 'Space Grotesk', system-ui, sans-serif;
+    --rk-font-body: system-ui, sans-serif;
+    --rk-space-2: 8px; --rk-space-3: 12px; --rk-space-4: 16px; --rk-space-5: 20px;
+    --rk-radius-sm: 8px; --rk-radius-md: 14px; --rk-radius-lg: 22px; --rk-radius-pill: 999px;
+    --rk-ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --rk-duration-slow: 450ms;
+    --rk-glow-magenta: 0 0 22px -4px rgba(233, 30, 140, 0.65);
+    --rk-glow-purple: 0 0 22px -4px rgba(139, 92, 246, 0.65);
+    --rk-glow-green: 0 0 22px -4px rgba(126, 217, 87, 0.65);
+    --rk-glow-yellow: 0 0 22px -4px rgba(244, 208, 63, 0.65);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--rk-bg-gradient); color: var(--rk-text);
+    font-family: var(--rk-font-body); padding: 40px 20px 100px;
+  }
+  link { }
+  h2.demo-label { font-family: var(--rk-font-display); font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--rk-text-faint); margin: 48px 0 14px; max-width: 1000px; margin-left: auto; margin-right: auto; }
+  .demo-row { display: flex; gap: 16px; flex-wrap: wrap; max-width: 1000px; margin: 0 auto; align-items: flex-start; }
+
+  .rk-score { display: inline-flex; flex-direction: column; align-items: center; line-height: 1; }
+  .rk-score-value { font-family: var(--rk-font-display); font-weight: 800; color: var(--rk-text); text-shadow: 0 0 18px currentColor; }
+  .rk-glow-magenta { color: var(--rk-magenta); } .rk-glow-purple { color: var(--rk-purple); }
+  .rk-glow-green { color: var(--rk-green); } .rk-glow-yellow { color: var(--rk-yellow); }
+  .rk-size-hero { font-size: 72px; } .rk-size-lg { font-size: 38px; } .rk-size-md { font-size: 22px; } .rk-size-sm { font-size: 15px; text-shadow: 0 0 10px currentColor; }
+  .rk-score-label { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--rk-text-faint); margin-top: 4px; }
+
+  .rk-section { position: relative; border-radius: var(--rk-radius-lg); padding: var(--rk-space-5); background: var(--rk-surface); border: 1px solid var(--rk-border); display: flex; flex-direction: column; gap: var(--rk-space-3); min-width: 0; flex: 1; min-width: 260px; }
+  .rk-section-hero { background: linear-gradient(160deg, rgba(139,92,246,0.14), rgba(10,8,20,0.92) 65%); border: 1px solid var(--rk-border-strong); box-shadow: var(--rk-glow-purple); }
+  .rk-section-accent-magenta, .rk-section-accent-purple, .rk-section-accent-green, .rk-section-accent-yellow { position: relative; }
+  .rk-section-accent-magenta::before, .rk-section-accent-purple::before, .rk-section-accent-green::before, .rk-section-accent-yellow::before {
+    content: ''; position: absolute; left: var(--rk-space-5); right: var(--rk-space-5); top: 0; height: 2px; border-radius: var(--rk-radius-pill); transform: translateY(-1px);
+  }
+  .rk-section-accent-magenta::before { background: linear-gradient(90deg, transparent, var(--rk-magenta), transparent); }
+  .rk-section-accent-purple::before { background: linear-gradient(90deg, transparent, var(--rk-purple), transparent); }
+  .rk-section-accent-green::before { background: linear-gradient(90deg, transparent, var(--rk-green), transparent); }
+  .rk-section-accent-yellow::before { background: linear-gradient(90deg, transparent, var(--rk-yellow), transparent); }
+  .rk-section-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--rk-space-2); }
+  .rk-section-eyebrow { font-size: 10.5px; font-weight: 700; letter-spacing: 0.12em; color: var(--rk-text-faint); text-transform: uppercase; }
+  .rk-section-title { font-family: var(--rk-font-display); font-size: 16px; font-weight: 700; margin-top: 2px; color: var(--rk-text); }
+  .rk-section-hero .rk-section-title { font-size: 22px; }
+  .rk-section-subtitle { font-size: 12px; color: var(--rk-text-soft); margin-top: 2px; }
+  .rk-section-action { font-size: 12px; font-weight: 600; color: var(--rk-purple); }
+
+  .rk-podium { display: flex; align-items: flex-end; justify-content: center; gap: var(--rk-space-3); padding-top: var(--rk-space-4); }
+  .rk-podium-slot { display: flex; flex-direction: column; align-items: center; gap: var(--rk-space-2); width: 92px; }
+  .rk-podium-avatar { width: 52px; height: 52px; border-radius: var(--rk-radius-pill); display: flex; align-items: center; justify-content: center; font-size: 24px; background: rgba(255,255,255,0.06); border: 2px solid var(--rk-border-strong); }
+  .rk-podium-slot-1 .rk-podium-avatar { width: 64px; height: 64px; font-size: 30px; border-color: var(--rk-yellow); box-shadow: var(--rk-glow-yellow); }
+  .rk-podium-slot-2 .rk-podium-avatar { border-color: rgba(255,255,255,0.5); box-shadow: 0 0 20px -6px rgba(255,255,255,0.5); }
+  .rk-podium-slot-3 .rk-podium-avatar { border-color: var(--rk-magenta); box-shadow: var(--rk-glow-magenta); }
+  .rk-podium-name { font-size: 12.5px; font-weight: 700; }
+  .rk-podium-score { font-family: var(--rk-font-display); font-weight: 800; font-size: 13px; }
+  .rk-podium-base { width: 100%; border-radius: var(--rk-radius-sm) var(--rk-radius-sm) 0 0; display: flex; align-items: flex-start; justify-content: center; padding-top: 6px; font-weight: 800; font-family: var(--rk-font-display); }
+  .rk-podium-slot-1 .rk-podium-base { height: 64px; background: linear-gradient(180deg, rgba(244,208,63,0.28), rgba(244,208,63,0.05)); color: var(--rk-yellow); }
+  .rk-podium-slot-2 .rk-podium-base { height: 44px; background: linear-gradient(180deg, rgba(255,255,255,0.16), rgba(255,255,255,0.03)); color: rgba(255,255,255,0.85); }
+  .rk-podium-slot-3 .rk-podium-base { height: 30px; background: linear-gradient(180deg, rgba(233,30,140,0.24), rgba(233,30,140,0.05)); color: var(--rk-magenta); }
+
+  .rk-empty { text-align: center; padding: 20px 8px; }
+  .rk-empty-icon { font-size: 28px; margin-bottom: 8px; filter: drop-shadow(0 0 12px rgba(139,92,246,0.5)); }
+  .rk-empty-text { font-size: 13px; line-height: 1.5; color: var(--rk-text-soft); }
+  .rk-empty-cta { margin-top: 12px; display: inline-block; font-size: 12px; font-weight: 700; color: #fff; padding: 8px 16px; border-radius: 999px; background: linear-gradient(90deg, var(--rk-magenta), var(--rk-purple)); }
+
+  .rk-skeleton { display: flex; flex-direction: column; gap: 8px; }
+  .rk-skeleton-line { height: 12px; border-radius: 999px; background: linear-gradient(90deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.14) 50%, rgba(255,255,255,0.06) 100%); background-size: 200% 100%; animation: rkSkeletonSweep 1.6s ease-in-out infinite; }
+  @keyframes rkSkeletonSweep { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+  @keyframes rkSectionIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  .rk-section { animation: rkSectionIn var(--rk-duration-slow) var(--rk-ease) both; }
+
+  .rk-atmosphere { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+  .rk-atmosphere-horizon {
+    position: absolute; left: 50%; bottom: 42%; width: 68%; height: 130px;
+    transform: translate(-50%, 50%);
+    background: radial-gradient(ellipse at 50% 100%, rgba(244,208,63,0.32) 0%, rgba(233,30,140,0.26) 38%, rgba(139,92,246,0.14) 62%, transparent 76%);
+    filter: blur(8px);
+  }
+  .rk-atmosphere-grid {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 42%;
+    overflow: hidden; perspective: 220px; perspective-origin: 50% 0%;
+  }
+  .rk-atmosphere-grid::before {
+    content: ''; position: absolute; left: -50%; right: -50%; bottom: 0; height: 220%;
+    background-image:
+      linear-gradient(rgba(139,92,246,0.32) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(139,92,246,0.32) 1px, transparent 1px);
+    background-size: 46px 46px;
+    transform: rotateX(75deg);
+    transform-origin: 50% 0%;
+    mask-image: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 82%);
+    -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 82%);
+  }
+  .rk-demo-hero {
+    position: relative; overflow: hidden; border-radius: var(--rk-radius-lg);
+    border: 1px solid var(--rk-border); max-width: 1000px; margin: 0 auto;
+    padding: 60px 24px; text-align: center;
+  }
+  .rk-demo-hero-content { position: relative; z-index: 1; }
+
+  .rk-icon { display: inline-block; vertical-align: -0.15em; }
+  .rk-icon-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; max-width: 1000px; margin: 0 auto; }
+  .rk-icon-card { background: var(--rk-surface); border: 1px solid var(--rk-border); border-radius: var(--rk-radius-md); padding: 18px 10px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .rk-icon-card span { font-size: 11px; color: var(--rk-text-faint); }
+</style>
+</head>
+<body>
+
+  <h2 class="demo-label">RetrokeAtmosphere — piso de grid + horizonte (referencia synthwave, solo esta parte)</h2>
+  <div class="rk-demo-hero">
+    <div class="rk-atmosphere">
+      <div class="rk-atmosphere-horizon"></div>
+      <div class="rk-atmosphere-grid"></div>
+    </div>
+    <div class="rk-demo-hero-content">
+      <div style="font-family: var(--rk-font-display); font-weight: 800; font-size: 13px; letter-spacing: 0.22em; color: var(--rk-text-faint);">RETROKE WORLD</div>
+      <h1 style="font-family: var(--rk-font-display); font-weight: 700; font-size: 34px; margin: 10px 0;">Donde la comunidad vive el escenario</h1>
+      <p style="color: var(--rk-text-soft); font-size: 14px; margin: 0;">Mismo hero de siempre, con el horizonte y el piso de grid detrás como atmósfera.</p>
+    </div>
+  </div>
+
+  <h2 class="demo-label">RetrokeScore — número protagonista</h2>
+  <div class="demo-row">
+    <div class="rk-score"><div class="rk-score-value rk-size-hero rk-glow-yellow">793</div><div class="rk-score-label">XP total</div></div>
+    <div class="rk-score"><div class="rk-score-value rk-size-lg rk-glow-magenta">8.6</div><div class="rk-score-label">Nota final</div></div>
+    <div class="rk-score"><div class="rk-score-value rk-size-md rk-glow-green">#4</div><div class="rk-score-label">Ranking</div></div>
+    <div class="rk-score"><div class="rk-score-value rk-size-sm rk-glow-purple">+250</div><div class="rk-score-label">Recompensa</div></div>
+  </div>
+
+  <h2 class="demo-label">RetrokeSection — hero vs. default con acento</h2>
+  <div class="demo-row">
+    <div class="rk-section rk-section-hero" style="flex: 2; min-width: 320px;">
+      <div class="rk-section-head">
+        <div>
+          <div class="rk-section-eyebrow">En vivo</div>
+          <h3 class="rk-section-title">🔴 Ahora en Retroke</h3>
+        </div>
+      </div>
+      <p style="font-size: 13px; color: var(--rk-text-soft); margin: 0;">Lu está cantando "Black or White" en DJ Tere.</p>
+    </div>
+    <div class="rk-section rk-section-accent-yellow">
+      <div class="rk-section-head">
+        <div>
+          <div class="rk-section-eyebrow">Meta-partida</div>
+          <h3 class="rk-section-title">🌎 Ranking Retroke</h3>
+        </div>
+        <span class="rk-section-action">Ver todo →</span>
+      </div>
+      <p style="font-size: 13px; color: var(--rk-text-soft); margin: 0;">Top 3 con composición de podio abajo.</p>
+    </div>
+    <div class="rk-section rk-section-accent-green">
+      <div class="rk-section-head">
+        <div>
+          <div class="rk-section-eyebrow">Estado</div>
+          <h3 class="rk-section-title">🌙 Sin actividad ahora</h3>
+        </div>
+      </div>
+      <p style="font-size: 13px; color: var(--rk-text-soft); margin: 0;">Misma tarjeta, acento verde en vez de amarillo.</p>
+    </div>
+  </div>
+
+  <h2 class="demo-label">RetrokePodium — top 3</h2>
+  <div class="demo-row" style="justify-content: center;">
+    <div class="rk-podium">
+      <div class="rk-podium-slot rk-podium-slot-2"><div class="rk-podium-avatar">🔥</div><div class="rk-podium-name">Alexander</div><div class="rk-podium-score">167 XP</div><div class="rk-podium-base">#2</div></div>
+      <div class="rk-podium-slot rk-podium-slot-1"><div class="rk-podium-avatar">🔥</div><div class="rk-podium-name">Lu</div><div class="rk-podium-score">793 XP</div><div class="rk-podium-base">#1</div></div>
+      <div class="rk-podium-slot rk-podium-slot-3"><div class="rk-podium-avatar">🐸</div><div class="rk-podium-name">Pato</div><div class="rk-podium-score">85 XP</div><div class="rk-podium-base">#3</div></div>
+    </div>
+  </div>
+
+  <h2 class="demo-label">RetrokeEmptyState — con CTA</h2>
+  <div class="demo-row">
+    <div class="rk-section" style="flex: 1;">
+      <div class="rk-empty">
+        <div class="rk-empty-icon">🏆</div>
+        <p class="rk-empty-text">Todavía no hay ranking en tu ciudad. El escenario recién comienza.</p>
+        <span class="rk-empty-cta">Invitar a participar</span>
+      </div>
+    </div>
+    <div class="rk-section" style="flex: 1;">
+      <div class="rk-skeleton">
+        <div class="rk-skeleton-line" style="width: 100%;"></div>
+        <div class="rk-skeleton-line" style="width: 88%;"></div>
+        <div class="rk-skeleton-line" style="width: 60%;"></div>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="demo-label">RetrokeIcon — reemplazo de emojis (interfaz + reacciones)</h2>
+  <div class="rk-icon-grid">
+    <div class="rk-icon-card" style="color: var(--rk-yellow);">
+      <svg class="rk-icon" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(0 0 9px currentColor);"><circle cx="12" cy="15" r="6"/><circle cx="12" cy="15" r="2.6"/><path d="M9 10 6 3"/><path d="M15 10 18 3"/></svg>
+      <span>medal</span>
+    </div>
+    <div class="rk-icon-card" style="color: var(--rk-magenta);">
+      <svg class="rk-icon" width="26" height="26" viewBox="0 0 24 24" style="filter: drop-shadow(0 0 9px currentColor);"><path fill="currentColor" d="M12 2c0 3-4 5.2-4 9.2A4 4 0 0 0 12 21a4 4 0 0 0 4-4.8c0 0-1 1.3-2 1.3-1.7 0-2.2-1.6-1.2-3 .9-1.3 1.6-1.9 1.2-4C13.6 8 12 6 12 2Z"/></svg>
+      <span>fire</span>
+    </div>
+    <div class="rk-icon-card" style="color: var(--rk-purple);">
+      <svg class="rk-icon" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(0 0 9px currentColor);"><rect x="9" y="3" width="6" height="10" rx="3"/><path d="M6 11a6 6 0 0 0 12 0"/><line x1="12" y1="17" x2="12" y2="21"/><line x1="8" y1="21" x2="16" y2="21"/></svg>
+      <span>mic</span>
+    </div>
+    <div class="rk-icon-card" style="color: var(--rk-yellow);">
+      <svg class="rk-icon" width="26" height="26" viewBox="0 0 24 24" style="filter: drop-shadow(0 0 9px currentColor);"><path fill="currentColor" d="M12 2.5 14.6 9l7 .6-5.3 4.5 1.6 6.8L12 17.3 5.9 20.9l1.6-6.8L2.4 9.6l7-.6Z"/></svg>
+      <span>star</span>
+    </div>
+    <div class="rk-icon-card" style="color: var(--rk-green);">
+      <svg class="rk-icon" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(0 0 9px currentColor);"><circle cx="12" cy="12" r="9"/><line x1="3" y1="12" x2="21" y2="12"/><path d="M12 3c2.8 2.8 2.8 15.2 0 18"/><path d="M12 3c-2.8 2.8-2.8 15.2 0 18"/></svg>
+      <span>globe</span>
+    </div>
+    <div class="rk-icon-card" style="color: var(--rk-text-soft);">
+      <svg class="rk-icon" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+      <span>lock</span>
+    </div>
+    <div class="rk-icon-card" style="color: var(--rk-purple);">
+      <svg class="rk-icon" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      <span>plus (seguir)</span>
+    </div>
+    <div class="rk-icon-card" style="color: var(--rk-green);">
+      <svg class="rk-icon" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="5 13 10 18 19 7"/></svg>
+      <span>check</span>
+    </div>
+    <div class="rk-icon-card" style="color: var(--rk-yellow);">
+      <svg class="rk-icon" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(0 0 9px currentColor);"><path d="M7 4h10v4a5 5 0 0 1-10 0Z"/><path d="M7 6H4a3 3 0 0 0 3 5"/><path d="M17 6h3a3 3 0 0 1-3 5"/><line x1="12" y1="13" x2="12" y2="17"/><line x1="8" y1="20" x2="16" y2="20"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
+      <span>trophy</span>
+    </div>
+    <div class="rk-icon-card" style="color: var(--rk-magenta);">
+      <svg class="rk-icon" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="18" r="3" fill="currentColor" stroke="none"/><line x1="10.5" y1="18" x2="10.5" y2="4"/><path d="M10.5 4 17 6v4l-6.5-2"/></svg>
+      <span>music</span>
+    </div>
+    <div class="rk-icon-card" style="color: var(--rk-text-faint);">
+      <svg class="rk-icon" width="26" height="26" viewBox="0 0 24 24"><path fill="currentColor" d="M20 14.8A8.5 8.5 0 1 1 9.2 4a7 7 0 0 0 10.8 10.8Z"/></svg>
+      <span>moon</span>
+    </div>
+    <div class="rk-icon-card" style="color: var(--rk-magenta);">
+      <svg class="rk-icon" width="26" height="26" viewBox="0 0 24 24" style="filter: drop-shadow(0 0 9px currentColor);"><path fill="currentColor" d="M12 21s-7.2-4.4-9.4-8.9C1.2 8.7 2.4 5.3 5.6 4.5c2.1-.5 4.1.5 6.4 2.7 2.3-2.2 4.3-3.2 6.4-2.7 3.2.8 4.4 4.2 3 7.6C19.2 16.6 12 21 12 21Z"/></svg>
+      <span>heart (reacción)</span>
+    </div>
+    <div class="rk-icon-card" style="color: var(--rk-yellow);">
+      <svg class="rk-icon" width="26" height="26" viewBox="0 0 24 24" style="filter: drop-shadow(0 0 9px currentColor);"><path fill="currentColor" d="M12 2 13.4 9 21 10.4 13.4 12 12 21 10.6 12 3 10.4 10.6 9Z"/></svg>
+      <span>clap (reacción)</span>
+    </div>
+    <div class="rk-icon-card" style="color: var(--rk-green);">
+      <svg class="rk-icon" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="9" cy="10" r="1" fill="currentColor" stroke="none"/><circle cx="15" cy="10" r="1" fill="currentColor" stroke="none"/><path d="M8 14c.8 2 2.2 3 4 3s3.2-1 4-3"/></svg>
+      <span>laugh (reacción)</span>
+    </div>
+    <div class="rk-icon-card" style="color: var(--rk-green);">
+      <svg class="rk-icon" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11 12 3l9 8"/><path d="M5 11v9h14v-9"/><rect x="10" y="15" width="4" height="5"/></svg>
+      <span>home</span>
+    </div>
+    <div class="rk-icon-card" style="color: var(--rk-yellow);">
+      <svg class="rk-icon" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15v-3a8 8 0 0 1 16 0v3"/><rect x="3" y="14" width="4" height="7" rx="2"/><rect x="17" y="14" width="4" height="7" rx="2"/></svg>
+      <span>headphones (DJ)</span>
+    </div>
+  </div>
+
+</body>
+</html>
