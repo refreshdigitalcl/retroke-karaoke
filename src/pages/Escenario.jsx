@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { resolveVenue, loadVenueRanking, loadVenueOverview, loadVenueNowPlaying } from '../lib/venue'
 import { subscribeToTableFiltered } from '../lib/realtime'
+import { useRetrokeFont } from '../lib/fonts'
 import WorldSection from '../components/world/WorldSection'
 import WorldEmptyState from '../components/world/WorldEmptyState'
 import WorldSkeleton from '../components/world/WorldSkeleton'
@@ -23,19 +24,6 @@ import { WORLD_STYLES } from '../components/world/worldStyles'
 // La estructura queda lista para ese momento sin inventar datos mientras
 // tanto.
 
-const FONT_HREF = 'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap'
-
-function useEscenarioFont() {
-  useEffect(() => {
-    if (document.querySelector('link[data-retroke-escenario-font]')) return
-    const link = document.createElement('link')
-    link.rel = 'stylesheet'
-    link.href = FONT_HREF
-    link.setAttribute('data-retroke-escenario-font', 'true')
-    document.head.appendChild(link)
-  }, [])
-}
-
 function getParam(name) {
   if (typeof window === 'undefined') return null
   return new URLSearchParams(window.location.search).get(name)
@@ -55,7 +43,7 @@ function liveHref(venue) {
 }
 
 export default function Escenario() {
-  useEscenarioFont()
+  useRetrokeFont()
 
   const barSlug = getParam('bar')
   const wsId = getParam('ws')

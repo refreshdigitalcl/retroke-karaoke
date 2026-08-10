@@ -7,6 +7,7 @@ import { getGlobalXpRank } from '../lib/ranking'
 import { createFollow, deleteFollow, loadFollowCounts } from '../lib/follows'
 import { loadStatuses, toggleReaction, REACTION_EMOJIS } from '../lib/statuses'
 import { subscribeToTableFiltered, subscribeToTables } from '../lib/realtime'
+import { useRetrokeFont } from '../lib/fonts'
 import WorldSection from '../components/world/WorldSection'
 import WorldEmptyState from '../components/world/WorldEmptyState'
 import WorldSkeleton from '../components/world/WorldSkeleton'
@@ -21,18 +22,6 @@ import { WORLD_STYLES } from '../components/world/worldStyles'
 // quien mira como la persona del perfil tienen cuenta Google conectada
 // (identidad estable, mismo criterio que los desafios 1 a 1 de Fase 5).
 
-const FONT_HREF = 'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap'
-
-function useProfileFont() {
-  useEffect(() => {
-    if (document.querySelector('link[data-retroke-publicprofile-font]')) return
-    const link = document.createElement('link')
-    link.rel = 'stylesheet'
-    link.href = FONT_HREF
-    link.setAttribute('data-retroke-publicprofile-font', 'true')
-    document.head.appendChild(link)
-  }, [])
-}
 
 function formatDate(iso) {
   if (!iso) return ''
@@ -44,7 +33,7 @@ function formatDate(iso) {
 }
 
 export default function PublicProfile() {
-  useProfileFont()
+  useRetrokeFont()
   const { participantId } = useParams()
 
   const [target, setTarget] = useState(undefined) // undefined = cargando, null = no encontrado

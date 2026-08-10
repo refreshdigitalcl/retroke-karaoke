@@ -6,6 +6,7 @@ import { LEVELS, computeLevel } from '../lib/gamification'
 import { getGlobalXpRank } from '../lib/ranking'
 import { loadActivityFeed } from '../lib/activity'
 import { subscribeToTables } from '../lib/realtime'
+import { useRetrokeFont } from '../lib/fonts'
 import WorldHero from '../components/world/WorldHero'
 import WorldLive from '../components/world/WorldLive'
 import WorldSection from '../components/world/WorldSection'
@@ -22,19 +23,7 @@ import { WORLD_STYLES } from '../components/world/worldStyles'
 // Publica (no requiere login), en linea con el modelo de confianza abierto
 // que ya usa el resto de la app (Rankings.jsx, Challenges.jsx).
 
-const FONT_HREF = 'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700;800&display=swap'
 const LIVE_REFRESH_MS = 20000
-
-function useWorldFont() {
-  useEffect(() => {
-    if (document.querySelector('link[data-retroke-world-font]')) return
-    const link = document.createElement('link')
-    link.rel = 'stylesheet'
-    link.href = FONT_HREF
-    link.setAttribute('data-retroke-world-font', 'true')
-    document.head.appendChild(link)
-  }, [])
-}
 
 // Mismo esquema de deep-link que ya usa toda la app (ver spaceParam en
 // KaraokeSessionContext y SessionHub.jsx): con workspace_id se va directo a
@@ -243,7 +232,7 @@ function ActivityRow(props) {
 }
 
 export default function World() {
-  useWorldFont()
+  useRetrokeFont()
 
   const [live, setLive] = useState(null) // { stats, nowPlaying, scenarios }
   const [liveLoading, setLiveLoading] = useState(true)

@@ -1,25 +1,44 @@
+import { Suspense, lazy } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { KaraokeSessionProvider } from './contexts/KaraokeSessionContext'
 import { AuthProvider } from './contexts/AuthContext'
 
+// Fase 17 ("Performance"): estas cinco son el flujo de karaoke EN VIVO --
+// la pantalla del bar y lo que ve el celular del cantante/publico durante
+// una sesion real. Se mantienen con import normal (eager) para que carguen
+// de inmediato, sin depender de que el bundle de rutas lazy termine de
+// bajar primero. El resto de la app (World, admin, marketing) no comparte
+// ese requisito de latencia y se carga bajo demanda con React.lazy.
 import Display from './pages/Display'
 import RegisterForm from './pages/RegisterForm'
 import ReactForm from './pages/ReactForm'
 import RateForm from './pages/RateForm'
 import DjPanel from './pages/DjPanel'
-import AdminPanel from './pages/AdminPanel'
-import PricingPage from './pages/PricingPage'
-import SignupPage from './pages/SignupPage'
-import WelcomePage from './pages/WelcomePage'
-import LandingPage from './pages/LandingPage'
-import SharePerformance from './pages/SharePerformance'
-import Rankings from './pages/Rankings'
-import Challenges from './pages/Challenges'
-import Profile from './pages/Profile'
-import World from './pages/World'
-import Escenario from './pages/Escenario'
-import PublicProfile from './pages/PublicProfile'
+
+const AdminPanel = lazy(() => import('./pages/AdminPanel'))
+const PricingPage = lazy(() => import('./pages/PricingPage'))
+const SignupPage = lazy(() => import('./pages/SignupPage'))
+const WelcomePage = lazy(() => import('./pages/WelcomePage'))
+const LandingPage = lazy(() => import('./pages/LandingPage'))
+const SharePerformance = lazy(() => import('./pages/SharePerformance'))
+const Rankings = lazy(() => import('./pages/Rankings'))
+const Challenges = lazy(() => import('./pages/Challenges'))
+const Profile = lazy(() => import('./pages/Profile'))
+const World = lazy(() => import('./pages/World'))
+const Escenario = lazy(() => import('./pages/Escenario'))
+const PublicProfile = lazy(() => import('./pages/PublicProfile'))
+
+function RouteFallback() {
+  return (
+    <div style={{
+      minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: '#05030a', color: 'rgba(255,255,255,0.55)', fontSize: 14
+    }}>
+      Cargando…
+    </div>
+  )
+}
 
 export default function App() {
   return (
@@ -27,6 +46,7 @@ export default function App() {
       <ThemeProvider>
         <KaraokeSessionProvider>
         <BrowserRouter>
+          <Suspense fallback={<RouteFallback />}>
           <Routes>
             {/* Pantalla del bar (TV/monitor) — rota entre cola, reacciones y calificación */}
             <Route path="/" element={<Display />} />
@@ -79,6 +99,7 @@ export default function App() {
             {/* Fase 8: perfil publico de lectura de cualquier participante (seguir, logros, historial) */}
             <Route path="/u/:participantId" element={<PublicProfile />} />
           </Routes>
+          </Suspense>
         </BrowserRouter>
         </KaraokeSessionProvider>
       </ThemeProvider>

@@ -6,6 +6,7 @@ import { createDirectChallenge } from '../lib/challenges'
 import { loadFollowingIds, createFollow, deleteFollow } from '../lib/follows'
 import { resolveVenue, loadVenueRanking as loadVenueRankingRows } from '../lib/venue'
 import { subscribeToTables } from '../lib/realtime'
+import { useRetrokeFont } from '../lib/fonts'
 import WorldSection from '../components/world/WorldSection'
 import WorldEmptyState from '../components/world/WorldEmptyState'
 import WorldSkeleton from '../components/world/WorldSkeleton'
@@ -27,7 +28,6 @@ import { WORLD_STYLES } from '../components/world/worldStyles'
 // filtro simplemente no aparece -- queda listo para cuando haya locales
 // reales con ciudad cargada, sin inventar opciones que no existen.
 
-const FONT_HREF = 'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap'
 const MEDALS = ['🥇', '🥈', '🥉']
 
 const TABS = [
@@ -35,17 +35,6 @@ const TABS = [
   { key: 'semana', label: 'Esta semana' },
   { key: 'mes', label: 'Este mes' }
 ]
-
-function useRankingsFont() {
-  useEffect(() => {
-    if (document.querySelector('link[data-retroke-rankings-font]')) return
-    const link = document.createElement('link')
-    link.rel = 'stylesheet'
-    link.href = FONT_HREF
-    link.setAttribute('data-retroke-rankings-font', 'true')
-    document.head.appendChild(link)
-  }, [])
-}
 
 function getParam(name) {
   if (typeof window === 'undefined') return null
@@ -274,7 +263,7 @@ function RankingList(props) {
 }
 
 export default function Rankings() {
-  useRankingsFont()
+  useRetrokeFont()
 
   const [activeTab, setActiveTab] = useState('historico')
   const [activeCity, setActiveCity] = useState(null)

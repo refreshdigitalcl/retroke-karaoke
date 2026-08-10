@@ -1,4 +1,5 @@
-import { forwardRef, useEffect } from 'react'
+import { forwardRef } from 'react'
+import { useRetrokeFont } from '../../lib/fonts'
 
 // Fase 14 de Retroke World ("Viralidad"), ver
 // retroke-world-diagnostico-tecnico.md seccion 7 y punto 39 del prompt
@@ -15,22 +16,10 @@ import { forwardRef, useEffect } from 'react'
 // nueva y separada (namespace de clases "wcard-*", sin colision con
 // "share-card*") para las tres tarjetas nuevas de esta fase.
 
-const FONT_HREF = 'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap'
 export const WCARD_LOGO_SRC = '/landing/retroke-logo-oficial-neon.png'
 
-function useWCardFont() {
-  useEffect(() => {
-    if (document.querySelector('link[data-retroke-share-font]')) return
-    const link = document.createElement('link')
-    link.rel = 'stylesheet'
-    link.href = FONT_HREF
-    link.setAttribute('data-retroke-share-font', 'true')
-    document.head.appendChild(link)
-  }, [])
-}
-
 export const ShareCardFrame = forwardRef(function ShareCardFrame(props, ref) {
-  useWCardFont()
+  useRetrokeFont()
   return (
     <div ref={ref} className="wcard-frame">
       <style>{`

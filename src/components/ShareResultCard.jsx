@@ -1,4 +1,5 @@
-import { forwardRef, useEffect } from 'react'
+import { forwardRef } from 'react'
+import { useRetrokeFont } from '../lib/fonts'
 
 // Tarjeta visual del resultado, retro-neon, pensada para verse bien tanto
 // en la pagina publica /r/:id como convertida a imagen para compartir, y
@@ -46,19 +47,7 @@ import { forwardRef, useEffect } from 'react'
 // que arriba) es justamente ese colchon para que esa interfaz nunca tape
 // texto real de la tarjeta.
 
-const FONT_HREF = 'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap'
 const LOGO_SRC = '/landing/retroke-logo-oficial-neon.png'
-
-function useCardFont() {
-  useEffect(() => {
-    if (document.querySelector('link[data-retroke-share-font]')) return
-    const link = document.createElement('link')
-    link.rel = 'stylesheet'
-    link.href = FONT_HREF
-    link.setAttribute('data-retroke-share-font', 'true')
-    document.head.appendChild(link)
-  }, [])
-}
 
 const SUBSCORE_LABELS = [
   { key: 'pitchScore', label: 'Afinación' },
@@ -71,7 +60,7 @@ const ShareResultCard = forwardRef(function ShareResultCard(
   { singerName, avatar, photoUrl, song, artistName, artworkUrl, notaFinal, vocalScore, subScores, levelName, achievementIcons, confidence },
   ref
 ) {
-  useCardFont()
+  useRetrokeFont()
 
   const notaTxt = notaFinal !== null && notaFinal !== undefined ? notaFinal.toFixed(1) : '—'
   const hasVocalScore = vocalScore !== null && vocalScore !== undefined

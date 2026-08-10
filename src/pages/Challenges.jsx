@@ -11,6 +11,7 @@ import { WORLD_STYLES } from '../components/world/worldStyles'
 import ShareButton from '../components/share/ShareButton'
 import ShareModal from '../components/share/ShareModal'
 import ShareChallengeCard from '../components/share/ShareChallengeCard'
+import { useRetrokeFont } from '../lib/fonts'
 
 // Fase 6 de Retroke World ("Misiones y Logros", ver
 // retroke-world-diagnostico-tecnico.md). Reskin bento de esta pagina --
@@ -19,23 +20,10 @@ import ShareChallengeCard from '../components/share/ShareChallengeCard'
 // mismo lenguaje visual que /world y /ranking (WorldSection, WORLD_STYLES)
 // en vez de una pagina suelta con su propio estilo.
 
-const FONT_HREF = 'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap'
-
 const PERIOD_LABEL = { weekly: 'Esta semana', monthly: 'Este mes', ongoing: 'Permanente' }
 
-function useChallengesFont() {
-  useEffect(() => {
-    if (document.querySelector('link[data-retroke-challenges-font]')) return
-    const link = document.createElement('link')
-    link.rel = 'stylesheet'
-    link.href = FONT_HREF
-    link.setAttribute('data-retroke-challenges-font', 'true')
-    document.head.appendChild(link)
-  }, [])
-}
-
 export default function Challenges() {
-  useChallengesFont()
+  useRetrokeFont()
 
   const [challenges, setChallenges] = useState(null)
   const [progressByCode, setProgressByCode] = useState({})
