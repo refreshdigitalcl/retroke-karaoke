@@ -11,6 +11,10 @@ import ShareButton from '../components/share/ShareButton'
 import ShareModal from '../components/share/ShareModal'
 import ShareRankCard from '../components/share/ShareRankCard'
 import ShareAchievementCard from '../components/share/ShareAchievementCard'
+import RetrokeSection from '../components/retroke/RetrokeSection'
+import RetrokeScore from '../components/retroke/RetrokeScore'
+import RetrokeIcon from '../components/retroke/RetrokeIcon'
+import { RETROKE_STYLES } from '../components/retroke/retrokeStyles'
 
 // Misma tecnica que resizeToSquareJpeg en RegisterForm.jsx (PNG en vez de
 // JPEG a proposito: algunos Smart TV con Chrome embebido decodifican mal el
@@ -300,7 +304,7 @@ export default function Profile() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-page)', color: '#fff' }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--rk-bg-gradient)', color: 'var(--rk-text)' }}>
         Cargando tu perfil...
       </div>
     )
@@ -308,7 +312,7 @@ export default function Profile() {
 
   if (!participant) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-3 px-6 text-center" style={{ background: 'var(--bg-page)', color: '#fff' }}>
+      <div className="min-h-screen flex flex-col items-center justify-center gap-3 px-6 text-center" style={{ background: 'var(--rk-bg-gradient)', color: 'var(--rk-text)' }}>
         <p>No pudimos cargar tu perfil.</p>
         <Link to={backToRegistroHref} className="underline">Ir a Retroke</Link>
       </div>
@@ -324,24 +328,24 @@ export default function Profile() {
     : 100
 
   return (
-    <div className="min-h-screen px-5 py-8" style={{ background: 'var(--bg-page)', color: '#fff' }}>
-      <style>{`
-        .profile-wrap { max-width: 560px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
-        .profile-card { border-radius: 20px; padding: 20px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); }
-        .profile-avatar-btn { width: 84px; height: 84px; border-radius: 9999px; font-size: 40px; display: flex; align-items: center; justify-content: center; background: rgba(233,30,140,0.15); border: 2px solid rgba(244,208,79,0.55); cursor: pointer; }
+    <div className="min-h-screen px-5 py-8" style={{ background: 'var(--rk-bg-gradient)', color: 'var(--rk-text)' }}>
+      <style>{RETROKE_STYLES}{`
+        .profile-wrap { max-width: 560px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; position: relative; z-index: var(--rk-z-content); }
+        .profile-banner { display: flex; align-items: center; justify-content: space-between; gap: 10px; border-radius: var(--rk-radius-lg); padding: 12px 16px; text-decoration: none; color: var(--rk-text); }
+        .profile-banner-world { background: linear-gradient(90deg, rgba(233,30,140,0.16), rgba(139,92,246,0.16)); border: 1px solid var(--rk-border-strong); }
+        .profile-banner-challenge { background: rgba(244,208,63,0.12); border: 1px solid rgba(244,208,63,0.4); }
+        .profile-banner-text { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; }
+        .profile-avatar-btn { width: 84px; height: 84px; border-radius: var(--rk-radius-pill); font-size: 40px; display: flex; align-items: center; justify-content: center; background: rgba(233,30,140,0.15); border: 2px solid rgba(244,208,79,0.55); cursor: pointer; overflow: hidden; padding: 0; flex-shrink: 0; }
         .profile-avatar-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-top: 10px; }
-        .profile-avatar-option { font-size: 26px; padding: 8px; border-radius: 12px; background: rgba(255,255,255,0.06); text-align: center; cursor: pointer; border: none; }
-        .profile-name-input { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.25); border-radius: 10px; padding: 8px 12px; color: #fff; font-size: 18px; font-weight: 700; }
-        .profile-progress-track { width: 100%; height: 10px; border-radius: 999px; background: rgba(255,255,255,0.1); overflow: hidden; margin-top: 8px; }
-        .profile-progress-fill { height: 100%; background: linear-gradient(90deg, #E91E8C, #8B5CF6); }
-        .profile-stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
-        .profile-stat-box { padding: 10px 12px; border-radius: 12px; background: rgba(255,255,255,0.05); }
-        .profile-stat-label { font-size: 11px; color: rgba(255,255,255,0.55); text-transform: uppercase; letter-spacing: 0.05em; }
-        .profile-stat-value { font-size: 20px; font-weight: 700; margin-top: 2px; color: #F4D03F; }
+        .profile-avatar-option { font-size: 26px; padding: 8px; border-radius: var(--rk-radius-md); background: var(--rk-surface); text-align: center; cursor: pointer; border: none; }
+        .profile-name-input { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.25); border-radius: var(--rk-radius-sm); padding: 8px 12px; color: var(--rk-text); font-size: 18px; font-weight: 700; }
+        .profile-progress-track { width: 100%; height: 10px; border-radius: var(--rk-radius-pill); background: rgba(255,255,255,0.1); overflow: hidden; margin-top: 8px; }
+        .profile-progress-fill { height: 100%; background: linear-gradient(90deg, var(--rk-magenta), var(--rk-purple)); }
+        .profile-stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-top: 16px; }
         .profile-achv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; margin-top: 10px; }
         .profile-achv {
-          border-radius: 16px; padding: 14px 10px; text-align: center;
-          background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
+          border-radius: var(--rk-radius-md); padding: 14px 10px; text-align: center;
+          background: var(--rk-surface); border: 1px solid var(--rk-border);
           transition: transform 0.15s ease;
         }
         .profile-achv.unlocked {
@@ -351,182 +355,163 @@ export default function Profile() {
         }
         .profile-achv.locked { opacity: 0.4; filter: grayscale(0.6); }
         .profile-achv-icon-wrap {
-          width: 42px; height: 42px; margin: 0 auto; border-radius: 9999px;
+          width: 42px; height: 42px; margin: 0 auto; border-radius: var(--rk-radius-pill);
           display: flex; align-items: center; justify-content: center;
           background: rgba(255,255,255,0.06);
         }
         .profile-achv.unlocked .profile-achv-icon-wrap { background: rgba(244,208,63,0.15); }
         .profile-achv-icon { font-size: 22px; }
         .profile-achv-name { font-size: 12px; font-weight: 700; margin-top: 8px; }
-        .profile-achv-date { font-size: 10px; color: rgba(255,255,255,0.5); margin-top: 2px; }
-        .profile-achv-date.unlocked-date { color: #F4D03F; font-weight: 600; }
-        .profile-achv-share-btn { margin-top: 6px; font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.6); background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 999px; padding: 3px 8px; cursor: pointer; }
-        .profile-history-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.08); }
-        .profile-history-art { width: 44px; height: 44px; border-radius: 10px; object-fit: cover; flex-shrink: 0; background: rgba(255,255,255,0.07); display: flex; align-items: center; justify-content: center; font-size: 18px; }
+        .profile-achv-date { font-size: 10px; color: var(--rk-text-soft); margin-top: 2px; }
+        .profile-achv-date.unlocked-date { color: var(--rk-yellow); font-weight: 600; }
+        .profile-achv-share-btn { margin-top: 6px; display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.7); background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 999px; padding: 3px 9px; cursor: pointer; }
+        .profile-history-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--rk-border); }
+        .profile-history-row:last-child { border-bottom: none; }
+        .profile-history-art { width: 44px; height: 44px; border-radius: var(--rk-radius-sm); object-fit: cover; flex-shrink: 0; background: rgba(255,255,255,0.07); display: flex; align-items: center; justify-content: center; }
         .profile-history-text { min-width: 0; flex: 1; }
         .profile-history-song { font-weight: 700; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .profile-history-meta { font-size: 12px; color: rgba(255,255,255,0.5); }
-        .profile-history-nota { font-weight: 700; color: #F4D03F; flex-shrink: 0; }
-        .profile-connect-banner { border-radius: 16px; padding: 14px 16px; background: rgba(139,92,246,0.15); border: 1px solid rgba(139,92,246,0.4); display: flex; flex-direction: column; gap: 8px; }
-        .profile-avatar-btn { overflow: hidden; padding: 0; }
-        .profile-avatar-photo { width: 100%; height: 100%; object-fit: cover; border-radius: 9999px; }
-        .profile-photo-btn { font-size: 12px; font-weight: 600; color: #8B5CF6; cursor: pointer; }
-        .profile-follow-subtitle { font-size: 11.5px; font-weight: 700; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
-        .profile-follow-empty { font-size: 12.5px; color: rgba(255,255,255,0.45); padding: 2px 0 4px; }
-        .profile-follow-link { color: #F4D03F; text-decoration: underline; }
+        .profile-history-meta { font-size: 12px; color: var(--rk-text-soft); }
+        .profile-history-nota { font-family: var(--rk-font-display); font-weight: 800; color: var(--rk-yellow); flex-shrink: 0; }
+        .profile-connect-banner { border-radius: var(--rk-radius-lg); padding: 14px 16px; background: rgba(139,92,246,0.15); border: 1px solid rgba(139,92,246,0.4); display: flex; flex-direction: column; gap: 8px; }
+        .profile-avatar-photo { width: 100%; height: 100%; object-fit: cover; border-radius: var(--rk-radius-pill); }
+        .profile-photo-btn { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; color: var(--rk-purple); cursor: pointer; background: none; border: none; }
+        .profile-follow-subtitle { font-size: 11.5px; font-weight: 700; color: var(--rk-text-soft); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+        .profile-follow-empty { font-size: 12.5px; color: var(--rk-text-faint); padding: 2px 0 4px; }
+        .profile-follow-link { color: var(--rk-yellow); text-decoration: underline; }
         .profile-follow-list { display: flex; flex-direction: column; gap: 2px; }
-        .profile-follow-row { display: flex; align-items: center; gap: 10px; padding: 7px 4px; border-radius: 10px; text-decoration: none; color: inherit; }
-        .profile-follow-row:hover { background: rgba(255,255,255,0.05); }
+        .profile-follow-row { display: flex; align-items: center; gap: 10px; padding: 7px 4px; border-radius: var(--rk-radius-sm); text-decoration: none; color: inherit; }
+        .profile-follow-row:hover { background: var(--rk-surface-hover); }
         .profile-follow-avatar { font-size: 19px; flex-shrink: 0; }
         .profile-follow-name { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .profile-status-input {
           width: 100%; resize: none; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2);
-          border-radius: 12px; padding: 10px 12px; color: #fff; font-size: 13.5px; font-family: inherit;
+          border-radius: var(--rk-radius-md); padding: 10px 12px; color: var(--rk-text); font-size: 13.5px; font-family: inherit;
         }
         .profile-status-post-btn {
-          font-size: 12.5px; font-weight: 700; color: #fff; padding: 7px 16px; border-radius: 999px; border: none; cursor: pointer;
-          background: linear-gradient(90deg, #E91E8C, #8B5CF6);
+          font-size: 12.5px; font-weight: 700; color: #fff; padding: 7px 16px; border-radius: var(--rk-radius-pill); border: none; cursor: pointer;
+          background: linear-gradient(90deg, var(--rk-magenta), var(--rk-purple));
         }
         .profile-status-post-btn:disabled { opacity: 0.4; cursor: default; }
-        .profile-status-card { padding: 10px 12px; border-radius: 12px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); }
+        .profile-status-card { padding: 10px 12px; border-radius: var(--rk-radius-md); background: var(--rk-surface); border: 1px solid var(--rk-border); }
         .profile-status-text { font-size: 13px; line-height: 1.5; word-break: break-word; }
         .profile-status-footer { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 6px; }
-        .profile-status-date { font-size: 10.5px; color: rgba(255,255,255,0.4); }
-        .profile-status-delete { font-size: 11px; color: rgba(255,255,255,0.4); background: none; border: none; cursor: pointer; text-decoration: underline; }
+        .profile-status-date { font-size: 10.5px; color: var(--rk-text-faint); }
+        .profile-status-delete { font-size: 11px; color: var(--rk-text-faint); background: none; border: none; cursor: pointer; text-decoration: underline; }
       `}</style>
 
       <div className="profile-wrap">
-        <Link
-          to="/world"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 10,
-            borderRadius: 16,
-            padding: '12px 16px',
-            background: 'linear-gradient(90deg, rgba(233,30,140,0.16), rgba(139,92,246,0.16))',
-            border: '1px solid rgba(139,92,246,0.4)',
-            textDecoration: 'none',
-            color: '#fff'
-          }}
-        >
-          <span style={{ fontSize: 13, fontWeight: 700 }}>🌐 Retroke World — rankings, desafíos y quién está cantando ahora</span>
-          <span style={{ fontSize: 13, color: '#F4D03F' }}>→</span>
+        <Link to="/world" className="profile-banner profile-banner-world">
+          <span className="profile-banner-text">
+            <RetrokeIcon name="globe" size={15} />
+            Retroke World — rankings, desafíos y quién está cantando ahora
+          </span>
+          <span style={{ fontSize: 13, color: 'var(--rk-yellow)' }}>→</span>
         </Link>
 
         {pendingChallengeCount > 0 && (
-          <Link
-            to="/desafios"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 10,
-              borderRadius: 16,
-              padding: '12px 16px',
-              background: 'rgba(244,208,63,0.12)',
-              border: '1px solid rgba(244,208,63,0.4)',
-              textDecoration: 'none',
-              color: '#fff'
-            }}
-          >
-            <span style={{ fontSize: 13, fontWeight: 700 }}>
-              🥊 {pendingChallengeCount === 1 ? 'Te desafiaron a superar una nota' : 'Te desafiaron ' + pendingChallengeCount + ' veces a superar una nota'}
+          <Link to="/desafios" className="profile-banner profile-banner-challenge">
+            <span className="profile-banner-text">
+              <RetrokeIcon name="fire" size={15} glow />
+              {pendingChallengeCount === 1 ? 'Te desafiaron a superar una nota' : 'Te desafiaron ' + pendingChallengeCount + ' veces a superar una nota'}
             </span>
-            <span style={{ fontSize: 13, color: '#F4D03F' }}>→</span>
+            <span style={{ fontSize: 13, color: 'var(--rk-yellow)' }}>→</span>
           </Link>
         )}
 
-        <div className="profile-card" style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-          <button
-            type="button"
-            className="profile-avatar-btn"
-            onClick={function () { if (!participant.photo_url) setPickingAvatar(!pickingAvatar) }}
-          >
-            {participant.photo_url ? (
-              <img src={participant.photo_url} alt="" className="profile-avatar-photo" />
-            ) : (
-              participant.avatar || '🎤'
-            )}
-          </button>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            {editingName ? (
-              <div style={{ display: 'flex', gap: 8 }}>
-                <input
-                  className="profile-name-input"
-                  value={nameDraft}
-                  onChange={function (e) { setNameDraft(e.target.value) }}
-                  autoFocus
-                />
-                <button type="button" onClick={saveName} style={{ color: '#F4D03F', fontWeight: 700 }}>Guardar</button>
-              </div>
-            ) : (
-              <div onClick={startEditName} style={{ fontSize: 22, fontWeight: 700, cursor: 'pointer' }}>
-                {participant.display_name || 'Cantante Retroke'} <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>✏️</span>
-              </div>
-            )}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>🏅 {levelInfo.name}</span>
-              {rank && (
-                <span
-                  style={{
-                    fontSize: 11.5,
-                    fontWeight: 700,
-                    color: '#F4D03F',
-                    background: 'rgba(244,208,63,0.12)',
-                    border: '1px solid rgba(244,208,63,0.4)',
-                    borderRadius: 999,
-                    padding: '2px 9px'
-                  }}
-                >
-                  #{rank.rank} de {rank.total} en Retroke
+        <RetrokeSection variant="hero" eyebrow="Tu perfil" title={<><RetrokeIcon name="mic" size={16} glow /> Identidad</>}>
+          <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+            <button
+              type="button"
+              className="profile-avatar-btn"
+              onClick={function () { if (!participant.photo_url) setPickingAvatar(!pickingAvatar) }}
+            >
+              {participant.photo_url ? (
+                <img src={participant.photo_url} alt="" className="profile-avatar-photo" />
+              ) : (
+                participant.avatar || '🎤'
+              )}
+            </button>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              {editingName ? (
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input
+                    className="profile-name-input"
+                    value={nameDraft}
+                    onChange={function (e) { setNameDraft(e.target.value) }}
+                    autoFocus
+                  />
+                  <button type="button" onClick={saveName} style={{ color: 'var(--rk-yellow)', fontWeight: 700 }}>Guardar</button>
+                </div>
+              ) : (
+                <div onClick={startEditName} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 22, fontWeight: 700, cursor: 'pointer' }}>
+                  {participant.display_name || 'Cantante Retroke'} <RetrokeIcon name="edit" size={13} className="rk-icon" style={{ color: 'var(--rk-text-faint)' }} />
+                </div>
+              )}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 13, color: 'var(--rk-text-soft)' }}>
+                  <RetrokeIcon name="medal" size={13} /> {levelInfo.name}
                 </span>
-              )}
-              {rank && (
-                <button
-                  type="button"
-                  onClick={function () { setShareModal({ type: 'rank' }) }}
-                  style={{
-                    fontSize: 11.5, fontWeight: 700, color: 'rgba(255,255,255,0.7)',
-                    background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
-                    borderRadius: 999, padding: '2px 9px', cursor: 'pointer'
-                  }}
-                >
-                  Compartir 📤
-                </button>
-              )}
-              {followCounts && (
-                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
-                  <strong style={{ color: '#fff' }}>{followCounts.followers}</strong> seguidores · <strong style={{ color: '#fff' }}>{followCounts.following}</strong> siguiendo
-                </span>
-              )}
-            </div>
-            <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
-              <label className="profile-photo-btn">
-                {uploadingPhoto ? 'Subiendo...' : participant.photo_url ? '📷 Cambiar foto' : '📷 Subir foto'}
-                <input type="file" accept="image/*" onChange={handlePhotoChange} disabled={uploadingPhoto} className="hidden" />
-              </label>
-              {participant.photo_url && (
-                <button type="button" onClick={handleRemovePhoto} className="profile-photo-btn" style={{ color: 'rgba(255,255,255,0.5)' }}>
-                  Quitar foto
-                </button>
-              )}
+                {rank && (
+                  <span
+                    style={{
+                      fontSize: 11.5,
+                      fontWeight: 700,
+                      color: 'var(--rk-yellow)',
+                      background: 'rgba(244,208,63,0.12)',
+                      border: '1px solid rgba(244,208,63,0.4)',
+                      borderRadius: 999,
+                      padding: '2px 9px'
+                    }}
+                  >
+                    #{rank.rank} de {rank.total} en Retroke
+                  </span>
+                )}
+                {rank && (
+                  <button
+                    type="button"
+                    onClick={function () { setShareModal({ type: 'rank' }) }}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 4,
+                      fontSize: 11.5, fontWeight: 700, color: 'rgba(255,255,255,0.7)',
+                      background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
+                      borderRadius: 999, padding: '2px 9px', cursor: 'pointer'
+                    }}
+                  >
+                    <RetrokeIcon name="share" size={11} /> Compartir
+                  </button>
+                )}
+                {followCounts && (
+                  <span style={{ fontSize: 12, color: 'var(--rk-text-soft)' }}>
+                    <strong style={{ color: 'var(--rk-text)' }}>{followCounts.followers}</strong> seguidores · <strong style={{ color: 'var(--rk-text)' }}>{followCounts.following}</strong> siguiendo
+                  </span>
+                )}
+              </div>
+              <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
+                <label className="profile-photo-btn">
+                  <RetrokeIcon name="camera" size={13} />
+                  {uploadingPhoto ? 'Subiendo...' : participant.photo_url ? 'Cambiar foto' : 'Subir foto'}
+                  <input type="file" accept="image/*" onChange={handlePhotoChange} disabled={uploadingPhoto} className="hidden" />
+                </label>
+                {participant.photo_url && (
+                  <button type="button" onClick={handleRemovePhoto} className="profile-photo-btn" style={{ color: 'var(--rk-text-soft)' }}>
+                    Quitar foto
+                  </button>
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        </RetrokeSection>
 
-        <div className="profile-card">
-          <div style={{ fontWeight: 700, marginBottom: 8 }}>📷 Instagram</div>
+        <RetrokeSection accent="magenta" eyebrow="Conexiones" title={<><RetrokeIcon name="camera" size={16} glow /> Instagram</>}>
           {!editingInstagram && (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
-              <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>
+              <div style={{ fontSize: 13, color: 'var(--rk-text-soft)' }}>
                 {participant.show_instagram && participant.instagram_handle ? (
                   <a
                     href={'https://instagram.com/' + participant.instagram_handle}
                     target="_blank"
                     rel="noreferrer"
-                    style={{ color: '#F4D03F' }}
+                    style={{ color: 'var(--rk-yellow)' }}
                   >
                     @{participant.instagram_handle} · visible en tu perfil público
                   </a>
@@ -549,7 +534,7 @@ export default function Profile() {
                 placeholder="tu_usuario"
                 autoFocus
               />
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: 'rgba(255,255,255,0.6)' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: 'var(--rk-text-soft)' }}>
                 <input
                   type="checkbox"
                   checked={showInstagramDraft}
@@ -558,19 +543,19 @@ export default function Profile() {
                 Mostrar en mi perfil público (apagado por defecto)
               </label>
               <div style={{ display: 'flex', gap: 10 }}>
-                <button type="button" onClick={saveInstagram} disabled={savingInstagram} style={{ color: '#F4D03F', fontWeight: 700 }}>
+                <button type="button" onClick={saveInstagram} disabled={savingInstagram} style={{ color: 'var(--rk-yellow)', fontWeight: 700 }}>
                   {savingInstagram ? 'Guardando…' : 'Guardar'}
                 </button>
-                <button type="button" onClick={function () { setEditingInstagram(false) }} style={{ color: 'rgba(255,255,255,0.5)' }}>
+                <button type="button" onClick={function () { setEditingInstagram(false) }} style={{ color: 'var(--rk-text-soft)' }}>
                   Cancelar
                 </button>
               </div>
             </div>
           )}
-        </div>
+        </RetrokeSection>
 
         {pickingAvatar && !participant.photo_url && (
-          <div className="profile-card">
+          <RetrokeSection eyebrow="Personalizar" title="Elige tu avatar">
             <div className="profile-avatar-grid">
               {AVATAR_OPTIONS.map(function (emoji) {
                 return (
@@ -580,7 +565,7 @@ export default function Profile() {
                 )
               })}
             </div>
-          </div>
+          </RetrokeSection>
         )}
 
         {!authUser && (
@@ -593,7 +578,7 @@ export default function Profile() {
               type="button"
               onClick={handleConnectGoogle}
               className="w-full h-11 rounded-xl font-bold text-white"
-              style={{ background: 'linear-gradient(90deg, #E91E8C, #8B5CF6)' }}
+              style={{ background: 'linear-gradient(90deg, var(--rk-magenta), var(--rk-purple))' }}
             >
               Conectar con Google {connectState && '· ' + connectState}
             </button>
@@ -601,15 +586,14 @@ export default function Profile() {
         )}
 
         {authUser && (
-          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ fontSize: 13, color: 'var(--rk-text-soft)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span>Conectado como {authUser.email}</span>
             <button type="button" onClick={handleSignOut} className="underline">Cerrar sesión</button>
           </div>
         )}
 
         {authUser && (
-          <div className="profile-card">
-            <div style={{ fontWeight: 700, marginBottom: 8 }}>💬 Tus estados</div>
+          <RetrokeSection accent="purple" eyebrow="Comunidad" title={<><RetrokeIcon name="chat" size={16} glow /> Tus estados</>}>
             <textarea
               className="profile-status-input"
               value={statusDraft}
@@ -619,7 +603,7 @@ export default function Profile() {
               rows={2}
             />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
-              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>{statusDraft.length}/{STATUS_MAX_LENGTH}</span>
+              <span style={{ fontSize: 11, color: 'var(--rk-text-faint)' }}>{statusDraft.length}/{STATUS_MAX_LENGTH}</span>
               <button
                 type="button"
                 onClick={handlePostStatus}
@@ -631,9 +615,9 @@ export default function Profile() {
             </div>
             {statusError && <div style={{ fontSize: 11.5, color: '#FF6B6B', marginTop: 6 }}>{statusError}</div>}
 
-            {statuses === null && <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginTop: 12 }}>Cargando…</div>}
+            {statuses === null && <div style={{ fontSize: 13, color: 'var(--rk-text-faint)', marginTop: 12 }}>Cargando…</div>}
             {statuses !== null && statuses.length === 0 && (
-              <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', marginTop: 12 }}>Todavía no has publicado nada.</div>
+              <div style={{ fontSize: 13, color: 'var(--rk-text-faint)', marginTop: 12 }}>Todavía no has publicado nada.</div>
             )}
             {statuses !== null && statuses.length > 0 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12 }}>
@@ -652,42 +636,36 @@ export default function Profile() {
                 })}
               </div>
             )}
-          </div>
+          </RetrokeSection>
         )}
 
-        <div className="profile-card">
+        <RetrokeSection accent="yellow" eyebrow="Progreso" title={<><RetrokeIcon name="star" size={16} glow /> Tu Experiencia</>}>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
             <span>{xp} XP</span>
-            <span style={{ color: 'rgba(255,255,255,0.5)' }}>{nextLevel ? nextLevel.minXp + ' XP para ' + nextLevel.name : 'Nivel máximo 🎉'}</span>
+            <span style={{ color: 'var(--rk-text-soft)' }}>{nextLevel ? nextLevel.minXp + ' XP para ' + nextLevel.name : 'Nivel máximo 🎉'}</span>
           </div>
           <div className="profile-progress-track">
             <div className="profile-progress-fill" style={{ width: progressPct + '%' }} />
           </div>
 
           <div className="profile-stats-grid">
-            <div className="profile-stat-box">
-              <div className="profile-stat-label">Presentaciones</div>
-              <div className="profile-stat-value">{stats ? stats.total_performances || 0 : 0}</div>
-            </div>
-            <div className="profile-stat-box">
-              <div className="profile-stat-label">Mejor puntaje</div>
-              <div className="profile-stat-value">{stats && stats.best_score !== null && stats.best_score !== undefined ? stats.best_score + '/100' : '—'}</div>
-            </div>
-            <div className="profile-stat-box">
-              <div className="profile-stat-label">Racha actual</div>
-              <div className="profile-stat-value">{stats ? stats.current_streak || 0 : 0} 🔥</div>
-            </div>
-            <div className="profile-stat-box">
-              <div className="profile-stat-label">Mejor racha</div>
-              <div className="profile-stat-value">{stats ? stats.best_streak || 0 : 0}</div>
-            </div>
+            <RetrokeScore value={stats ? stats.total_performances || 0 : 0} label="Presentaciones" size="md" color="purple" />
+            <RetrokeScore
+              value={stats && stats.best_score !== null && stats.best_score !== undefined ? stats.best_score : '—'}
+              label="Mejor puntaje"
+              size="md"
+              color="yellow"
+            />
+            <RetrokeScore value={stats ? stats.current_streak || 0 : 0} label="Racha actual" size="md" color="magenta" />
+            <RetrokeScore value={stats ? stats.best_streak || 0 : 0} label="Mejor racha" size="md" color="green" />
           </div>
-        </div>
+        </RetrokeSection>
 
-        <div className="profile-card">
-          <div style={{ fontWeight: 700, marginBottom: 4 }}>
-            🏅 Logros {achievements.length > 0 && <span style={{ fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,0.45)' }}>· {Object.keys(unlockedMap).length}/{achievements.length}</span>}
-          </div>
+        <RetrokeSection
+          accent="yellow"
+          eyebrow="Colección"
+          title={<><RetrokeIcon name="trophy" size={16} glow /> Logros {achievements.length > 0 && <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--rk-text-faint)' }}>· {Object.keys(unlockedMap).length}/{achievements.length}</span>}</>}
+        >
           <div className="profile-achv-grid">
             {achievements.map(function (a) {
               var unlockedAt = unlockedMap[a.code]
@@ -705,7 +683,7 @@ export default function Profile() {
                         onClick={function (e) { e.stopPropagation(); setShareModal({ type: 'achievement', achievement: a }) }}
                         className="profile-achv-share-btn"
                       >
-                        Compartir 📤
+                        <RetrokeIcon name="share" size={10} /> Compartir
                       </button>
                     </>
                   ) : (
@@ -714,14 +692,13 @@ export default function Profile() {
                 </div>
               )
             })}
-            {achievements.length === 0 && <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>Aún no hay logros configurados.</div>}
+            {achievements.length === 0 && <div style={{ fontSize: 13, color: 'var(--rk-text-soft)' }}>Aún no hay logros configurados.</div>}
           </div>
-        </div>
+        </RetrokeSection>
 
-        <div className="profile-card">
-          <div style={{ fontWeight: 700, marginBottom: 4 }}>Historial</div>
+        <RetrokeSection accent="purple" eyebrow="Tu música" title={<><RetrokeIcon name="music" size={16} glow /> Historial</>}>
           {performances.length === 0 && (
-            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', marginTop: 8 }}>
+            <div style={{ fontSize: 13, color: 'var(--rk-text-soft)' }}>
               Todavía no has cantado — ¡anímate la próxima vez que veas el QR!
             </div>
           )}
@@ -731,7 +708,7 @@ export default function Profile() {
                 {p.artwork_url ? (
                   <img src={p.artwork_url} alt="" className="profile-history-art" />
                 ) : (
-                  <div className="profile-history-art">🎵</div>
+                  <div className="profile-history-art"><RetrokeIcon name="music" size={16} /></div>
                 )}
                 <div className="profile-history-text">
                   <div className="profile-history-song">{p.song || 'Canción'}</div>
@@ -745,13 +722,11 @@ export default function Profile() {
               </div>
             )
           })}
-        </div>
+        </RetrokeSection>
 
-        <div className="profile-card">
-          <div style={{ fontWeight: 700, marginBottom: 8 }}>👥 Comunidad</div>
-
+        <RetrokeSection accent="green" eyebrow="Red" title={<><RetrokeIcon name="users" size={16} glow /> Comunidad</>}>
           <div className="profile-follow-subtitle">Sigues a</div>
-          {followingList === null && <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>Cargando…</div>}
+          {followingList === null && <div style={{ fontSize: 13, color: 'var(--rk-text-faint)' }}>Cargando…</div>}
           {followingList !== null && followingList.length === 0 && (
             <div className="profile-follow-empty">
               Todavía no sigues a nadie. Ve al <Link to="/ranking" className="profile-follow-link">Ranking Retroke</Link> y sigue a alguien.
@@ -771,7 +746,7 @@ export default function Profile() {
           )}
 
           <div className="profile-follow-subtitle" style={{ marginTop: 16 }}>Te siguen</div>
-          {followersList === null && <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>Cargando…</div>}
+          {followersList === null && <div style={{ fontSize: 13, color: 'var(--rk-text-faint)' }}>Cargando…</div>}
           {followersList !== null && followersList.length === 0 && (
             <div className="profile-follow-empty">Todavía nadie te sigue.</div>
           )}
@@ -787,9 +762,9 @@ export default function Profile() {
               })}
             </div>
           )}
-        </div>
+        </RetrokeSection>
 
-        <Link to={backToRegistroHref} className="text-center text-sm underline" style={{ color: 'rgba(255,255,255,0.5)' }}>
+        <Link to={backToRegistroHref} className="text-center text-sm underline" style={{ color: 'var(--rk-text-soft)' }}>
           Volver a Retroke — inscríbete para cantar
         </Link>
       </div>
