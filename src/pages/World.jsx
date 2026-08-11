@@ -358,8 +358,13 @@ export default function World() {
         </div>
 
         <div className="world-grid">
+          {/* Fila 1-2: "En vivo" queda angosta y alta a la izquierda (2 filas),
+              con Ranking y Lo más cantado al lado (fila 1) y Desafíos +
+              Escenarios justo debajo de esas dos (fila 2) -- orden pedido
+              explicitamente, no es el auto-acomodo por defecto de antes. */}
           <RetrokeSection
-            size="lg"
+            size="sm"
+            className="md:col-span-2 lg:col-span-1 lg:row-span-2"
             accent="green"
             eyebrow="En vivo"
             title={<><RetrokeIcon name="mic" size={16} glow /> Ahora en Retroke</>}
@@ -382,7 +387,79 @@ export default function World() {
           </RetrokeSection>
 
           <RetrokeSection
-            size="lg"
+            accent="yellow"
+            eyebrow="Meta-partida"
+            title={<><RetrokeIcon name="globe" size={16} glow /> Ranking Retroke</>}
+            action={<Link to="/ranking" className="rk-section-action">Ver todo →</Link>}
+          >
+            {rankingTop === null && <RetrokeSkeleton lines={3} />}
+            {rankingTop !== null && rankingTop.length === 0 && (
+              <RetrokeEmptyState icon={<RetrokeIcon name="trophy" size={26} />} message="Tu ciudad todavía está comenzando a cantar. Invita a alguien y arranca el ranking." />
+            )}
+            {rankingTop !== null && rankingTop.length > 0 && (
+              <RetrokePodium entries={podiumEntries} />
+            )}
+          </RetrokeSection>
+
+          <RetrokeSection
+            accent="magenta"
+            eyebrow="Tendencia"
+            title={<><RetrokeIcon name="music" size={16} glow /> Lo más cantado</>}
+            subtitle="Las canciones que más suenan en Retroke"
+          >
+            {trending === null && <RetrokeSkeleton lines={3} />}
+            {trending !== null && trending.length === 0 && (
+              <RetrokeEmptyState icon={<RetrokeIcon name="music" size={26} />} message="Todavía no hay suficientes presentaciones para armar una tendencia. Sé el primero en cantar." />
+            )}
+            {trending !== null && trending.length > 0 && (
+              <div>
+                {trending.map((row) => (
+                  <TrendRow key={row.key} row={row} />
+                ))}
+              </div>
+            )}
+          </RetrokeSection>
+
+          <RetrokeSection
+            eyebrow="Metas"
+            title={<><RetrokeIcon name="fire" size={16} glow /> Desafíos Retroke</>}
+            size="sm"
+            accent="yellow"
+            action={<Link to="/desafios" className="rk-section-action">Ver →</Link>}
+          >
+            {challengesCount === null && <RetrokeSkeleton lines={1} />}
+            {challengesCount !== null && (
+              <div style={{ textAlign: 'center', padding: '6px 0' }}>
+                <RetrokeScore value={challengesCount} label={challengesCount === 1 ? 'desafío activo' : 'desafíos activos'} size="lg" color="yellow" />
+              </div>
+            )}
+          </RetrokeSection>
+
+          <RetrokeSection
+            accent="green"
+            eyebrow="Dónde cantar"
+            title={<><RetrokeIcon name="pin" size={16} glow /> Escenarios</>}
+            subtitle="Salas activas ahora mismo"
+          >
+            {liveLoading && <RetrokeSkeleton lines={3} />}
+            {!liveLoading && live && live.scenarios.length === 0 && (
+              <RetrokeEmptyState icon={<RetrokeIcon name="moon" size={26} />} message="No hay escenarios activos en este momento." />
+            )}
+            {!liveLoading && live && live.scenarios.length > 0 && (
+              <div>
+                {live.scenarios.map((row) => (
+                  <ScenarioRow key={row.id} row={row} />
+                ))}
+              </div>
+            )}
+          </RetrokeSection>
+
+          {/* Fila 3: "Tu Experiencia" pasa a ancho completo -- sigue siendo el
+              modulo protagonista (variant="hero"), solo que ya no compite por
+              la fila de arriba con el bloque que acabamos de reordenar. */}
+          <RetrokeSection
+            size="sm"
+            className="md:col-span-2 lg:col-span-3"
             variant="hero"
             eyebrow="Tu progreso"
             title={<><RetrokeIcon name="star" size={16} glow /> Tu Experiencia</>}
@@ -465,75 +542,8 @@ export default function World() {
           </RetrokeSection>
 
           <RetrokeSection
-            accent="yellow"
-            eyebrow="Meta-partida"
-            title={<><RetrokeIcon name="globe" size={16} glow /> Ranking Retroke</>}
-            action={<Link to="/ranking" className="rk-section-action">Ver todo →</Link>}
-          >
-            {rankingTop === null && <RetrokeSkeleton lines={3} />}
-            {rankingTop !== null && rankingTop.length === 0 && (
-              <RetrokeEmptyState icon={<RetrokeIcon name="trophy" size={26} />} message="Tu ciudad todavía está comenzando a cantar. Invita a alguien y arranca el ranking." />
-            )}
-            {rankingTop !== null && rankingTop.length > 0 && (
-              <RetrokePodium entries={podiumEntries} />
-            )}
-          </RetrokeSection>
-
-          <RetrokeSection
-            accent="magenta"
-            eyebrow="Tendencia"
-            title={<><RetrokeIcon name="music" size={16} glow /> Lo más cantado</>}
-            subtitle="Las canciones que más suenan en Retroke"
-          >
-            {trending === null && <RetrokeSkeleton lines={3} />}
-            {trending !== null && trending.length === 0 && (
-              <RetrokeEmptyState icon={<RetrokeIcon name="music" size={26} />} message="Todavía no hay suficientes presentaciones para armar una tendencia. Sé el primero en cantar." />
-            )}
-            {trending !== null && trending.length > 0 && (
-              <div>
-                {trending.map((row) => (
-                  <TrendRow key={row.key} row={row} />
-                ))}
-              </div>
-            )}
-          </RetrokeSection>
-
-          <RetrokeSection
-            eyebrow="Metas"
-            title={<><RetrokeIcon name="fire" size={16} glow /> Desafíos Retroke</>}
             size="sm"
-            accent="yellow"
-            action={<Link to="/desafios" className="rk-section-action">Ver →</Link>}
-          >
-            {challengesCount === null && <RetrokeSkeleton lines={1} />}
-            {challengesCount !== null && (
-              <div style={{ textAlign: 'center', padding: '6px 0' }}>
-                <RetrokeScore value={challengesCount} label={challengesCount === 1 ? 'desafío activo' : 'desafíos activos'} size="lg" color="yellow" />
-              </div>
-            )}
-          </RetrokeSection>
-
-          <RetrokeSection
-            accent="green"
-            eyebrow="Dónde cantar"
-            title={<><RetrokeIcon name="pin" size={16} glow /> Escenarios</>}
-            subtitle="Salas activas ahora mismo"
-          >
-            {liveLoading && <RetrokeSkeleton lines={3} />}
-            {!liveLoading && live && live.scenarios.length === 0 && (
-              <RetrokeEmptyState icon={<RetrokeIcon name="moon" size={26} />} message="No hay escenarios activos en este momento." />
-            )}
-            {!liveLoading && live && live.scenarios.length > 0 && (
-              <div>
-                {live.scenarios.map((row) => (
-                  <ScenarioRow key={row.id} row={row} />
-                ))}
-              </div>
-            )}
-          </RetrokeSection>
-
-          <RetrokeSection
-            size="lg"
+            className="md:col-span-2 lg:col-span-3"
             accent="purple"
             eyebrow="Comunidad"
             title="Actividad Retroke"
