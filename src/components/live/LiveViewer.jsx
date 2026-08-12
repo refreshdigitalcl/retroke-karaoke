@@ -30,6 +30,20 @@ var STATUS_LABEL = {
 }
 
 var REACTION_EMOJIS = ['🔥', '👏', '❤️', '🎤', '😂']
+var CHAT_ACCENTS = ['#e91e8c', '#8b5cf6', '#f4d03f', '#7ed957']
+
+// Cada persona en el chat siempre saca el mismo color de acento (hash
+// simple del nombre) -- asi es facil seguir el hilo de quien dijo que sin
+// que los colores salten al azar en cada mensaje nuevo.
+function chatAccentColor(name) {
+  var str = name || ''
+  var hash = 0
+  for (var i = 0; i < str.length; i++) {
+    hash = (hash * 31 + str.charCodeAt(i)) & 0xffffffff
+  }
+  var idx = Math.abs(hash) % CHAT_ACCENTS.length
+  return CHAT_ACCENTS[idx]
+}
 
 function venueName(row) {
   if (row.bars && row.bars.name) return row.bars.name
@@ -363,24 +377,71 @@ export default function LiveViewer(props) {
         .rk-lv-singer { display: inline-flex; align-items: center; gap: 8px; background: rgba(244,208,63,0.1); border: 1px solid rgba(244,208,63,0.3); color: #f4d03f; font-size: 12px; font-weight: 600; padding: 7px 14px; border-radius: 999px; margin-top: 14px; }
         .rk-lv-back { font-size: 12px; color: rgba(255,255,255,0.4); margin-top: 20px; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }
 
-        .rk-lv-chat { margin-top: 22px; border-radius: 20px; background: rgba(255,255,255,0.04); border: 1px solid rgba(233,30,140,0.25); overflow: hidden; }
-        .rk-lv-chat-head { padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.08); font-family: 'Space Grotesk', system-ui, sans-serif; font-weight: 700; font-size: 13px; display: flex; align-items: center; gap: 8px; }
-        .rk-lv-chat-list { max-height: 340px; overflow-y: auto; padding: 12px 16px; display: flex; flex-direction: column; gap: 10px; }
-        .rk-lv-chat-empty { color: rgba(255,255,255,0.4); font-size: 12.5px; text-align: center; padding: 20px 0; }
-        .rk-lv-chat-row { display: flex; gap: 9px; align-items: flex-start; }
-        .rk-lv-chat-avatar { width: 26px; height: 26px; border-radius: 50%; background: rgba(233,30,140,0.15); border: 1px solid rgba(233,30,140,0.3); display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; }
-        .rk-lv-chat-body { min-width: 0; }
-        .rk-lv-chat-name { font-size: 12px; font-weight: 700; color: #f4d03f; margin-right: 6px; }
-        .rk-lv-chat-time { font-size: 10px; color: rgba(255,255,255,0.35); }
-        .rk-lv-chat-text { font-size: 13px; color: rgba(255,255,255,0.85); line-height: 1.4; word-break: break-word; }
+        .rk-lv-chat {
+          margin-top: 22px; border-radius: 22px; overflow: hidden; position: relative;
+          background: linear-gradient(180deg, rgba(233,30,140,0.09), rgba(139,92,246,0.05) 40%, rgba(10,5,18,0.4));
+          border: 1px solid rgba(233,30,140,0.4);
+          box-shadow: 0 0 0 1px rgba(139,92,246,0.15), 0 0 30px -6px rgba(233,30,140,0.45);
+          animation: rkLvChatPulse 3.6s ease-in-out infinite;
+        }
+        @keyframes rkLvChatPulse {
+          0%, 100% { box-shadow: 0 0 0 1px rgba(139,92,246,0.15), 0 0 26px -6px rgba(233,30,140,0.4); }
+          50% { box-shadow: 0 0 0 1px rgba(244,208,63,0.2), 0 0 40px -4px rgba(233,30,140,0.65); }
+        }
+        .rk-lv-chat::before {
+          content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+          background: linear-gradient(90deg, #e91e8c, #8b5cf6, #f4d03f, #7ed957, #e91e8c);
+          background-size: 300% auto; animation: rkLvStripeShift 5s linear infinite;
+        }
+        @keyframes rkLvStripeShift { from { background-position: 0% 0; } to { background-position: 300% 0; } }
 
-        .rk-lv-chat-form { display: flex; gap: 8px; padding: 12px 16px; border-top: 1px solid rgba(255,255,255,0.08); }
-        .rk-lv-chat-input { flex: 1; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.14); border-radius: 999px; padding: 9px 16px; font-size: 13px; color: #fff; outline: none; }
+        .rk-lv-chat-head {
+          padding: 13px 16px 12px; border-bottom: 1px solid rgba(255,255,255,0.08);
+          font-family: 'Space Grotesk', system-ui, sans-serif; font-weight: 700; font-size: 14px;
+          letter-spacing: 0.04em; text-transform: uppercase;
+          display: flex; align-items: center; gap: 8px;
+          background: linear-gradient(90deg, #ff5fb0, #b98bff, #f4d03f, #ff5fb0);
+          background-size: 260% auto; -webkit-background-clip: text; background-clip: text; color: transparent;
+          animation: rkLvTitleShift 6s linear infinite;
+        }
+        @keyframes rkLvTitleShift { from { background-position: 0% 0; } to { background-position: 260% 0; } }
+        .rk-lv-chat-head-dot { width: 8px; height: 8px; border-radius: 50%; background: #7ed957; box-shadow: 0 0 8px 2px rgba(126,217,87,0.8); animation: rkLvDotPulse 1.4s ease-in-out infinite; flex-shrink: 0; }
+        @keyframes rkLvDotPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+        .rk-lv-chat-list { max-height: 340px; overflow-y: auto; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+        .rk-lv-chat-empty { color: rgba(255,255,255,0.4); font-size: 12.5px; text-align: center; padding: 20px 0; }
+        .rk-lv-chat-row {
+          display: flex; gap: 10px; align-items: flex-start; padding: 8px 10px; border-radius: 12px;
+          background: rgba(255,255,255,0.035); border-left: 3px solid var(--rk-chat-accent, #e91e8c);
+        }
+        .rk-lv-chat-avatar {
+          width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+          background: rgba(0,0,0,0.35); border: 1.5px solid var(--rk-chat-accent, #e91e8c);
+          box-shadow: 0 0 8px -1px var(--rk-chat-accent, #e91e8c);
+          display: flex; align-items: center; justify-content: center; font-size: 13px;
+        }
+        .rk-lv-chat-body { min-width: 0; }
+        .rk-lv-chat-name { font-size: 12px; font-weight: 700; color: var(--rk-chat-accent, #f4d03f); margin-right: 6px; }
+        .rk-lv-chat-time { font-size: 10px; color: rgba(255,255,255,0.35); }
+        .rk-lv-chat-text { font-size: 13px; color: rgba(255,255,255,0.92); line-height: 1.4; word-break: break-word; margin-top: 2px; }
+
+        .rk-lv-chat-form { display: flex; gap: 8px; padding: 13px 16px; border-top: 1px solid rgba(255,255,255,0.08); background: rgba(0,0,0,0.15); }
+        .rk-lv-chat-input {
+          flex: 1; background: rgba(0,0,0,0.35); border: 1px solid rgba(233,30,140,0.35);
+          border-radius: 999px; padding: 10px 16px; font-size: 13px; color: #fff; outline: none;
+          transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .rk-lv-chat-input:focus { border-color: #f4d03f; box-shadow: 0 0 0 3px rgba(244,208,63,0.18); }
         .rk-lv-chat-input::placeholder { color: rgba(255,255,255,0.35); }
-        .rk-lv-chat-send { font-family: 'Space Grotesk', system-ui, sans-serif; font-weight: 700; font-size: 12px; padding: 9px 18px; border-radius: 999px; border: none; background: #e91e8c; color: #fff; white-space: nowrap; }
-        .rk-lv-chat-send:disabled { opacity: 0.5; }
+        .rk-lv-chat-send {
+          font-family: 'Space Grotesk', system-ui, sans-serif; font-weight: 700; font-size: 12px;
+          padding: 10px 20px; border-radius: 999px; border: none; white-space: nowrap; color: #fff;
+          background: linear-gradient(135deg, #e91e8c, #8b5cf6);
+          box-shadow: 0 0 16px -4px rgba(233,30,140,0.8);
+        }
+        .rk-lv-chat-send:disabled { opacity: 0.4; box-shadow: none; }
         .rk-lv-chat-error { font-size: 11.5px; color: #ff9a9a; padding: 0 16px 10px; }
-        .rk-lv-name-form { display: flex; gap: 8px; padding: 12px 16px; border-top: 1px solid rgba(255,255,255,0.08); }
+        .rk-lv-name-form { display: flex; gap: 8px; padding: 13px 16px; border-top: 1px solid rgba(255,255,255,0.08); background: rgba(0,0,0,0.15); }
       `}</style>
 
       <div className="rk-lv-video-wrap">
@@ -432,12 +493,14 @@ export default function LiveViewer(props) {
       </div>
 
       <div className="rk-lv-chat">
-        <div className="rk-lv-chat-head"><RetrokeIcon name="chart" size={14} /> Chat en vivo</div>
+        <div className="rk-lv-chat-head">
+          <span className="rk-lv-chat-head-dot" /> Chat en vivo
+        </div>
         <div className="rk-lv-chat-list">
           {comments.length === 0 && <div className="rk-lv-chat-empty">Todavia no hay comentarios. Se el primero en saludar.</div>}
           {comments.map(function (c) {
             return (
-              <div key={c.id} className="rk-lv-chat-row">
+              <div key={c.id} className="rk-lv-chat-row" style={{ '--rk-chat-accent': chatAccentColor(c.display_name) }}>
                 <span className="rk-lv-chat-avatar">{c.avatar || '🎤'}</span>
                 <div className="rk-lv-chat-body">
                   <span className="rk-lv-chat-name">{c.display_name}</span>
