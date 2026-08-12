@@ -18,6 +18,7 @@ import RetrokeScore from '../components/retroke/RetrokeScore'
 import RetrokePodium from '../components/retroke/RetrokePodium'
 import RetrokeIcon from '../components/retroke/RetrokeIcon'
 import { RETROKE_STYLES } from '../components/retroke/retrokeStyles'
+import WorldLiveSection from '../components/live/WorldLiveSection'
 
 // RETROKE WORLD -- Fase 1 (Core), ver retroke-world-diagnostico-tecnico.md.
 // Punto 46 del prompt maestro: nunca inventar datos. Todo lo que se ve aca
@@ -416,6 +417,8 @@ export default function World() {
               </div>
             )}
           </RetrokeSection>
+
+          <WorldLiveSection />
 
           <RetrokeSection
             accent="yellow"

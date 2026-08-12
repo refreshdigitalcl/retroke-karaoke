@@ -28,6 +28,7 @@ const Profile = lazy(() => import('./pages/Profile'))
 const World = lazy(() => import('./pages/World'))
 const Escenario = lazy(() => import('./pages/Escenario'))
 const PublicProfile = lazy(() => import('./pages/PublicProfile'))
+const LiveViewerPage = lazy(() => import('./pages/LiveViewerPage'))
 
 function RouteFallback() {
   return (
@@ -98,6 +99,9 @@ export default function App() {
 
             {/* Fase 8: perfil publico de lectura de cualquier participante (seguir, logros, historial) */}
             <Route path="/u/:participantId" element={<PublicProfile />} />
+
+            {/* Retroke Live: visor publico de una transmision (solo espectador, nunca cola) */}
+            <Route path="/vivo/:liveSessionId" element={<LiveViewerPage />} />
           </Routes>
           </Suspense>
         </BrowserRouter>

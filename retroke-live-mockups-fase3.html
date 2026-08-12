@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Retroke Live — Mockups Fase 3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --rk-magenta: #e91e8c;
+    --rk-purple: #8b5cf6;
+    --rk-green: #7ed957;
+    --rk-yellow: #f4d03f;
+    --rk-red: #ff4d4d;
+    --rk-bg-0: #05030a;
+    --rk-bg-1: #0a0512;
+    --rk-bg-2: #1a0b2e;
+    --rk-bg-gradient: radial-gradient(circle at 50% 0%, var(--rk-bg-2) 0%, var(--rk-bg-1) 55%, var(--rk-bg-0) 100%);
+    --rk-surface: rgba(255,255,255,0.045);
+    --rk-surface-hover: rgba(255,255,255,0.07);
+    --rk-surface-strong: rgba(255,255,255,0.1);
+    --rk-border: rgba(255,255,255,0.1);
+    --rk-border-strong: rgba(255,255,255,0.18);
+    --rk-text: #ffffff;
+    --rk-text-soft: rgba(255,255,255,0.55);
+    --rk-text-faint: rgba(255,255,255,0.4);
+    --rk-font-display: 'Space Grotesk', system-ui, sans-serif;
+    --rk-font-body: 'Poppins', system-ui, sans-serif;
+    --rk-radius-sm: 8px;
+    --rk-radius-md: 14px;
+    --rk-radius-lg: 22px;
+    --rk-radius-xl: 30px;
+    --rk-radius-pill: 999px;
+    --rk-glow-magenta: 0 0 22px -4px rgba(233,30,140,0.65);
+    --rk-glow-magenta-strong: 0 0 36px -2px rgba(233,30,140,0.85);
+    --rk-glow-purple: 0 0 22px -4px rgba(139,92,246,0.65);
+    --rk-glow-green: 0 0 22px -4px rgba(126,217,87,0.65);
+    --rk-glow-yellow: 0 0 22px -4px rgba(244,208,63,0.65);
+    --rk-glow-red: 0 0 22px -4px rgba(255,77,77,0.6);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: var(--rk-font-body);
+    background: var(--rk-bg-gradient);
+    background-color: var(--rk-bg-0);
+    color: var(--rk-text);
+    min-height: 100vh;
+    padding: 32px 20px 80px;
+  }
+  h1, h2, h3 { font-family: var(--rk-font-display); margin: 0; }
+  .wrap { max-width: 980px; margin: 0 auto; }
+  .doc-header { margin-bottom: 28px; }
+  .doc-header .eyebrow {
+    font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--rk-magenta); font-weight: 600; margin-bottom: 6px;
+  }
+  .doc-header h1 { font-size: 26px; font-weight: 700; }
+  .doc-header p { color: var(--rk-text-soft); font-size: 14px; margin-top: 8px; max-width: 640px; }
+
+  .tabs {
+    display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 32px;
+    border-bottom: 1px solid var(--rk-border); padding-bottom: 16px;
+  }
+  .tab-btn {
+    font-family: var(--rk-font-body); font-size: 13px; font-weight: 600;
+    padding: 9px 16px; border-radius: var(--rk-radius-pill);
+    background: var(--rk-surface); border: 1px solid var(--rk-border);
+    color: var(--rk-text-soft); cursor: pointer; transition: all 0.2s ease;
+  }
+  .tab-btn:hover { background: var(--rk-surface-hover); color: var(--rk-text); }
+  .tab-btn.active {
+    background: rgba(233,30,140,0.16); border-color: rgba(233,30,140,0.5);
+    color: #fff; box-shadow: var(--rk-glow-magenta);
+  }
+
+  .panel { display: none; }
+  .panel.active { display: block; animation: fadeIn 0.25s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+  .section-label {
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--rk-text-faint); font-weight: 600; margin: 32px 0 12px;
+  }
+  .section-label:first-child { margin-top: 0; }
+
+  /* ---------- DJ Panel mock ---------- */
+  .djp-frame {
+    background: #111015; border: 1px solid var(--rk-border-strong);
+    border-radius: var(--rk-radius-lg); padding: 18px 20px; margin-bottom: 8px;
+  }
+  .djp-header-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .djp-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: var(--rk-font-body); font-size: 13px; font-weight: 600;
+    padding: 10px 16px; border-radius: var(--rk-radius-md);
+    border: 1px solid var(--rk-border-strong); background: var(--rk-surface);
+    color: var(--rk-text-soft); cursor: default;
+  }
+  .djp-btn.ghost { color: var(--rk-text-soft); }
+  .djp-btn.live-off {
+    border-color: rgba(233,30,140,0.4); color: #fff;
+    background: rgba(233,30,140,0.1);
+  }
+  .djp-btn.live-off .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--rk-magenta); }
+
+  .live-card {
+    margin-top: 18px; background: var(--rk-surface); border: 1px solid var(--rk-border-strong);
+    border-radius: var(--rk-radius-lg); padding: 22px;
+  }
+  .live-card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+  .live-card-head h3 { font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+  .badge-verlivo {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 4px 10px; border-radius: var(--rk-radius-pill);
+    background: rgba(126,217,87,0.14); color: #a8e88a; border: 1px solid rgba(126,217,87,0.35);
+  }
+
+  .preview-box {
+    aspect-ratio: 16/9; border-radius: var(--rk-radius-md); background: #0c0b10;
+    border: 1px dashed var(--rk-border-strong);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+    color: var(--rk-text-faint); position: relative; overflow: hidden; margin-bottom: 16px;
+  }
+  .preview-box .cam-icon { opacity: 0.5; }
+  .preview-box .note { font-size: 12px; text-align: center; max-width: 260px; }
+
+  .device-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+  .device-select {
+    flex: 1; min-width: 180px; background: rgba(255,255,255,0.04); border: 1px solid var(--rk-border);
+    border-radius: var(--rk-radius-sm); padding: 10px 12px; font-size: 13px; color: var(--rk-text-soft);
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  .status-pills { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+  .status-pill {
+    font-size: 12px; font-weight: 600; padding: 6px 12px; border-radius: var(--rk-radius-pill);
+    background: rgba(255,255,255,0.05); border: 1px solid var(--rk-border); color: var(--rk-text-faint);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .status-pill.on { background: rgba(126,217,87,0.12); border-color: rgba(126,217,87,0.4); color: #a8e88a; }
+  .status-pill .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+  .cta-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .cta-start {
+    font-family: var(--rk-font-display); font-weight: 700; font-size: 14px;
+    padding: 13px 26px; border-radius: var(--rk-radius-pill); border: none; cursor: default;
+    background: linear-gradient(135deg, var(--rk-magenta), #b3157a); color: #fff;
+    box-shadow: var(--rk-glow-magenta-strong);
+  }
+  .cta-end {
+    font-family: var(--rk-font-display); font-weight: 700; font-size: 14px;
+    padding: 13px 26px; border-radius: var(--rk-radius-pill); cursor: default;
+    background: rgba(255,77,77,0.1); color: #ff8080; border: 1px solid rgba(255,77,77,0.4);
+  }
+  .viewer-count-inline {
+    font-size: 13px; color: var(--rk-text-soft); display: flex; align-items: center; gap: 6px;
+  }
+  .hint-text { font-size: 11px; color: var(--rk-text-faint); margin-top: 14px; line-height: 1.5; }
+
+  /* ---------- World card ---------- */
+  .grid-two { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 720px) { .grid-two { grid-template-columns: 1fr; } }
+
+  .world-live-card {
+    background: linear-gradient(180deg, rgba(233,30,140,0.08), rgba(139,92,246,0.05));
+    border: 1px solid rgba(233,30,140,0.35); border-radius: var(--rk-radius-lg);
+    padding: 18px; box-shadow: var(--rk-glow-magenta); position: relative; overflow: hidden;
+  }
+  .world-live-card::before {
+    content: ''; position: absolute; inset: 0; opacity: 0.4; pointer-events: none;
+    background: repeating-linear-gradient(45deg, rgba(255,255,255,0.02) 0 2px, transparent 2px 10px);
+  }
+  .live-pill {
+    display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700;
+    letter-spacing: 0.08em; text-transform: uppercase; color: #fff;
+    background: var(--rk-magenta); padding: 4px 10px; border-radius: var(--rk-radius-pill);
+    margin-bottom: 12px;
+  }
+  .live-pill .pulse-dot {
+    width: 7px; height: 7px; border-radius: 50%; background: #fff;
+    animation: pulseDot 1.4s ease-in-out infinite;
+  }
+  @keyframes pulseDot { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+  .wl-thumb {
+    aspect-ratio: 16/9; border-radius: var(--rk-radius-md); background: #0c0b10;
+    border: 1px solid var(--rk-border); margin-bottom: 12px; display: flex; align-items: center;
+    justify-content: center; color: var(--rk-text-faint); position: relative;
+  }
+  .wl-venue { font-family: var(--rk-font-display); font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+  .wl-meta { font-size: 12px; color: var(--rk-text-soft); margin-bottom: 2px; }
+  .wl-singer {
+    font-size: 12px; color: var(--rk-yellow); margin-top: 8px; margin-bottom: 14px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .wl-footer { display: flex; align-items: center; justify-content: space-between; }
+  .wl-viewers { font-size: 12px; color: var(--rk-text-soft); display: flex; align-items: center; gap: 5px; }
+  .wl-cta {
+    font-family: var(--rk-font-display); font-weight: 700; font-size: 12px;
+    padding: 9px 16px; border-radius: var(--rk-radius-pill); border: none;
+    background: #fff; color: #1a0b2e;
+  }
+
+  .world-offline-card {
+    background: var(--rk-surface); border: 1px solid var(--rk-border); border-radius: var(--rk-radius-lg);
+    padding: 18px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; gap: 8px; min-height: 100%;
+  }
+  .world-offline-card .oc-icon { opacity: 0.35; }
+  .world-offline-card h4 { font-family: var(--rk-font-display); font-size: 14px; color: var(--rk-text-soft); font-weight: 600; }
+  .world-offline-card p { font-size: 12px; color: var(--rk-text-faint); max-width: 220px; }
+
+  /* ---------- Visor desktop ---------- */
+  .viewer-desktop {
+    background: #0c0b10; border: 1px solid var(--rk-border-strong); border-radius: var(--rk-radius-lg);
+    overflow: hidden;
+  }
+  .vd-video {
+    aspect-ratio: 16/9; background: linear-gradient(135deg, #1a0b2e, #05030a);
+    display: flex; align-items: center; justify-content: center; color: var(--rk-text-faint);
+    position: relative;
+  }
+  .vd-video .live-pill { position: absolute; top: 16px; left: 16px; margin: 0; }
+  .vd-video .vd-viewers {
+    position: absolute; top: 16px; right: 16px; font-size: 12px; font-weight: 600;
+    background: rgba(0,0,0,0.5); padding: 6px 12px; border-radius: var(--rk-radius-pill);
+    display: flex; align-items: center; gap: 6px; color: #fff;
+  }
+  .vd-info { padding: 18px 20px; }
+  .vd-title-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;}
+  .vd-title h3 { font-family: var(--rk-font-display); font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+  .vd-title p { font-size: 13px; color: var(--rk-text-soft); }
+  .vd-singer-chip {
+    display: inline-flex; align-items: center; gap: 8px; background: rgba(244,208,63,0.1);
+    border: 1px solid rgba(244,208,63,0.3); color: var(--rk-yellow); font-size: 12px; font-weight: 600;
+    padding: 7px 14px; border-radius: var(--rk-radius-pill);
+  }
+  .vd-reactions { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+  .reaction-btn {
+    background: var(--rk-surface); border: 1px solid var(--rk-border); border-radius: var(--rk-radius-pill);
+    padding: 8px 14px; font-size: 14px; color: var(--rk-text-soft); cursor: default;
+  }
+  .vd-back { font-size: 12px; color: var(--rk-text-faint); margin-top: 16px; display: flex; align-items: center; gap: 6px; }
+
+  /* ---------- Visor mobile ---------- */
+  .phone-wrap { display: flex; justify-content: center; padding: 20px 0; }
+  .phone-frame {
+    width: 300px; height: 620px; border-radius: 38px; border: 8px solid #1c1c22;
+    background: #000; position: relative; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+  .phone-notch {
+    position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+    width: 120px; height: 22px; background: #1c1c22; border-radius: 0 0 14px 14px; z-index: 5;
+  }
+  .phone-video {
+    position: absolute; inset: 0; background: linear-gradient(160deg, #2a0f3d, #05030a 70%);
+    display: flex; align-items: center; justify-content: center; color: var(--rk-text-faint);
+  }
+  .phone-top-bar {
+    position: absolute; top: 32px; left: 14px; right: 14px; display: flex; justify-content: space-between; align-items: center;
+  }
+  .phone-bottom {
+    position: absolute; bottom: 0; left: 0; right: 0; padding: 60px 16px 22px;
+    background: linear-gradient(0deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.5) 60%, transparent 100%);
+  }
+  .phone-venue { font-family: var(--rk-font-display); font-weight: 700; font-size: 15px; color: #fff; }
+  .phone-meta { font-size: 11px; color: rgba(255,255,255,0.65); margin-top: 3px; }
+  .phone-singer {
+    display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: var(--rk-yellow);
+    background: rgba(244,208,63,0.14); border: 1px solid rgba(244,208,63,0.3);
+    padding: 4px 10px; border-radius: var(--rk-radius-pill); margin-top: 8px;
+  }
+  .phone-reactions { display: flex; gap: 8px; margin-top: 12px; }
+  .phone-reactions span {
+    width: 34px; height: 34px; border-radius: 50%; background: rgba(255,255,255,0.1);
+    display: flex; align-items: center; justify-content: center; font-size: 15px;
+    border: 1px solid rgba(255,255,255,0.15);
+  }
+
+  /* ---------- 8 estados ---------- */
+  .states-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  @media (max-width: 760px) { .states-grid { grid-template-columns: repeat(2, 1fr); } }
+  .state-card {
+    background: var(--rk-surface); border: 1px solid var(--rk-border); border-radius: var(--rk-radius-md);
+    padding: 16px; text-align: center;
+  }
+  .state-icon-wrap {
+    width: 52px; height: 52px; border-radius: 50%; margin: 0 auto 12px;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(255,255,255,0.05); border: 1px solid var(--rk-border);
+  }
+  .state-card h4 { font-family: var(--rk-font-display); font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+  .state-card p { font-size: 11px; color: var(--rk-text-faint); line-height: 1.4; }
+
+  .state-card.offline .state-icon-wrap { color: var(--rk-text-faint); }
+  .state-card.starting { border-color: rgba(244,208,63,0.35); }
+  .state-card.starting .state-icon-wrap { color: var(--rk-yellow); background: rgba(244,208,63,0.1); border-color: rgba(244,208,63,0.35); animation: softPulse 1.6s ease-in-out infinite; }
+  .state-card.active { border-color: rgba(233,30,140,0.4); box-shadow: var(--rk-glow-magenta); }
+  .state-card.active .state-icon-wrap { color: var(--rk-magenta); background: rgba(233,30,140,0.12); border-color: rgba(233,30,140,0.4); }
+  .state-card.reconnecting { border-color: rgba(244,208,63,0.35); }
+  .state-card.reconnecting .state-icon-wrap { color: var(--rk-yellow); background: rgba(244,208,63,0.1); border-color: rgba(244,208,63,0.35); animation: softPulse 1s ease-in-out infinite; }
+  .state-card.degraded { border-color: rgba(255,159,64,0.35); }
+  .state-card.degraded .state-icon-wrap { color: #ff9f40; background: rgba(255,159,64,0.1); border-color: rgba(255,159,64,0.35); }
+  .state-card.audio-only { border-color: rgba(139,92,246,0.35); }
+  .state-card.audio-only .state-icon-wrap { color: var(--rk-purple); background: rgba(139,92,246,0.1); border-color: rgba(139,92,246,0.35); }
+  .state-card.ended .state-icon-wrap { color: var(--rk-text-faint); }
+  .state-card.error { border-color: rgba(255,77,77,0.35); }
+  .state-card.error .state-icon-wrap { color: #ff8080; background: rgba(255,77,77,0.1); border-color: rgba(255,77,77,0.35); }
+  @keyframes softPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.45; } }
+
+  .footnote { font-size: 12px; color: var(--rk-text-faint); margin-top: 40px; border-top: 1px solid var(--rk-border); padding-top: 16px; line-height: 1.6; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="doc-header">
+    <div class="eyebrow">Retroke Live · Fase 3</div>
+    <h1>Mockups UX/UI — para aprobar antes de escribir código</h1>
+    <p>Sistema visual: Retroke Visual System 2.0 (mismos tokens rk-*, mismos glows, misma tipografía que World/Rankings/Escenario). Todo lo que ves acá es maqueta estática — sin video real, sin conexión a LiveKit todavía.</p>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="dj">DJ Panel</button>
+    <button class="tab-btn" data-tab="world">Card en World</button>
+    <button class="tab-btn" data-tab="viewer">Visor (desktop)</button>
+    <button class="tab-btn" data-tab="mobile">Visor (mobile)</button>
+    <button class="tab-btn" data-tab="states">8 estados</button>
+  </div>
+
+  <!-- TAB 1: DJ PANEL -->
+  <div class="panel active" id="panel-dj">
+    <div class="section-label">Header del DJ Panel — botón nuevo, junto al existente</div>
+    <div class="djp-frame">
+      <div class="djp-header-row">
+        <span class="djp-btn ghost">🖥️ Sala de espera</span>
+        <span class="djp-btn live-off"><span class="dot"></span> Retroke Live</span>
+      </div>
+    </div>
+
+    <div class="section-label">Al hacer clic — panel de control (antes de iniciar)</div>
+    <div class="live-card">
+      <div class="live-card-head">
+        <h3>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--rk-magenta)" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3" fill="var(--rk-magenta)" stroke="none"/></svg>
+          Retroke Live
+        </h3>
+      </div>
+      <div class="preview-box">
+        <svg class="cam-icon" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="M16 10l6-3v10l-6-3z"/></svg>
+        <div class="note">Vista previa local — nada se transmite todavía. Se activa al elegir cámara y micrófono.</div>
+      </div>
+      <div class="device-row">
+        <div class="device-select">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="M16 10l6-3v10l-6-3z"/></svg>
+          Cámara integrada
+        </div>
+        <div class="device-select">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4"/></svg>
+          Interfaz de audio (mixer)
+        </div>
+      </div>
+      <div class="status-pills">
+        <span class="status-pill on"><span class="dot"></span>Cámara activa</span>
+        <span class="status-pill on"><span class="dot"></span>Micrófono activo</span>
+        <span class="status-pill"><span class="dot"></span>Transmisión activa</span>
+      </div>
+      <div class="cta-row">
+        <button class="cta-start">Iniciar transmisión</button>
+      </div>
+      <div class="hint-text">Solo un DJ/staff con permiso sobre este local puede iniciar (validado en backend, no solo ocultando el botón). Iniciar transmisión no afecta la cola ni el Display — son sistemas separados.</div>
+    </div>
+
+    <div class="section-label">Mismo panel — mientras está en vivo</div>
+    <div class="live-card">
+      <div class="live-card-head">
+        <h3>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--rk-magenta)" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3" fill="var(--rk-magenta)" stroke="none"/></svg>
+          Retroke Live
+        </h3>
+        <span class="badge-verlivo">● En vivo</span>
+      </div>
+      <div class="status-pills">
+        <span class="status-pill on"><span class="dot"></span>Cámara activa</span>
+        <span class="status-pill on"><span class="dot"></span>Micrófono activo</span>
+        <span class="status-pill on"><span class="dot"></span>Transmisión activa</span>
+      </div>
+      <div class="cta-row">
+        <button class="cta-end">Finalizar transmisión</button>
+        <span class="viewer-count-inline">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+          12 espectadores viendo ahora
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 2: WORLD CARD -->
+  <div class="panel" id="panel-world">
+    <div class="section-label">Card "En vivo ahora" — cómo se ve en la grilla de World</div>
+    <div class="grid-two">
+      <div class="world-live-card">
+        <span class="live-pill"><span class="pulse-dot"></span>En vivo</span>
+        <div class="wl-thumb">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" opacity="0.4"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="M16 10l6-3v10l-6-3z"/></svg>
+        </div>
+        <div class="wl-venue">Bar El Retorno</div>
+        <div class="wl-meta">DJ Cami · Santiago</div>
+        <div class="wl-singer">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3z"/><path d="M19 11a7 7 0 0 1-14 0M12 19v3"/></svg>
+          cantando ahora: Fran R.
+        </div>
+        <div class="wl-footer">
+          <span class="wl-viewers">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+            34
+          </span>
+          <button class="wl-cta">Ver en vivo</button>
+        </div>
+      </div>
+
+      <div class="world-offline-card">
+        <svg class="oc-icon" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/></svg>
+        <h4>Ningún local en vivo ahora</h4>
+        <p>Cuando un DJ o bar active Retroke Live, aparecerá acá con miniatura y botón "Ver en vivo".</p>
+      </div>
+    </div>
+    <div class="hint-text" style="margin-top:16px">El CTA dice siempre <strong style="color:#fff">"Ver en vivo"</strong>, nunca "Entrar en vivo" — no lleva a la cola de canto, solo a mirar. Cantar sigue siendo únicamente vía QR físico del local.</div>
+  </div>
+
+  <!-- TAB 3: VISOR DESKTOP -->
+  <div class="panel" id="panel-viewer">
+    <div class="section-label">Pantalla de espectador — desktop, dentro de Retroke World</div>
+    <div class="viewer-desktop">
+      <div class="vd-video">
+        <span class="live-pill"><span class="pulse-dot"></span>En vivo</span>
+        <span class="vd-viewers">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+          34 espectadores
+        </span>
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.3"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="M16 10l6-3v10l-6-3z"/></svg>
+      </div>
+      <div class="vd-info">
+        <div class="vd-title-row">
+          <div class="vd-title">
+            <h3>Bar El Retorno</h3>
+            <p>DJ Cami · Santiago, Chile</p>
+          </div>
+          <span class="vd-singer-chip">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3z"/><path d="M19 11a7 7 0 0 1-14 0M12 19v3"/></svg>
+            cantando ahora: Fran R.
+          </span>
+        </div>
+        <div class="vd-reactions">
+          <span class="reaction-btn">🔥</span>
+          <span class="reaction-btn">👏</span>
+          <span class="reaction-btn">❤️</span>
+          <span class="reaction-btn">🎤</span>
+        </div>
+        <div class="vd-back">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          Volver a Retroke World
+        </div>
+      </div>
+    </div>
+    <div class="hint-text" style="margin-top:14px">El espectador solo se suscribe (nunca puede publicar cámara/mic propio). No hay ningún botón que lleve a anotarse en la cola desde esta pantalla.</div>
+  </div>
+
+  <!-- TAB 4: VISOR MOBILE -->
+  <div class="panel" id="panel-mobile">
+    <div class="section-label">Pantalla de espectador — mobile, formato vertical tipo historia en vivo</div>
+    <div class="phone-wrap">
+      <div class="phone-frame">
+        <div class="phone-notch"></div>
+        <div class="phone-video">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.25"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="M16 10l6-3v10l-6-3z"/></svg>
+        </div>
+        <div class="phone-top-bar">
+          <span class="live-pill" style="margin:0"><span class="pulse-dot"></span>En vivo</span>
+          <span class="vd-viewers" style="position:static;background:rgba(0,0,0,0.5)">34</span>
+        </div>
+        <div class="phone-bottom">
+          <div class="phone-venue">Bar El Retorno</div>
+          <div class="phone-meta">DJ Cami · Santiago</div>
+          <div class="phone-singer">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3z"/><path d="M19 11a7 7 0 0 1-14 0M12 19v3"/></svg>
+            cantando: Fran R.
+          </div>
+          <div class="phone-reactions">
+            <span>🔥</span><span>👏</span><span>❤️</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 5: ESTADOS -->
+  <div class="panel" id="panel-states">
+    <div class="section-label">Los 8 estados de una sala Live (mismo vocabulario visual en DJ Panel y en el visor)</div>
+    <div class="states-grid">
+
+      <div class="state-card offline">
+        <div class="state-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/></svg></div>
+        <h4>Offline</h4>
+        <p>Sin transmisión activa. No aparece en World.</p>
+      </div>
+
+      <div class="state-card starting">
+        <div class="state-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></div>
+        <h4>Starting</h4>
+        <p>DJ presionó iniciar, conectando al SFU. "Preparando transmisión…"</p>
+      </div>
+
+      <div class="state-card active">
+        <div class="state-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="M16 10l6-3v10l-6-3z"/></svg></div>
+        <h4>Active</h4>
+        <p>En vivo, video y audio en calidad completa.</p>
+      </div>
+
+      <div class="state-card reconnecting">
+        <div class="state-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg></div>
+        <h4>Reconnecting</h4>
+        <p>Pérdida detectada. "Reconexión en curso" — nunca error inmediato.</p>
+      </div>
+
+      <div class="state-card degraded">
+        <div class="state-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20V10M10 20V4M16 20v-7M22 20v-3" opacity="0.4"/><path d="M4 20V14M10 20v-6"/></svg></div>
+        <h4>Degraded</h4>
+        <p>Red débil — simulcast bajó la calidad automáticamente.</p>
+      </div>
+
+      <div class="state-card audio-only">
+        <div class="state-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3z"/><path d="M19 11a7 7 0 0 1-14 0M12 19v3"/></svg></div>
+        <h4>Audio-only</h4>
+        <p>Video se apagó por red muy débil; el audio sigue firme.</p>
+      </div>
+
+      <div class="state-card ended">
+        <div class="state-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="3"/></svg></div>
+        <h4>Ended</h4>
+        <p>DJ finalizó. "Transmisión finalizada" — vuelve a World.</p>
+      </div>
+
+      <div class="state-card error">
+        <div class="state-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9L2.5 18a2 2 0 0 0 1.7 3h15.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg></div>
+        <h4>Error</h4>
+        <p>No se pudo conectar tras reintentar. "No se pudo conectar — reintentar".</p>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="footnote">
+    Maqueta estática Fase 3 — Retroke Live. Sin video real ni SDK de LiveKit conectado. Reutiliza tokens rk-* y el vocabulario visual ya aprobado en Retroke Visual System 2.0 (World, Rankings, Escenario). Próximo paso si se aprueba: Fase 4 — MVP técnico (cuenta LiveKit free, `live_sessions` en Supabase, funciones serverless, cableado real de estos mismos componentes).
+  </div>
+
+</div>
+<script>
+  document.querySelectorAll('.tab-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+      document.querySelectorAll('.panel').forEach(function(p) { p.classList.remove('active'); });
+      btn.classList.add('active');
+      document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>

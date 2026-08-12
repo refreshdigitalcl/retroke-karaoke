@@ -5,6 +5,7 @@ import { checkYoutubeEmbeddable } from '../components/YouTubePlayer'
 import SimilarTrackSearch from '../components/SimilarTrackSearch'
 import WorkspaceSelector, { useMyBars } from '../components/WorkspaceSelector'
 import ThemeToggle from '../components/ThemeToggle'
+import DjLiveModule from '../components/live/DjLiveModule'
 import { supabase } from '../lib/supabase'
 
 function ProfileTab(props) {
@@ -1009,6 +1010,13 @@ function DjPanelInner() {
   var showHistory = showHistoryState[0]
   var setShowHistory = showHistoryState[1]
 
+  // Retroke Live (Fase 4, MVP tecnico) -- panel nuevo e independiente,
+  // igual patron showX/setShowX que el resto de este componente. No toca
+  // ningun otro estado de la cola/sesion.
+  var showLiveState = useState(false)
+  var showLive = showLiveState[0]
+  var setShowLive = showLiveState[1]
+
   var pastSessionsState = useState([])
   var pastSessions = pastSessionsState[0]
   var setPastSessions = pastSessionsState[1]
@@ -1354,6 +1362,15 @@ function DjPanelInner() {
           >
             🖥️ Sala de espera
           </button>
+          {session.hasFeature('retroke_live') && (
+            <button
+              onClick={function () { setShowLive(!showLive) }}
+              className="text-sm px-3 py-2 min-h-9 rounded-lg font-medium text-white leading-tight text-center flex items-center gap-1.5"
+              style={{ background: showLive ? 'var(--accent-magenta)' : 'rgba(233,30,140,0.15)', border: '1px solid var(--accent-magenta)', color: showLive ? '#fff' : 'var(--accent-magenta)' }}
+            >
+              ● Retroke Live
+            </button>
+          )}
           <button
             onClick={handleCloseSession}
             disabled={closing}
@@ -1406,6 +1423,14 @@ function DjPanelInner() {
           <ThemeToggle />
         </div>
       </header>
+
+      {showLive && session.hasFeature('retroke_live') && (
+        <DjLiveModule
+          barId={currentBarId}
+          workspaceId={currentWorkspaceId}
+          accessToken={auth.session ? auth.session.access_token : ''}
+        />
+      )}
 
       {deleteBarOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-6" style={{ background: 'rgba(0,0,0,0.6)' }}>
