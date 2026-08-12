@@ -1424,11 +1424,13 @@ function DjPanelInner() {
         </div>
       </header>
 
-      {showLive && session.hasFeature('retroke_live') && (
+      {session.hasFeature('retroke_live') && (
         <DjLiveModule
           barId={currentBarId}
           workspaceId={currentWorkspaceId}
           accessToken={auth.session ? auth.session.access_token : ''}
+          visible={showLive}
+          onRequestExpand={function () { setShowLive(true) }}
         />
       )}
 

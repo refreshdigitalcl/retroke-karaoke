@@ -1,93 +1,58 @@
-// Filtro de lenguaje ofensivo para nombres en el formulario de registro.
-// Cubre garabatos chilenos, argentinos y latinoamericanos en general, mas
-// ingles basico. Detecta variantes con numeros/simbolos (leetspeak), letras
-// repetidas, espacios entre letras, y combinaciones/frases compuestas
-// (ej: "Saco De Weas", "CarePico", "El Culiaooo").
-
-var BLOCKED_WORDS = [
-  // Chile - palabras sueltas
-  'aweonao', 'weon', 'hueon', 'weona', 'hueona', 'wn', 'wna', 'weones', 'hueones',
-  'aweona', 'aweonada', 'aweonamiento',
-  'pendejo', 'pendeja', 'pelmazo', 'pajaron', 'pajarona', 'pajero', 'pajera',
-  'gil', 'gila', 'gilipollas', 'idiota', 'imbecil', 'estupido', 'estupida',
-  'tarado', 'tarada', 'baboso', 'babosa', 'maricon', 'maricona', 'maraca', 'maraco',
-  'conchetumare', 'conchetumadre', 'concha', 'ctm', 'csm', 'conchesumare',
-  'puta', 'puto', 'putas', 'putos', 'culiao', 'culiada', 'culiaos', 'culia',
-  'ql', 'qlo', 'culero', 'culera', 'pico', 'pichula', 'pichulita', 'pichulon',
-  'chucha', 'chuchada', 'chuchesumare', 'chupapico', 'chupapija', 'chupamedias',
-  'soplapico', 'soplapollas', 'paja', 'pajear', 'masturbar',
-  'mariconazo', 'mariconada', 'perkin', 'perkinazo', 'sapo', 'sapa', 'soplon', 'soplona',
-  'cagao', 'cagada', 'cagado', 'cagar', 'cagarse', 'mierda', 'mierdoso', 'mierdosa',
-  'mierdero', 'culo', 'rajado', 'raja', 'zorra', 'zorro', 'cabron', 'cabrona', 'coño',
-  'forro', 'forra', 'pelotudo', 'pelotuda', 'pelotudez', 'pelotear',
-  'barsa', 'barsudo', 'barsuda', 'sinverguenza', 'carepalo', 'carewea', 'carepoto',
-  'careculo', 'careraja', 'carechucha', 'cara de raja', 'cara de pico', 'cara de culo',
-  'hijo de puta', 'hijo de perra', 'malparido', 'malparida', 'bastardo', 'bastarda',
-  'cabeza de pico', 'cabeza de chorlito', 'cara de nalga', 'cara de palo', 'cara de weon',
-  'cara de hueon', 'cara de poto', 'carepichula', 'carepico', 'caremalo', 'carecagao',
-  'careconcha', 'caremaraca', 'careloco', 'careweon', 'carehueon',
-  'wea', 'weas', 'huea', 'hueas', 'wevear', 'huevear', 'webeo', 'hueveo',
-  'weon culiao', 'hueon culiao', 'weona culia', 'hueona culia', 'weonazo', 'hueonazo',
-  'weonera', 'hueonera', 'weonaje', 'hueonaje', 'wea mala', 'huea mala', 'pura wea',
-  'pura huea', 'que wea', 'que chucha', 'que mierda', 'la cago', 'la cagaste', 'cagaste',
-  'cagon', 'cagona', 'cagonazo', 'cagonear', 'caguento', 'caguentero', 'caguentera',
-  'penca', 'penca culiao', 'pencazo', 'pencon', 'pencona', 'chantado', 'chantao',
-  'chanta', 'barson', 'patudo', 'patuda', 'sinverguenza', 'caradura', 'desgraciado',
-  'desgraciada', 'maldito', 'maldita', 'condenado', 'condenada', 'infeliz',
-  'saco de weas', 'saco de hueas', 'saco de mierda', 'pedazo de mierda', 'pura mierda',
-  'mierda humana',
-  // Latinoamerica en general
-  'cojudo', 'cojuda', 'cojones', 'conchudo', 'conchuda', 'conchesumadre',
-  'marica', 'maricas', 'mamon', 'mamona', 'mamada', 'mamar',
-  'chinga', 'chingada', 'chingado', 'chingon', 'chingona', 'chingar', 'chingue',
-  'chinga tu madre', 'hijueputa', 'hijuepucha', 'gonorrea', 'gonorreas',
-  'carechimba', 'chimba', 'chimbada', 'chimbazo', 'caremonda', 'monda', 'monda',
-  'mondazo', 'verga', 'vergazo', 'vergona', 'pito', 'pija', 'pijazo', 'pajazo',
-  'putero', 'puteria', 'putear', 'perra', 'perro', 'perra malparida',
-  'ojete', 'ojeteado', 'pinche', 'pinche cabron', 'pinche pendejo', 'no mames',
-  'mames', 'mamadas', 'mamador', 'mamadora', 'chupapijas', 'chupapitos',
-  'chupaverga', 'soplapijas', 'soplapitos', 'soplavergas',
-  'boludo', 'boluda', 'boludo de mierda', 'gilipolla', 'imbécil', 'pajarraco',
-  'mamerto', 'mamerta', 'lambon', 'lambona', 'lameculos', 'lameculo', 'chupamedia',
-  // Ingles - comunes
-  'fuck', 'fucker', 'fucking', 'fuk', 'fck', 'shit', 'shitty', 'bitch', 'biatch',
-  'asshole', 'bastard', 'cunt', 'dick', 'dickhead', 'pussy', 'whore', 'slut',
-  'nigger', 'nigga', 'faggot', 'fag', 'retard', 'retarded'
+// Retroke Live -- filtro de garabatos para el chat en vivo. Modulo
+// compartido: lo usa el frontend (aviso instantaneo antes de enviar) Y
+// /api/live-comment.js (la validacion real, la que de verdad bloquea el
+// insert -- el chequeo del frontend es solo para que la persona vea el
+// aviso al toque, no es la barrera de seguridad).
+//
+// Es un filtro por lista de palabras con normalizacion basica (sin tildes,
+// mayusculas/minusculas, leetspeak simple, letras repetidas). No es
+// perfecto -- ningun filtro de lista lo es -- pero cubre el caso comun de
+// un chat de karaoke en un bar. Se puede ampliar la lista despues sin tocar
+// el resto del archivo.
+var BAD_WORDS = [
+  'conchetumadre', 'conchadetumadre', 'ctm', 'qliao', 'weon culiao', 'culiao', 'culia',
+  'maricon', 'marica', 'puta', 'puto', 'putas', 'putos', 'perra', 'zorra',
+  'mierda', 'pendejo', 'gilipollas', 'cabron', 'cabrona',
+  'verga', 'pelotudo', 'boludo', 'concha de tu madre', 'concha tu madre',
+  'hijo de puta', 'hija de puta', 'hijueputa', 'malparido', 'malparida',
+  'imbecil', 'idiota', 'retrasado mental', 'mogolico',
+  'coño', 'chinga tu madre', 'chingada', 'joder', 'gonorrea'
 ]
 
+function stripAccents(text) {
+  return text.normalize ? text.normalize('NFD').replace(/[̀-ͯ]/g, '') : text
+}
+
 function normalize(text) {
-  var t = text.toLowerCase()
-  t = t.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-  t = t
-    .replace(/4/g, 'a')
-    .replace(/3/g, 'e')
-    .replace(/0/g, 'o')
-    .replace(/1/g, 'i')
-    .replace(/\$/g, 's')
-    .replace(/5/g, 's')
-    .replace(/7/g, 't')
-  // colapsar cualquier letra repetida seguidas a una sola (culiaooooo -> culiao)
-  t = t.replace(/(.)\1+/g, '$1')
+  var t = stripAccents(String(text || '').toLowerCase())
+  t = t.replace(/[@4]/g, 'a').replace(/3/g, 'e').replace(/[1!]/g, 'i').replace(/0/g, 'o').replace(/\$/g, 's')
+  t = t.replace(/(.)\1{2,}/g, '$1$1') // "puuuuuta" -> "puuta"
   return t
 }
 
-export function containsProfanity(rawText) {
-  if (!rawText) return false
-  var normalized = normalize(rawText)
-  // version con espacios reales (para frases) sin puntuacion
-  var withSpaces = normalized.replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim()
-  // version totalmente aplastada, sin espacios ni puntuacion (para
-  // detectar evasiones tipo "W E O N", "CarePico", "Saco De Weas")
-  var squashed = normalized.replace(/[^a-z0-9]/g, '')
+function compact(text) {
+  return normalize(text).replace(/[^a-z0-9]/g, '')
+}
 
-  var i = 0
-  while (i < BLOCKED_WORDS.length) {
-    var word = BLOCKED_WORDS[i]
-    var wordSquashed = word.replace(/[^a-z0-9]/g, '')
-    if (withSpaces.indexOf(word) !== -1 || squashed.indexOf(wordSquashed) !== -1) {
-      return true
-    }
-    i = i + 1
+export function containsProfanity(text) {
+  if (!text) return false
+  var norm = normalize(text)
+  var comp = compact(text)
+  for (var i = 0; i < BAD_WORDS.length; i++) {
+    var word = BAD_WORDS[i]
+    var wordCompact = compact(word)
+    if (norm.indexOf(word) !== -1) return true
+    if (wordCompact.length > 2 && comp.indexOf(wordCompact) !== -1) return true
   }
   return false
+}
+
+// Validacion completa de un comentario: largo + garabatos. Se usa igual en
+// el frontend (aviso rapido) y en el backend (barrera real).
+export function validateComment(text) {
+  var trimmed = String(text || '').trim()
+  if (!trimmed) return { ok: false, reason: 'empty' }
+  if (trimmed.length > 220) return { ok: false, reason: 'too_long' }
+  if (containsProfanity(trimmed)) return { ok: false, reason: 'profanity' }
+  return { ok: true, text: trimmed }
 }

@@ -3,9 +3,8 @@ import { Room } from 'livekit-client'
 import { supabase } from '../../lib/supabase'
 
 // Retroke Live -- modulo de control para el DJ Panel (Fase 4, MVP tecnico).
-// Componente nuevo y aislado: no modifica DjPanel mas alla de un boton y
-// este panel montado condicionalmente (ver integracion en DjPanel.jsx).
-// No comparte estado ni logica con la cola/Display/sessions existentes.
+// Componente nuevo y aislado: no comparte estado ni logica con la cola/
+// Display/sessions existentes.
 //
 // Flujo, igual al aprobado en la arquitectura:
 // 1) "Activar camara y microfono" -> preview 100% local, nada se transmite.
@@ -13,10 +12,23 @@ import { supabase } from '../../lib/supabase'
 //    en backend), conecta a LiveKit y recien ahi empieza a publicar.
 // 3) "Finalizar transmision" -> corta la conexion y marca la fila de
 //    live_sessions como 'ended'.
+//
+// IMPORTANTE (fix post-prueba real): este componente ahora se monta UNA
+// SOLA VEZ en DjPanel.jsx, siempre, no condicionado a si el panel esta
+// abierto. Antes se montaba/desmontaba con el boton "Retroke Live" del
+// header, y como la conexion vive en un ref de este componente, cerrar el
+// panel para volver a la cola desconectaba la transmision (el DJ se daba
+// cuenta al volver a abrir el panel y encontrar todo cortado). Ahora la
+// visibilidad del panel completo es solo un prop (`visible`) -- si esta en
+// false pero la transmision sigue viva, se muestra una barra angosta en vez
+// de nada, para que el DJ pueda seguir viendo que esta en vivo y finalizar
+// desde cualquier parte sin tener que reabrir el panel grande.
 export default function DjLiveModule(props) {
   var barId = props.barId
   var workspaceId = props.workspaceId
   var accessToken = props.accessToken // auth.session.access_token
+  var visible = props.visible !== false
+  var onRequestExpand = props.onRequestExpand || function () {}
 
   var previewRef = useRef(null)
   var roomRef = useRef(null)
@@ -142,6 +154,39 @@ export default function DjLiveModule(props) {
 
   var isLive = status === 'live'
   var isBusy = status === 'starting' || status === 'ending'
+  var isActiveInBackground = status !== 'idle' && status !== 'error'
+
+  // Panel cerrado (el DJ volvio a la cola) pero la transmision sigue
+  // corriendo -- barra angosta en vez de nada, para no perderla de vista.
+  if (!visible) {
+    if (!isActiveInBackground) return null
+    return (
+      <div
+        className="rounded-xl border px-4 py-2.5 mt-4 flex items-center justify-between flex-wrap gap-2"
+        style={{ background: 'rgba(233,30,140,0.08)', borderColor: 'var(--accent-magenta)' }}
+      >
+        <span className="text-sm font-medium flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+          <span style={{ color: 'var(--accent-magenta)' }}>●</span>
+          {isLive ? 'Retroke Live sigue transmitiendo' : 'Retroke Live conectando...'}
+          {isLive && (
+            <span className="text-xs font-normal" style={{ color: 'var(--text-muted)' }}>
+              · {viewerCount} {viewerCount === 1 ? 'espectador' : 'espectadores'}
+            </span>
+          )}
+        </span>
+        <div className="flex items-center gap-2">
+          <button onClick={onRequestExpand} className="text-xs px-3 py-1.5 rounded-lg border" style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}>
+            Ver panel
+          </button>
+          {isLive && (
+            <button onClick={handleStop} disabled={isBusy} className="text-xs px-3 py-1.5 rounded-lg border font-medium disabled:opacity-50" style={{ borderColor: 'var(--accent-magenta)', color: 'var(--accent-magenta)' }}>
+              Finalizar
+            </button>
+          )}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div
