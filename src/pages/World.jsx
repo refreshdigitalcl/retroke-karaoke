@@ -342,8 +342,39 @@ export default function World() {
         .world-activity-name:hover { text-decoration: underline; }
         .world-activity-time { font-size: 10.5px; color: rgba(255,255,255,0.4); margin-top: 2px; }
 
+        /* Actividad Retroke en formato ticker -- la lista se pinta DOS
+           veces seguidas y se anima translateY(-50%) en loop infinito, asi
+           el punto donde termina la primera copia calza exacto con donde
+           empieza la segunda (sin salto visible). Se pausa al pasar el
+           mouse para poder leer, y respeta prefers-reduced-motion. Con
+           pocas actividades (<4) no vale la pena el scroll -- se muestra la
+           lista fija de siempre. */
+        .rk-activity-scroll {
+          position: relative; max-height: 340px; overflow: hidden;
+          mask-image: linear-gradient(to bottom, transparent 0%, black 12%, black 88%, transparent 100%);
+          -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 12%, black 88%, transparent 100%);
+        }
+        .rk-activity-track {
+          display: flex; flex-direction: column;
+          animation-name: rkActivityScroll; animation-timing-function: linear; animation-iteration-count: infinite;
+        }
+        .rk-activity-scroll:hover .rk-activity-track { animation-play-state: paused; }
+        @keyframes rkActivityScroll {
+          from { transform: translateY(0); }
+          to { transform: translateY(-50%); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .rk-activity-track { animation: none; }
+          .rk-activity-scroll { max-height: none; overflow: visible; mask-image: none; -webkit-mask-image: none; }
+        }
+
         .rk-world-hero-wrap { position: relative; overflow: hidden; border-radius: var(--rk-radius-xl); padding: 12px 0 24px; margin-bottom: 4px; min-height: 320px; display: flex; align-items: center; }
         .rk-world-hero-content { position: relative; z-index: 1; width: 100%; display: flex; flex-direction: column; gap: 28px; }
+        .world-hero-logo {
+          display: block; margin: 0 auto; width: 100%;
+          max-width: clamp(260px, 40vw, 420px); height: auto;
+          filter: drop-shadow(0 0 22px rgba(233,30,140,0.35)) drop-shadow(0 0 40px rgba(139,92,246,0.25));
+        }
         .rk-experience-stat { text-align: center; padding: 10px 4px; border-radius: var(--rk-radius-md); background: var(--rk-surface); }
         .rk-experience-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
       `}</style>
@@ -554,11 +585,21 @@ export default function World() {
               <RetrokeEmptyState icon={<RetrokeIcon name="star" size={26} />} message="Todavía no hay actividad reciente. Sigue a alguien, publica un estado o desafía a un cantante y va a aparecer acá." />
             )}
             {activity !== null && activity.length > 0 && (
-              <div>
-                {activity.map((row) => (
-                  <ActivityRow key={row.id} row={row} />
-                ))}
-              </div>
+              activity.length >= 4 ? (
+                <div className="rk-activity-scroll">
+                  <div className="rk-activity-track" style={{ animationDuration: Math.max(activity.length * 2.8, 14) + 's' }}>
+                    {activity.concat(activity).map((row, i) => (
+                      <ActivityRow key={row.id + '-' + i} row={row} />
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  {activity.map((row) => (
+                    <ActivityRow key={row.id} row={row} />
+                  ))}
+                </div>
+              )
             )}
           </RetrokeSection>
         </div>

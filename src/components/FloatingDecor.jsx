@@ -87,7 +87,11 @@ function VintageMic() {
   )
 }
 
-export default function FloatingDecor() {
+// hideVinyl: oculta el disco de vinilo girando (abajo-izquierda). Por
+// defecto sigue visible -- las pantallas Display*/SessionHub que ya
+// funcionaban bien con este decorado no se tocan. Solo Retroke World lo
+// pide sin vinilo (RetrokeAtmosphere.jsx pasa hideVinyl explicitamente).
+export default function FloatingDecor({ hideVinyl = false }) {
   return (
     <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
       <StageLights />
@@ -97,17 +101,19 @@ export default function FloatingDecor() {
         <VintageMic />
       </div>
 
-      <div className="decor-float-slow" style={{ position: 'absolute', bottom: '10%', left: '7%' }}>
-        <div className="decor-spin-slow" style={{ opacity: 0.55 }}>
-          <svg width="106" height="106" viewBox="0 0 64 64">
-            <circle cx="32" cy="32" r="27" fill="#0a0a0a" stroke="#8B5CF6" strokeWidth="2" />
-            <circle cx="32" cy="32" r="19" fill="none" stroke="#8B5CF6" strokeWidth="1" opacity="0.6" />
-            <circle cx="32" cy="32" r="12" fill="none" stroke="#8B5CF6" strokeWidth="1" opacity="0.6" />
-            <circle cx="32" cy="32" r="5" fill="#8B5CF6" />
-            <circle cx="32" cy="32" r="2" fill="#0a0a0a" />
-          </svg>
+      {!hideVinyl && (
+        <div className="decor-float-slow" style={{ position: 'absolute', bottom: '10%', left: '7%' }}>
+          <div className="decor-spin-slow" style={{ opacity: 0.55 }}>
+            <svg width="106" height="106" viewBox="0 0 64 64">
+              <circle cx="32" cy="32" r="27" fill="#0a0a0a" stroke="#8B5CF6" strokeWidth="2" />
+              <circle cx="32" cy="32" r="19" fill="none" stroke="#8B5CF6" strokeWidth="1" opacity="0.6" />
+              <circle cx="32" cy="32" r="12" fill="none" stroke="#8B5CF6" strokeWidth="1" opacity="0.6" />
+              <circle cx="32" cy="32" r="5" fill="#8B5CF6" />
+              <circle cx="32" cy="32" r="2" fill="#0a0a0a" />
+            </svg>
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="decor-float" style={{ position: 'absolute', top: '16%', right: '5%', animationDelay: '1.2s' }}>
         <div className="decor-spin-slower" style={{ opacity: 0.6 }}>

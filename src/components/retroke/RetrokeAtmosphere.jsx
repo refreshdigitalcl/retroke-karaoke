@@ -12,18 +12,27 @@ import RetroEqualizer from '../RetroEqualizer'
 //  'full'       -> luces + humo + iconos flotantes + ecualizador (paginas hero, ej. World)
 //  'equalizer'  -> solo las barras, mas sutil (paginas de contenido denso, ej. Rankings)
 //  'none'       -> no renderiza nada (para pantallas donde la atmosfera distraeria)
-// grid: agrega el piso de grid en perspectiva + horizonte con degrade
-//   (referencia synthwave aprobada -- sin sol/chrome-text/palmeras, solo esa
-//   parte). Pensado para el hero de World, no para secciones de contenido
-//   denso donde competiria con texto real.
+// grid: agrega el "cuarto" de grid en perspectiva (piso + techo + paredes
+//   laterales, cada una en un color de marca distinto, convergiendo al
+//   centro) mas el horizonte con degrade -- referencia synthwave aprobada
+//   (piso) mas la referencia de "grid room" (las 4 caras). Pensado para el
+//   hero de World, no para secciones de contenido denso donde competiria
+//   con texto real.
 export default function RetrokeAtmosphere({ variant = 'full', scanlines = false, grid = false }) {
   if (variant === 'none' && !grid) return null
 
   return (
     <div className="rk-atmosphere" aria-hidden="true">
       {grid && <div className="rk-atmosphere-horizon" />}
-      {grid && <div className="rk-atmosphere-grid" />}
-      {variant === 'full' && <FloatingDecor />}
+      {grid && (
+        <div className="rk-atmosphere-tunnel">
+          <div className="rk-tunnel-face rk-tunnel-floor" />
+          <div className="rk-tunnel-face rk-tunnel-ceiling" />
+          <div className="rk-tunnel-face rk-tunnel-left" />
+          <div className="rk-tunnel-face rk-tunnel-right" />
+        </div>
+      )}
+      {variant === 'full' && <FloatingDecor hideVinyl />}
       {(variant === 'full' || variant === 'equalizer') && <RetroEqualizer />}
       {scanlines && <div className="rk-atmosphere-scanlines" />}
     </div>

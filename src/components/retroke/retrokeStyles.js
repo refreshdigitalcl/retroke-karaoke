@@ -31,20 +31,53 @@ export const RETROKE_STYLES = `
     background: radial-gradient(ellipse at 50% 100%, rgba(244,208,63,0.32) 0%, rgba(233,30,140,0.26) 38%, rgba(139,92,246,0.14) 62%, transparent 76%);
     filter: blur(8px);
   }
-  .rk-atmosphere-grid {
-    position: absolute; left: 0; right: 0; bottom: 0; height: 42%;
-    overflow: hidden; perspective: 220px; perspective-origin: 50% 0%;
+  /* "Cuarto" de grid -- piso + techo + paredes laterales, cada cara en un
+     color de marca distinto, convergiendo hacia el centro (referencia:
+     grid-room wireframe). Misma tecnica que el piso de arriba (plano 2D
+     sobrepasado + rotateX/rotateY + mascara de desvanecido), solo que ahora
+     son 4 caras compartiendo una sola perspectiva en vez de una. Sigue
+     siendo estatico y muy sutil (opacidad baja + fade fuerte) para no
+     competir con el contenido real. */
+  .rk-atmosphere-tunnel {
+    position: absolute; inset: 0; overflow: hidden;
+    perspective: 320px; perspective-origin: 50% 50%;
   }
-  .rk-atmosphere-grid::before {
-    content: ''; position: absolute; left: -50%; right: -50%; bottom: 0; height: 220%;
+  .rk-tunnel-face { position: absolute; background-size: 46px 46px; }
+  .rk-tunnel-floor {
+    left: -50%; right: -50%; bottom: 0; height: 220%;
     background-image:
-      linear-gradient(rgba(139,92,246,0.32) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(139,92,246,0.32) 1px, transparent 1px);
-    background-size: 46px 46px;
-    transform: rotateX(75deg);
-    transform-origin: 50% 0%;
-    mask-image: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 82%);
-    -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 82%);
+      linear-gradient(rgba(126,217,87,0.3) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(126,217,87,0.3) 1px, transparent 1px);
+    transform: rotateX(75deg); transform-origin: 50% 0%;
+    mask-image: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 80%);
+    -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 80%);
+  }
+  .rk-tunnel-ceiling {
+    left: -50%; right: -50%; top: 0; height: 220%;
+    background-image:
+      linear-gradient(rgba(233,30,140,0.26) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(233,30,140,0.26) 1px, transparent 1px);
+    transform: rotateX(-75deg); transform-origin: 50% 100%;
+    mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 80%);
+    -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 80%);
+  }
+  .rk-tunnel-left {
+    top: -50%; bottom: -50%; left: 0; width: 220%;
+    background-image:
+      linear-gradient(rgba(139,92,246,0.26) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(139,92,246,0.26) 1px, transparent 1px);
+    transform: rotateY(75deg); transform-origin: 100% 50%;
+    mask-image: linear-gradient(to right, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 80%);
+    -webkit-mask-image: linear-gradient(to right, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 80%);
+  }
+  .rk-tunnel-right {
+    top: -50%; bottom: -50%; right: 0; width: 220%;
+    background-image:
+      linear-gradient(rgba(244,208,63,0.26) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(244,208,63,0.26) 1px, transparent 1px);
+    transform: rotateY(-75deg); transform-origin: 0% 50%;
+    mask-image: linear-gradient(to left, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 80%);
+    -webkit-mask-image: linear-gradient(to left, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 80%);
   }
 
   /* --- RetrokeScore: el numero protagonista (XP, nota, score, posicion) --- */
