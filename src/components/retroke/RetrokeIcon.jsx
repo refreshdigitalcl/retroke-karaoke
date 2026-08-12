@@ -150,12 +150,9 @@ const ICONS = {
   ),
   swords: (
     <>
-      <line x1="5" y1="5" x2="19" y2="19" />
-      <line x1="19" y1="5" x2="5" y2="19" />
-      <path d="M5 5h2.2M5 5v2.2" />
-      <path d="M19 19h-2.2M19 19v-2.2" />
-      <path d="M19 5h-2.2M19 5v2.2" />
-      <path d="M5 19h2.2M5 19v-2.2" />
+      <line x1="20" y1="4" x2="6" y2="18" />
+      <line x1="11.5" y1="9.5" x2="14.5" y2="12.5" />
+      <circle cx="6" cy="18" r="1.2" fill="currentColor" stroke="none" />
     </>
   )
 }
