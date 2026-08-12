@@ -179,6 +179,16 @@ export default function LiveViewer(props) {
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'live_comments', filter: 'live_session_id=eq.' + liveSessionId }, function (payload) {
         setComments(function (prev) { return prev.concat([payload.new]) })
       })
+      // Fix: faltaba escuchar el borrado -- cuando el DJ/staff borraba un
+      // comentario desde su panel de moderacion, en el visor se quedaba
+      // pegado igual hasta recargar la pagina (el INSERT de arriba nunca
+      // se entera de un DELETE). No se puede filtrar por live_session_id
+      // en el evento DELETE (Postgres solo manda la primary key en
+      // payload.old salvo REPLICA IDENTITY FULL), asi que se escucha sin
+      // filtro y se compara el id en el propio handler.
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'live_comments' }, function (payload) {
+        setComments(function (prev) { return prev.filter(function (c) { return c.id !== payload.old.id } ) })
+      })
       .subscribe()
 
     return function () {
