@@ -4,10 +4,12 @@ import { supabase } from '../lib/supabase'
 import { resolveVenue, loadVenueRanking, loadVenueOverview, loadVenueNowPlaying } from '../lib/venue'
 import { subscribeToTableFiltered } from '../lib/realtime'
 import { useRetrokeFont } from '../lib/fonts'
-import WorldSection from '../components/world/WorldSection'
-import WorldEmptyState from '../components/world/WorldEmptyState'
-import WorldSkeleton from '../components/world/WorldSkeleton'
 import { WORLD_STYLES } from '../components/world/worldStyles'
+import RetrokeSection from '../components/retroke/RetrokeSection'
+import RetrokeEmptyState from '../components/retroke/RetrokeEmptyState'
+import RetrokeSkeleton from '../components/retroke/RetrokeSkeleton'
+import RetrokeIcon from '../components/retroke/RetrokeIcon'
+import { RETROKE_STYLES } from '../components/retroke/retrokeStyles'
 
 // Fase 7 de Retroke World ("Escenarios", ver
 // retroke-world-diagnostico-tecnico.md). Pagina dedicada por sala (bar
@@ -100,9 +102,9 @@ export default function Escenario() {
   if (venue === null) {
     return (
       <div className="world-page">
-        <style>{WORLD_STYLES}</style>
+        <style>{WORLD_STYLES}{RETROKE_STYLES}{`.world-page { background: var(--rk-bg-gradient); }`}</style>
         <div className="world-inner">
-          <WorldEmptyState icon="🔍" message="No encontramos este escenario." />
+          <RetrokeEmptyState icon={<RetrokeIcon name="search" size={26} />} message="No encontramos este escenario." />
           <Link to="/world" className="world-footer-link">← Retroke World</Link>
         </div>
       </div>
@@ -113,15 +115,16 @@ export default function Escenario() {
 
   return (
     <div className="world-page">
-      <style>{WORLD_STYLES}{`
+      <style>{WORLD_STYLES}{RETROKE_STYLES}{`
+        .world-page { background: var(--rk-bg-gradient); }
         .es-live-btn {
           display: inline-block; text-align: center; font-size: 13px; font-weight: 700; color: #05030a;
-          padding: 10px 18px; border-radius: 999px; background: #7ED957; text-decoration: none;
+          padding: 10px 18px; border-radius: var(--rk-radius-pill); background: var(--rk-green); text-decoration: none;
         }
         .es-stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-        .es-stat-box { text-align: center; padding: 12px 6px; border-radius: 14px; background: rgba(255,255,255,0.05); }
-        .es-stat-value { font-size: 22px; font-weight: 800; color: #F4D03F; }
-        .es-stat-label { font-size: 10.5px; color: rgba(255,255,255,0.5); margin-top: 3px; }
+        .es-stat-box { text-align: center; padding: 12px 6px; border-radius: var(--rk-radius-md); background: var(--rk-surface); }
+        .es-stat-value { font-family: var(--rk-font-display); font-size: 22px; font-weight: 800; color: var(--rk-yellow); }
+        .es-stat-label { font-size: 10.5px; color: var(--rk-text-soft); margin-top: 3px; }
       `}</style>
 
       <div className="world-inner">
@@ -131,18 +134,27 @@ export default function Escenario() {
           {venue !== undefined && <p className="world-hero-subtitle">{venueTypeLabel(venue)}</p>}
         </header>
 
-        {venue === undefined && <WorldSkeleton lines={4} />}
+        {venue === undefined && <RetrokeSkeleton lines={4} />}
 
         {venue !== undefined && (
           <>
-            <WorldSection
+            <RetrokeSection
               size="lg"
+              accent={overview && overview.isLiveNow ? 'green' : null}
               eyebrow={!overview ? 'Estado' : overview.isLiveNow ? 'En vivo' : 'Estado'}
-              title={!overview ? 'Revisando el escenario…' : overview.isLiveNow ? '🔴 En vivo ahora' : '🌙 Sin actividad en este momento'}
+              title={
+                !overview ? (
+                  'Revisando el escenario…'
+                ) : overview.isLiveNow ? (
+                  <span className="world-live-badge"><span className="world-live-dot" /> En vivo ahora</span>
+                ) : (
+                  <><RetrokeIcon name="moon" size={16} /> Sin actividad en este momento</>
+                )
+              }
             >
-              {!overview && <WorldSkeleton lines={2} />}
+              {!overview && <RetrokeSkeleton lines={2} />}
               {overview && !overview.isLiveNow && (
-                <WorldEmptyState icon="🕯️" message="Este escenario no tiene una sesión activa ahora mismo." />
+                <RetrokeEmptyState icon={<RetrokeIcon name="moon" size={26} />} message="Este escenario no tiene una sesión activa ahora mismo." />
               )}
               {overview && overview.isLiveNow && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -165,10 +177,10 @@ export default function Escenario() {
                   <Link to={liveHref(venue)} className="es-live-btn">▶ Entrar en vivo</Link>
                 </div>
               )}
-            </WorldSection>
+            </RetrokeSection>
 
-            <WorldSection eyebrow="Números" title="📊 Este escenario en números">
-              {!overview && <WorldSkeleton lines={2} />}
+            <RetrokeSection accent="purple" eyebrow="Números" title={<><RetrokeIcon name="chart" size={16} glow /> Este escenario en números</>}>
+              {!overview && <RetrokeSkeleton lines={2} />}
               {overview && (
                 <div className="es-stat-grid">
                   <div className="es-stat-box">
@@ -185,16 +197,17 @@ export default function Escenario() {
                   </div>
                 </div>
               )}
-            </WorldSection>
+            </RetrokeSection>
 
-            <WorldSection
+            <RetrokeSection
+              accent="yellow"
               eyebrow="Meta-partida local"
-              title="🏆 Ranking de este escenario"
+              title={<><RetrokeIcon name="trophy" size={16} glow /> Ranking de este escenario</>}
               action={<Link to={rankingHref} className="world-section-action">Ver todo →</Link>}
             >
-              {ranking === null && <WorldSkeleton lines={3} />}
+              {ranking === null && <RetrokeSkeleton lines={3} />}
               {ranking !== null && ranking.length === 0 && (
-                <WorldEmptyState icon="🏆" message="Este escenario todavía no tiene presentaciones calificadas." />
+                <RetrokeEmptyState icon={<RetrokeIcon name="trophy" size={26} />} message="Este escenario todavía no tiene presentaciones calificadas." />
               )}
               {ranking !== null && ranking.length > 0 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -210,7 +223,7 @@ export default function Escenario() {
                   ))}
                 </div>
               )}
-            </WorldSection>
+            </RetrokeSection>
           </>
         )}
 

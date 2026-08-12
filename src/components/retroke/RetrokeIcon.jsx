@@ -139,6 +139,14 @@ const ICONS = {
       <circle cx="12" cy="12" r="4.3" />
       <circle cx="12" cy="12" r="1" fill="currentColor" stroke="none" />
     </>
+  ),
+  chart: (
+    <>
+      <line x1="4" y1="21" x2="20" y2="21" />
+      <rect x="6" y="12" width="3.4" height="8" />
+      <rect x="10.3" y="7" width="3.4" height="13" />
+      <rect x="14.6" y="15" width="3.4" height="5" />
+    </>
   )
 }
 
