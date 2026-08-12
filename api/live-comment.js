@@ -63,6 +63,21 @@ export default async function handler(req, res) {
     return
   }
 
+  // Moderacion del DJ/staff: si silenciaron a este participante en esta
+  // sala puntual, no se inserta -- se avisa claro, no se falla en silencio.
+  if (participantId) {
+    var muteResult = await supabaseAdmin
+      .from('live_muted_participants')
+      .select('id')
+      .eq('live_session_id', liveSessionId)
+      .eq('participant_id', participantId)
+      .maybeSingle()
+    if (muteResult.data) {
+      res.status(403).json({ error: 'muted', message: 'El DJ o staff de este local te silencio en este chat.' })
+      return
+    }
+  }
+
   var insertResult = await supabaseAdmin
     .from('live_comments')
     .insert({

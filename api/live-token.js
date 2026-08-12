@@ -98,24 +98,32 @@ export default async function handler(req, res) {
     .eq('room_name', roomName)
     .maybeSingle()
 
+  var liveSessionId = null
+
   if (existingResult.data) {
+    liveSessionId = existingResult.data.id
     await supabaseAsCaller
       .from('live_sessions')
       .update({ status: 'starting', started_by: userId, started_at: new Date().toISOString(), ended_at: null })
-      .eq('id', existingResult.data.id)
+      .eq('id', liveSessionId)
   } else {
-    var insertResult = await supabaseAsCaller.from('live_sessions').insert({
-      bar_id: barId,
-      workspace_id: barId ? null : workspaceId,
-      room_name: roomName,
-      status: 'starting',
-      started_by: userId,
-      started_at: new Date().toISOString()
-    })
+    var insertResult = await supabaseAsCaller
+      .from('live_sessions')
+      .insert({
+        bar_id: barId,
+        workspace_id: barId ? null : workspaceId,
+        room_name: roomName,
+        status: 'starting',
+        started_by: userId,
+        started_at: new Date().toISOString()
+      })
+      .select('id')
+      .single()
     if (insertResult.error) {
       res.status(500).json({ error: insertResult.error.message })
       return
     }
+    liveSessionId = insertResult.data.id
   }
 
   var at = new AccessToken(livekitApiKey, livekitApiSecret, {
@@ -131,5 +139,5 @@ export default async function handler(req, res) {
   })
 
   var jwt = await at.toJwt()
-  res.status(200).json({ token: jwt, url: livekitUrl, room: roomName })
+  res.status(200).json({ token: jwt, url: livekitUrl, room: roomName, live_session_id: liveSessionId })
 }

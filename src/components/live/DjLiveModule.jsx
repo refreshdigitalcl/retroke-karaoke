@@ -2,9 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { Room } from 'livekit-client'
 import { supabase } from '../../lib/supabase'
 
-// Retroke Live -- modulo de control para el DJ Panel (Fase 4, MVP tecnico).
-// Componente nuevo y aislado: no comparte estado ni logica con la cola/
-// Display/sessions existentes.
+// Retroke Live -- modulo de control para el DJ Panel (Fase 4, MVP tecnico +
+// moderacion de chat). Componente nuevo y aislado: no comparte estado ni
+// logica con la cola/Display/sessions existentes.
 //
 // Flujo, igual al aprobado en la arquitectura:
 // 1) "Activar camara y microfono" -> preview 100% local, nada se transmite.
@@ -17,12 +17,17 @@ import { supabase } from '../../lib/supabase'
 // SOLA VEZ en DjPanel.jsx, siempre, no condicionado a si el panel esta
 // abierto. Antes se montaba/desmontaba con el boton "Retroke Live" del
 // header, y como la conexion vive en un ref de este componente, cerrar el
-// panel para volver a la cola desconectaba la transmision (el DJ se daba
-// cuenta al volver a abrir el panel y encontrar todo cortado). Ahora la
+// panel para volver a la cola desconectaba la transmision. Ahora la
 // visibilidad del panel completo es solo un prop (`visible`) -- si esta en
 // false pero la transmision sigue viva, se muestra una barra angosta en vez
-// de nada, para que el DJ pueda seguir viendo que esta en vivo y finalizar
-// desde cualquier parte sin tener que reabrir el panel grande.
+// de nada.
+//
+// Moderacion de chat: el DJ/staff del local puede borrar un comentario o
+// silenciar a alguien en ESTA sala puntual (no es un ban global de la
+// plataforma), directo con su propia sesion autenticada -- las policies de
+// RLS de live_comments/live_muted_participants ya validan que solo el
+// staff dueño de la sala pueda hacerlo (mismo criterio bar_members/
+// has_workspace_access que protege el resto del panel).
 export default function DjLiveModule(props) {
   var barId = props.barId
   var workspaceId = props.workspaceId
@@ -46,6 +51,18 @@ export default function DjLiveModule(props) {
   var viewerCount = viewerCountState[0]
   var setViewerCount = viewerCountState[1]
 
+  var liveSessionIdState = useState(null)
+  var liveSessionId = liveSessionIdState[0]
+  var setLiveSessionId = liveSessionIdState[1]
+
+  var commentsState = useState([])
+  var comments = commentsState[0]
+  var setComments = commentsState[1]
+
+  var mutedIdsState = useState(function () { return new Set() })
+  var mutedIds = mutedIdsState[0]
+  var setMutedIds = mutedIdsState[1]
+
   useEffect(function () {
     return function () {
       // Si el DJ cierra el panel o navega fuera sin apretar "Finalizar",
@@ -59,6 +76,69 @@ export default function DjLiveModule(props) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Chat + moderacion: se activa apenas hay una sala (desde 'starting'),
+  // no solo cuando ya esta 'live' -- asi el DJ ve comentarios que puedan
+  // llegar apenas la sala aparece en World.
+  useEffect(function () {
+    if (!liveSessionId) {
+      setComments([])
+      setMutedIds(new Set())
+      return
+    }
+
+    var cancelled = false
+
+    supabase
+      .from('live_comments')
+      .select('id,participant_id,display_name,avatar,text,created_at')
+      .eq('live_session_id', liveSessionId)
+      .order('created_at', { ascending: false })
+      .limit(50)
+      .then(function (result) {
+        if (cancelled) return
+        setComments((result.data || []).slice().reverse())
+      })
+
+    supabase
+      .from('live_muted_participants')
+      .select('participant_id')
+      .eq('live_session_id', liveSessionId)
+      .then(function (result) {
+        if (cancelled) return
+        setMutedIds(new Set((result.data || []).map(function (r) { return r.participant_id })))
+      })
+
+    var chatChannel = supabase
+      .channel('dj-live-chat-' + liveSessionId)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'live_comments', filter: 'live_session_id=eq.' + liveSessionId }, function (payload) {
+        setComments(function (prev) { return prev.concat([payload.new]) })
+      })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'live_comments' }, function (payload) {
+        setComments(function (prev) { return prev.filter(function (c) { return c.id !== payload.old.id } ) })
+      })
+      .subscribe()
+
+    var muteChannel = supabase
+      .channel('dj-live-mutes-' + liveSessionId)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'live_muted_participants', filter: 'live_session_id=eq.' + liveSessionId }, function (payload) {
+        setMutedIds(function (prev) { return new Set(prev).add(payload.new.participant_id) })
+      })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'live_muted_participants' }, function (payload) {
+        setMutedIds(function (prev) {
+          var next = new Set(prev)
+          next.delete(payload.old.participant_id)
+          return next
+        })
+      })
+      .subscribe()
+
+    return function () {
+      cancelled = true
+      supabase.removeChannel(chatChannel)
+      supabase.removeChannel(muteChannel)
+    }
+  }, [liveSessionId])
 
   function stopPreviewOnly() {
     if (streamRef.current) {
@@ -96,6 +176,7 @@ export default function DjLiveModule(props) {
       .then(function (res) { return res.json() })
       .then(function (data) {
         if (data.error) throw new Error(data.error)
+        setLiveSessionId(data.live_session_id || null)
 
         var room = new Room()
         roomRef.current = room
@@ -115,10 +196,6 @@ export default function DjLiveModule(props) {
         }).then(function () {
           setViewerCount(room.numParticipants)
           setStatus('live')
-          // Recien cuando la conexion y la publicacion de camara/mic estan
-          // confirmadas marcamos la sala como 'active' -- antes de esto
-          // queda en 'starting', que es lo que ya insertó/actualizó el
-          // backend al emitir el token.
           return supabase
             .from('live_sessions')
             .update({ status: 'active' })
@@ -149,12 +226,32 @@ export default function DjLiveModule(props) {
       stopPreviewOnly()
       setViewerCount(0)
       setStatus('idle')
+      setLiveSessionId(null)
     })
+  }
+
+  function handleDeleteComment(commentId) {
+    // Optimista: lo saco de la lista al toque, y si falla el DELETE (RLS
+    // lo rechaza, red caida, etc.) lo recupero con el proximo fetch/evento.
+    setComments(function (prev) { return prev.filter(function (c) { return c.id !== commentId } ) })
+    supabase.from('live_comments').delete().eq('id', commentId)
+  }
+
+  function handleToggleMute(participantId) {
+    if (!participantId) return
+    if (mutedIds.has(participantId)) {
+      setMutedIds(function (prev) { var next = new Set(prev); next.delete(participantId); return next })
+      supabase.from('live_muted_participants').delete().eq('live_session_id', liveSessionId).eq('participant_id', participantId)
+    } else {
+      setMutedIds(function (prev) { return new Set(prev).add(participantId) })
+      supabase.from('live_muted_participants').insert({ live_session_id: liveSessionId, participant_id: participantId })
+    }
   }
 
   var isLive = status === 'live'
   var isBusy = status === 'starting' || status === 'ending'
   var isActiveInBackground = status !== 'idle' && status !== 'error'
+  var showChatModeration = visible && liveSessionId && (status === 'live' || status === 'starting')
 
   // Panel cerrado (el DJ volvio a la cola) pero la transmision sigue
   // corriendo -- barra angosta en vez de nada, para no perderla de vista.
@@ -277,9 +374,63 @@ export default function DjLiveModule(props) {
         )}
       </div>
 
-      <p className="text-xs mt-4" style={{ color: 'var(--text-muted)' }}>
+      <p className="text-xs mt-4 mb-1" style={{ color: 'var(--text-muted)' }}>
         Quien mira desde Retroke World solo puede ver y escuchar -- nunca se anota a la cola desde aca. Para cantar sigue siendo necesario el QR fisico del local.
       </p>
+
+      {showChatModeration && (
+        <div className="rounded-xl border mt-4 overflow-hidden" style={{ borderColor: 'var(--border)' }}>
+          <div className="px-4 py-2.5 text-sm font-medium flex items-center justify-between" style={{ background: 'var(--bg-card-alt)', color: 'var(--text-primary)' }}>
+            <span>Chat en vivo -- moderacion</span>
+            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{comments.length} mensajes</span>
+          </div>
+          <div style={{ maxHeight: 260, overflowY: 'auto' }}>
+            {comments.length === 0 && (
+              <div className="text-xs text-center py-6" style={{ color: 'var(--text-muted)' }}>
+                Sin comentarios todavia.
+              </div>
+            )}
+            {comments.map(function (c) {
+              var isMuted = c.participant_id && mutedIds.has(c.participant_id)
+              return (
+                <div key={c.id} className="flex items-start justify-between gap-2 px-4 py-2 border-t" style={{ borderColor: 'var(--border)' }}>
+                  <div className="min-w-0">
+                    <div className="text-xs font-medium flex items-center gap-1.5" style={{ color: 'var(--text-primary)' }}>
+                      {c.display_name}
+                      {isMuted && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(255,77,77,0.12)', color: '#C23030' }}>
+                          silenciado
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>{c.text}</div>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {c.participant_id && (
+                      <button
+                        onClick={function () { handleToggleMute(c.participant_id) }}
+                        title={isMuted ? 'Quitar silencio' : 'Silenciar en este chat'}
+                        className="text-xs px-2 py-1 rounded-md border"
+                        style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}
+                      >
+                        {isMuted ? '🔊' : '🔇'}
+                      </button>
+                    )}
+                    <button
+                      onClick={function () { handleDeleteComment(c.id) }}
+                      title="Borrar comentario"
+                      className="text-xs px-2 py-1 rounded-md border"
+                      style={{ borderColor: 'rgba(255,77,77,0.35)', color: '#C23030' }}
+                    >
+                      🗑
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
