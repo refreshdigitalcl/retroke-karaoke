@@ -253,42 +253,50 @@ export default function DjLiveModule(props) {
   var isActiveInBackground = status !== 'idle' && status !== 'error'
   var showChatModeration = visible && liveSessionId && (status === 'live' || status === 'starting')
 
-  // Panel cerrado (el DJ volvio a la cola) pero la transmision sigue
-  // corriendo -- barra angosta en vez de nada, para no perderla de vista.
-  if (!visible) {
-    if (!isActiveInBackground) return null
-    return (
-      <div
-        className="rounded-xl border px-4 py-2.5 mt-4 flex items-center justify-between flex-wrap gap-2"
-        style={{ background: 'rgba(233,30,140,0.08)', borderColor: 'var(--accent-magenta)' }}
-      >
-        <span className="text-sm font-medium flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
-          <span style={{ color: 'var(--accent-magenta)' }}>●</span>
-          {isLive ? 'Retroke Live sigue transmitiendo' : 'Retroke Live conectando...'}
-          {isLive && (
-            <span className="text-xs font-normal" style={{ color: 'var(--text-muted)' }}>
-              · {viewerCount} {viewerCount === 1 ? 'espectador' : 'espectadores'}
-            </span>
-          )}
-        </span>
-        <div className="flex items-center gap-2">
-          <button onClick={onRequestExpand} className="text-xs px-3 py-1.5 rounded-lg border" style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}>
-            Ver panel
-          </button>
-          {isLive && (
-            <button onClick={handleStop} disabled={isBusy} className="text-xs px-3 py-1.5 rounded-lg border font-medium disabled:opacity-50" style={{ borderColor: 'var(--accent-magenta)', color: 'var(--accent-magenta)' }}>
-              Finalizar
-            </button>
-          )}
-        </div>
-      </div>
-    )
-  }
+  // OJO (fix post-prueba real, segunda vuelta): antes esto era un
+  // if/return que devolvia arboles JSX completamente distintos segun
+  // `visible` (uno para la barra angosta, otro para el panel completo). Eso
+  // hacia que React desmontara TODO el panel completo -- incluido el
+  // <video> de preview -- cada vez que se cerraba, y lo volvia a montar
+  // vacio (sin `srcObject`) al reabrir: pantalla negra hasta reactivar
+  // camara de nuevo. La solucion es la misma que ya se aplico en el visor
+  // (LiveViewer.jsx): el panel completo SIEMPRE esta montado en el DOM, y
+  // lo que cambia con `visible` es solo su `display` via CSS -- el <video>
+  // nunca se destruye, solo se oculta.
+  var miniBarVisible = !visible && isActiveInBackground
 
   return (
+    <>
+      {miniBarVisible && (
+        <div
+          className="rounded-xl border px-4 py-2.5 mt-4 flex items-center justify-between flex-wrap gap-2"
+          style={{ background: 'rgba(233,30,140,0.08)', borderColor: 'var(--accent-magenta)' }}
+        >
+          <span className="text-sm font-medium flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+            <span style={{ color: 'var(--accent-magenta)' }}>●</span>
+            {isLive ? 'Retroke Live sigue transmitiendo' : 'Retroke Live conectando...'}
+            {isLive && (
+              <span className="text-xs font-normal" style={{ color: 'var(--text-muted)' }}>
+                · {viewerCount} {viewerCount === 1 ? 'espectador' : 'espectadores'}
+              </span>
+            )}
+          </span>
+          <div className="flex items-center gap-2">
+            <button onClick={onRequestExpand} className="text-xs px-3 py-1.5 rounded-lg border" style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}>
+              Ver panel
+            </button>
+            {isLive && (
+              <button onClick={handleStop} disabled={isBusy} className="text-xs px-3 py-1.5 rounded-lg border font-medium disabled:opacity-50" style={{ borderColor: 'var(--accent-magenta)', color: 'var(--accent-magenta)' }}>
+                Finalizar
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
     <div
       className="rounded-2xl border p-5 mt-4"
-      style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}
+      style={{ background: 'var(--bg-card)', borderColor: 'var(--border)', display: visible ? 'block' : 'none' }}
     >
       <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
         <h3 className="text-lg font-medium flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
@@ -432,5 +440,6 @@ export default function DjLiveModule(props) {
         </div>
       )}
     </div>
+    </>
   )
 }
