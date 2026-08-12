@@ -161,7 +161,7 @@ export default function Escenario() {
                   {nowPlaying && nowPlaying.singerName ? (
                     <div className="world-nowplaying-card">
                       <div className="world-nowplaying-art">
-                        {nowPlaying.artworkUrl ? <img src={nowPlaying.artworkUrl} alt="" /> : <span>🎤</span>}
+                        {nowPlaying.artworkUrl ? <img src={nowPlaying.artworkUrl} alt="" /> : <RetrokeIcon name="mic" size={16} />}
                       </div>
                       <div className="world-nowplaying-info">
                         <div className="world-nowplaying-name">{nowPlaying.singerName}</div>

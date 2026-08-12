@@ -159,7 +159,7 @@ function NowPlayingCard(props) {
   const content = (
     <div className="world-nowplaying-card">
       <div className="world-nowplaying-art">
-        {row.artworkUrl ? <img src={row.artworkUrl} alt="" /> : <span>🎤</span>}
+        {row.artworkUrl ? <img src={row.artworkUrl} alt="" /> : <RetrokeIcon name="mic" size={16} />}
       </div>
       <div className="world-nowplaying-info">
         <div className="world-nowplaying-name">{row.singerName || 'Cantante Retroke'}</div>
