@@ -132,6 +132,13 @@ const ICONS = {
       <circle cx="10.5" cy="10.5" r="6.5" />
       <line x1="20" y1="20" x2="15.3" y2="15.3" />
     </>
+  ),
+  target: (
+    <>
+      <circle cx="12" cy="12" r="8" />
+      <circle cx="12" cy="12" r="4.3" />
+      <circle cx="12" cy="12" r="1" fill="currentColor" stroke="none" />
+    </>
   )
 }
 
