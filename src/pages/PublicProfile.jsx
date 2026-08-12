@@ -8,10 +8,13 @@ import { createFollow, deleteFollow, loadFollowCounts } from '../lib/follows'
 import { loadStatuses, toggleReaction, REACTION_EMOJIS } from '../lib/statuses'
 import { subscribeToTableFiltered, subscribeToTables } from '../lib/realtime'
 import { useRetrokeFont } from '../lib/fonts'
-import WorldSection from '../components/world/WorldSection'
-import WorldEmptyState from '../components/world/WorldEmptyState'
-import WorldSkeleton from '../components/world/WorldSkeleton'
 import { WORLD_STYLES } from '../components/world/worldStyles'
+import RetrokeSection from '../components/retroke/RetrokeSection'
+import RetrokeEmptyState from '../components/retroke/RetrokeEmptyState'
+import RetrokeSkeleton from '../components/retroke/RetrokeSkeleton'
+import RetrokeScore from '../components/retroke/RetrokeScore'
+import RetrokeIcon from '../components/retroke/RetrokeIcon'
+import { RETROKE_STYLES } from '../components/retroke/retrokeStyles'
 
 // Fase 8 de Retroke World ("Seguir cantantes", ver
 // retroke-world-diagnostico-tecnico.md). Perfil publico de lectura de
@@ -173,9 +176,9 @@ export default function PublicProfile() {
   if (target === null) {
     return (
       <div className="world-page">
-        <style>{WORLD_STYLES}</style>
+        <style>{WORLD_STYLES}{RETROKE_STYLES}{`.world-page { background: var(--rk-bg-gradient); }`}</style>
         <div className="world-inner">
-          <WorldEmptyState icon="🔍" message="No encontramos este perfil." />
+          <RetrokeEmptyState icon={<RetrokeIcon name="search" size={26} />} message="No encontramos este perfil." />
           <Link to="/world" className="world-footer-link">← Retroke World</Link>
         </div>
       </div>
@@ -193,46 +196,50 @@ export default function PublicProfile() {
 
   return (
     <div className="world-page">
-      <style>{WORLD_STYLES}{`
+      <style>{WORLD_STYLES}{RETROKE_STYLES}{`
+        .world-page { background: var(--rk-bg-gradient); }
         .pp-header { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
-        .pp-avatar-wrap { width: 76px; height: 76px; border-radius: 9999px; overflow: hidden; display: flex; align-items: center; justify-content: center; font-size: 36px; background: rgba(233,30,140,0.15); border: 2px solid rgba(244,208,63,0.5); }
+        .pp-avatar-wrap { width: 76px; height: 76px; border-radius: var(--rk-radius-pill); overflow: hidden; display: flex; align-items: center; justify-content: center; font-size: 36px; background: rgba(233,30,140,0.15); border: 2px solid rgba(244,208,63,0.5); box-shadow: var(--rk-glow-yellow); }
         .pp-avatar-wrap img { width: 100%; height: 100%; object-fit: cover; }
+        .pp-level { display: inline-flex; align-items: center; gap: 5px; }
+        .pp-instagram { display: inline-flex; align-items: center; gap: 5px; }
         .pp-counts { display: flex; gap: 22px; }
-        .pp-count-value { font-size: 17px; font-weight: 800; }
-        .pp-count-label { font-size: 10.5px; color: rgba(255,255,255,0.5); margin-top: 1px; }
+        .pp-count-value { font-family: var(--rk-font-display); font-size: 17px; font-weight: 800; }
+        .pp-count-label { font-size: 10.5px; color: var(--rk-text-soft); margin-top: 1px; }
         .pp-follow-btn {
-          font-size: 13px; font-weight: 700; padding: 9px 22px; border-radius: 999px; border: none; cursor: pointer;
-          background: linear-gradient(90deg, #E91E8C, #8B5CF6); color: #fff;
+          display: inline-flex; align-items: center; gap: 6px;
+          font-size: 13px; font-weight: 700; padding: 9px 22px; border-radius: var(--rk-radius-pill); border: none; cursor: pointer;
+          background: linear-gradient(90deg, var(--rk-magenta), var(--rk-purple)); color: #fff;
         }
-        .pp-follow-btn.following { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.75); border: 1px solid rgba(255,255,255,0.2); }
+        .pp-follow-btn.following { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.75); border: 1px solid var(--rk-border-strong); }
         .pp-follow-error { font-size: 11.5px; color: #FF6B6B; }
         .pp-achv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; }
-        .pp-achv { border-radius: 14px; padding: 12px 8px; text-align: center; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); }
+        .pp-achv { border-radius: var(--rk-radius-md); padding: 12px 8px; text-align: center; background: var(--rk-surface); border: 1px solid var(--rk-border); }
         .pp-achv.unlocked { border-color: rgba(244,208,63,0.4); background: linear-gradient(160deg, rgba(244,208,63,0.1), rgba(233,30,140,0.06)); }
         .pp-achv.locked { opacity: 0.4; filter: grayscale(0.6); }
         .pp-achv-icon { font-size: 20px; }
         .pp-achv-name { font-size: 11.5px; font-weight: 700; margin-top: 6px; }
-        .pp-hist-row { display: flex; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
+        .pp-hist-row { display: flex; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--rk-border); }
         .pp-hist-row:last-child { border-bottom: none; }
         .pp-hist-song { font-weight: 700; font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .pp-hist-meta { font-size: 11.5px; color: rgba(255,255,255,0.5); }
-        .pp-hist-nota { font-weight: 700; color: #F4D03F; flex-shrink: 0; }
+        .pp-hist-meta { font-size: 11.5px; color: var(--rk-text-soft); }
+        .pp-hist-nota { font-family: var(--rk-font-display); font-weight: 800; color: var(--rk-yellow); flex-shrink: 0; }
         .pp-status-list { display: flex; flex-direction: column; gap: 10px; }
-        .pp-status-card { padding: 12px 14px; border-radius: 14px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); }
+        .pp-status-card { padding: 12px 14px; border-radius: var(--rk-radius-md); background: var(--rk-surface); border: 1px solid var(--rk-border); }
         .pp-status-text { font-size: 13.5px; line-height: 1.5; word-break: break-word; }
         .pp-status-footer { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 8px; flex-wrap: wrap; }
-        .pp-status-date { font-size: 10.5px; color: rgba(255,255,255,0.4); }
+        .pp-status-date { font-size: 10.5px; color: var(--rk-text-faint); }
         .pp-status-reactions { display: flex; gap: 4px; flex-wrap: wrap; }
         .pp-reaction-btn {
-          font-size: 12px; padding: 3px 7px; border-radius: 999px; cursor: pointer;
-          background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.8);
+          font-size: 12px; padding: 3px 7px; border-radius: var(--rk-radius-pill); cursor: pointer;
+          background: rgba(255,255,255,0.06); border: 1px solid var(--rk-border); color: rgba(255,255,255,0.8);
         }
         .pp-reaction-btn.mine { background: rgba(244,208,63,0.15); border-color: rgba(244,208,63,0.5); }
         .pp-reaction-btn:disabled { cursor: default; opacity: 0.6; }
       `}</style>
 
       <div className="world-inner">
-        {target === undefined && <WorldSkeleton lines={4} />}
+        {target === undefined && <RetrokeSkeleton lines={4} />}
 
         {target && (
           <>
@@ -242,15 +249,18 @@ export default function PublicProfile() {
               </div>
               <div>
                 <h1 className="world-hero-title" style={{ fontSize: 26 }}>{target.display_name || 'Cantante Retroke'}</h1>
-                <p className="world-hero-subtitle" style={{ marginTop: 2 }}>🏅 {levelInfo ? levelInfo.name : 'Novato del Micrófono'}</p>
+                <p className="world-hero-subtitle pp-level" style={{ marginTop: 2 }}>
+                  <RetrokeIcon name="medal" size={13} /> {levelInfo ? levelInfo.name : 'Novato del Micrófono'}
+                </p>
                 {target.show_instagram && target.instagram_handle && (
                   <a
                     href={'https://instagram.com/' + target.instagram_handle}
                     target="_blank"
                     rel="noreferrer"
-                    style={{ fontSize: 12.5, color: '#F4D03F', marginTop: 4, display: 'inline-block' }}
+                    className="pp-instagram"
+                    style={{ fontSize: 12.5, color: 'var(--rk-yellow)', marginTop: 4 }}
                   >
-                    📷 @{target.instagram_handle}
+                    <RetrokeIcon name="camera" size={12} /> @{target.instagram_handle}
                   </a>
                 )}
               </div>
@@ -272,17 +282,23 @@ export default function PublicProfile() {
               {!isOwnProfile && canFollow && (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
                   <button type="button" className={'pp-follow-btn' + (isFollowing ? ' following' : '')} onClick={handleToggleFollow} disabled={followBusy}>
-                    {followBusy ? '...' : isFollowing ? '✓ Siguiendo' : '➕ Seguir'}
+                    {followBusy ? (
+                      '...'
+                    ) : isFollowing ? (
+                      <><RetrokeIcon name="check" size={12} /> Siguiendo</>
+                    ) : (
+                      <><RetrokeIcon name="plus" size={12} /> Seguir</>
+                    )}
                   </button>
                   {followError && <span className="pp-follow-error">{followError}</span>}
                 </div>
               )}
             </div>
 
-            <WorldSection eyebrow="Estados" title="💬 Estados">
-              {statuses === null && <WorldSkeleton lines={2} />}
+            <RetrokeSection accent="purple" eyebrow="Estados" title={<><RetrokeIcon name="chat" size={16} glow /> Estados</>}>
+              {statuses === null && <RetrokeSkeleton lines={2} />}
               {statuses !== null && statuses.length === 0 && (
-                <WorldEmptyState icon="💬" message="Todavía no ha publicado nada." />
+                <RetrokeEmptyState icon={<RetrokeIcon name="chat" size={26} />} message="Todavía no ha publicado nada." />
               )}
               {statuses !== null && statuses.length > 0 && (
                 <div className="pp-status-list">
@@ -313,34 +329,34 @@ export default function PublicProfile() {
                   ))}
                 </div>
               )}
-            </WorldSection>
+            </RetrokeSection>
 
-            <WorldSection eyebrow="Experiencia" title="⭐ Su experiencia">
+            <RetrokeSection accent="yellow" eyebrow="Experiencia" title={<><RetrokeIcon name="star" size={16} glow /> Su experiencia</>}>
               <div className="world-xp-track">
                 <div className="world-xp-fill" style={{ width: xpProgressPct + '%' }} />
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 6, marginBottom: 14 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--rk-text-soft)', marginTop: 6, marginBottom: 14 }}>
                 <span>{xp} XP{rank ? ' · #' + rank.rank + ' de ' + rank.total : ''}</span>
                 <span>{nextLevel ? nextLevel.minXp + ' XP para ' + nextLevel.name : 'Nivel máximo 🎉'}</span>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-                <div style={{ textAlign: 'center', padding: '8px 4px', borderRadius: 12, background: 'rgba(255,255,255,0.05)' }}>
-                  <div style={{ fontSize: 17, fontWeight: 800 }}>{stats ? stats.total_performances || 0 : 0}</div>
-                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>Presentaciones</div>
-                </div>
-                <div style={{ textAlign: 'center', padding: '8px 4px', borderRadius: 12, background: 'rgba(255,255,255,0.05)' }}>
-                  <div style={{ fontSize: 17, fontWeight: 800 }}>{stats && stats.best_score !== null && stats.best_score !== undefined ? stats.best_score : '—'}</div>
-                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>Mejor puntaje</div>
-                </div>
-                <div style={{ textAlign: 'center', padding: '8px 4px', borderRadius: 12, background: 'rgba(255,255,255,0.05)' }}>
-                  <div style={{ fontSize: 17, fontWeight: 800 }}>{stats ? stats.current_streak || 0 : 0} 🔥</div>
-                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>Racha actual</div>
-                </div>
+                <RetrokeScore value={stats ? stats.total_performances || 0 : 0} label="Presentaciones" size="sm" color="purple" />
+                <RetrokeScore
+                  value={stats && stats.best_score !== null && stats.best_score !== undefined ? stats.best_score : '—'}
+                  label="Mejor puntaje"
+                  size="sm"
+                  color="yellow"
+                />
+                <RetrokeScore value={stats ? stats.current_streak || 0 : 0} label="Racha actual" size="sm" color="magenta" />
               </div>
-            </WorldSection>
+            </RetrokeSection>
 
-            <WorldSection eyebrow="Logros" title={'🏅 Logros · ' + Object.keys(unlockedMap).length + '/' + achievements.length}>
-              {achievements.length === 0 && <WorldEmptyState icon="🏅" message="Aún no hay logros configurados." />}
+            <RetrokeSection
+              accent="yellow"
+              eyebrow="Logros"
+              title={<><RetrokeIcon name="trophy" size={16} glow /> Logros · {Object.keys(unlockedMap).length}/{achievements.length}</>}
+            >
+              {achievements.length === 0 && <RetrokeEmptyState icon={<RetrokeIcon name="trophy" size={26} />} message="Aún no hay logros configurados." />}
               {achievements.length > 0 && (
                 <div className="pp-achv-grid">
                   {achievements.map((a) => {
@@ -354,16 +370,16 @@ export default function PublicProfile() {
                   })}
                 </div>
               )}
-            </WorldSection>
+            </RetrokeSection>
 
-            <WorldSection eyebrow="Historial" title="🎵 Canciones interpretadas">
-              {performances.length === 0 && <WorldEmptyState icon="🎤" message="Todavía no ha cantado." />}
+            <RetrokeSection accent="purple" eyebrow="Historial" title={<><RetrokeIcon name="music" size={16} glow /> Canciones interpretadas</>}>
+              {performances.length === 0 && <RetrokeEmptyState icon={<RetrokeIcon name="mic" size={26} />} message="Todavía no ha cantado." />}
               {performances.length > 0 && (
                 <div>
                   {performances.map((p) => (
                     <div key={p.id} className="pp-hist-row">
                       <div className="world-nowplaying-art">
-                        {p.artwork_url ? <img src={p.artwork_url} alt="" /> : <span>🎵</span>}
+                        {p.artwork_url ? <img src={p.artwork_url} alt="" /> : <RetrokeIcon name="music" size={16} />}
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div className="pp-hist-song">{p.song || 'Canción'}</div>
@@ -374,7 +390,7 @@ export default function PublicProfile() {
                   ))}
                 </div>
               )}
-            </WorldSection>
+            </RetrokeSection>
           </>
         )}
 
