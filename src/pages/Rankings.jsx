@@ -7,10 +7,12 @@ import { loadFollowingIds, createFollow, deleteFollow } from '../lib/follows'
 import { resolveVenue, loadVenueRanking as loadVenueRankingRows } from '../lib/venue'
 import { subscribeToTables } from '../lib/realtime'
 import { useRetrokeFont } from '../lib/fonts'
-import WorldSection from '../components/world/WorldSection'
-import WorldEmptyState from '../components/world/WorldEmptyState'
-import WorldSkeleton from '../components/world/WorldSkeleton'
 import { WORLD_STYLES } from '../components/world/worldStyles'
+import RetrokeSection from '../components/retroke/RetrokeSection'
+import RetrokeEmptyState from '../components/retroke/RetrokeEmptyState'
+import RetrokeSkeleton from '../components/retroke/RetrokeSkeleton'
+import RetrokeIcon from '../components/retroke/RetrokeIcon'
+import { RETROKE_STYLES } from '../components/retroke/retrokeStyles'
 
 // Fase 3 de Retroke World ("Rankings", ver retroke-world-diagnostico-tecnico.md).
 // Evoluciona la version original (Fase E.1): mismo modelo de confianza
@@ -174,8 +176,8 @@ function RankingList(props) {
   const [errorId, setErrorId] = useState(null)
   const [followBusyId, setFollowBusyId] = useState(null)
 
-  if (rows === null) return <WorldSkeleton lines={4} />
-  if (rows.length === 0) return <WorldEmptyState icon="🏆" message={props.emptyMessage} />
+  if (rows === null) return <RetrokeSkeleton lines={4} />
+  if (rows.length === 0) return <RetrokeEmptyState icon={<RetrokeIcon name="trophy" size={26} />} message={props.emptyMessage} />
 
   async function handleConfirm(row) {
     setSendingId(row.participantId)
@@ -231,13 +233,19 @@ function RankingList(props) {
                     onClick={() => handleToggleFollow(row)}
                     disabled={followBusyId === row.participantId}
                   >
-                    {followBusyId === row.participantId ? '...' : isFollowing ? '✓ Siguiendo' : '➕ Seguir'}
+                    {followBusyId === row.participantId ? (
+                      '...'
+                    ) : isFollowing ? (
+                      <><RetrokeIcon name="check" size={11} /> Siguiendo</>
+                    ) : (
+                      <><RetrokeIcon name="plus" size={11} /> Seguir</>
+                    )}
                   </button>
                 )}
 
                 {canChallenge && (
                   sentIds[row.participantId] ? (
-                    <span className="rk-challenge-sent">Desafío enviado ✓</span>
+                    <span className="rk-challenge-sent"><RetrokeIcon name="check" size={12} /> Desafío enviado</span>
                   ) : confirmingId === row.participantId ? (
                     <span className="rk-challenge-confirm">
                       ¿Retarlo a superar tu {viewer.bestScore}?
@@ -248,7 +256,7 @@ function RankingList(props) {
                     </span>
                   ) : (
                     <button type="button" className="rk-challenge-btn" onClick={() => setConfirmingId(row.participantId)}>
-                      🥊 Desafiar a superar tu {viewer.bestScore}
+                      <RetrokeIcon name="fire" size={12} glow /> Desafiar a superar tu {viewer.bestScore}
                     </button>
                   )
                 )}
@@ -357,48 +365,51 @@ export default function Rankings() {
 
   return (
     <div className="world-page">
-      <style>{WORLD_STYLES}{`
+      <style>{WORLD_STYLES}{RETROKE_STYLES}{`
+        .world-page { background: var(--rk-bg-gradient); }
         .rk-tabs { display: flex; gap: 8px; flex-wrap: wrap; }
         .rk-tab {
-          font-size: 12.5px; font-weight: 700; color: rgba(255,255,255,0.55);
-          background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
-          border-radius: 999px; padding: 7px 14px; cursor: pointer;
+          font-size: 12.5px; font-weight: 700; color: var(--rk-text-soft);
+          background: var(--rk-surface); border: 1px solid var(--rk-border);
+          border-radius: var(--rk-radius-pill); padding: 7px 14px; cursor: pointer;
         }
-        .rk-tab-active { color: #fff; background: linear-gradient(90deg, #E91E8C, #8B5CF6); border-color: transparent; }
+        .rk-tab-active { color: #fff; background: linear-gradient(90deg, var(--rk-magenta), var(--rk-purple)); border-color: transparent; }
         .rk-city-pills { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
         .rk-city-pill {
-          font-size: 11.5px; font-weight: 600; color: rgba(255,255,255,0.6);
-          background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
-          border-radius: 999px; padding: 5px 11px; cursor: pointer;
+          font-size: 11.5px; font-weight: 600; color: var(--rk-text-soft);
+          background: rgba(255,255,255,0.04); border: 1px solid var(--rk-border);
+          border-radius: var(--rk-radius-pill); padding: 5px 11px; cursor: pointer;
         }
-        .rk-city-pill-active { color: #F4D03F; border-color: rgba(244,208,63,0.5); background: rgba(244,208,63,0.1); }
+        .rk-city-pill-active { color: var(--rk-yellow); border-color: rgba(244,208,63,0.5); background: rgba(244,208,63,0.1); }
 
         .rk-challenge-row { padding: 2px 0 0 32px; margin-top: -2px; }
         .rk-challenge-btn {
-          font-size: 11.5px; font-weight: 700; color: #F4D03F;
+          display: inline-flex; align-items: center; gap: 5px;
+          font-size: 11.5px; font-weight: 700; color: var(--rk-yellow);
           background: rgba(244,208,63,0.1); border: 1px solid rgba(244,208,63,0.35);
-          border-radius: 999px; padding: 5px 12px; cursor: pointer;
+          border-radius: var(--rk-radius-pill); padding: 5px 12px; cursor: pointer;
         }
-        .rk-challenge-confirm { font-size: 11.5px; color: rgba(255,255,255,0.6); display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .rk-challenge-confirm { font-size: 11.5px; color: var(--rk-text-soft); display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
         .rk-challenge-yes {
           font-size: 11px; font-weight: 700; color: #05030a;
-          background: #F4D03F; border: none; border-radius: 999px; padding: 4px 10px; cursor: pointer;
+          background: var(--rk-yellow); border: none; border-radius: var(--rk-radius-pill); padding: 4px 10px; cursor: pointer;
         }
         .rk-challenge-no {
-          font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.55);
-          background: none; border: 1px solid rgba(255,255,255,0.15); border-radius: 999px; padding: 4px 10px; cursor: pointer;
+          font-size: 11px; font-weight: 600; color: var(--rk-text-soft);
+          background: none; border: 1px solid var(--rk-border-strong); border-radius: var(--rk-radius-pill); padding: 4px 10px; cursor: pointer;
         }
-        .rk-challenge-sent { font-size: 11.5px; font-weight: 700; color: #7ED957; }
+        .rk-challenge-sent { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 700; color: var(--rk-green); }
         .rk-challenge-error { font-size: 11px; color: #FF6B6B; margin-left: 8px; }
 
         .rk-follow-btn {
+          display: inline-flex; align-items: center; gap: 5px;
           font-size: 11.5px; font-weight: 700; color: #fff;
-          background: linear-gradient(90deg, #E91E8C, #8B5CF6); border: none;
-          border-radius: 999px; padding: 5px 12px; cursor: pointer;
+          background: linear-gradient(90deg, var(--rk-magenta), var(--rk-purple)); border: none;
+          border-radius: var(--rk-radius-pill); padding: 5px 12px; cursor: pointer;
         }
         .rk-follow-btn.following {
           background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.7);
-          border: 1px solid rgba(255,255,255,0.2);
+          border: 1px solid var(--rk-border-strong);
         }
       `}</style>
 
@@ -409,10 +420,11 @@ export default function Rankings() {
           <p className="world-hero-subtitle">El karaoke cambió para siempre.</p>
         </header>
 
-        <WorldSection
+        <RetrokeSection
           size="lg"
+          accent="yellow"
           eyebrow="Meta-partida"
-          title="🌎 Top Retroke"
+          title={<><RetrokeIcon name="globe" size={16} glow /> Top Retroke</>}
           subtitle={activeTab === 'historico' ? 'Por experiencia acumulada, en todas las salas' : 'Por actividad real en el período elegido'}
         >
           <div className="rk-tabs">
@@ -453,12 +465,13 @@ export default function Rankings() {
           <div style={{ marginTop: 4 }}>
             <RankingList rows={rows} emptyMessage={emptyMessages[activeTab]} viewer={viewer} followingIds={followingIds} onToggleFollow={toggleFollow} />
           </div>
-        </WorldSection>
+        </RetrokeSection>
 
         {(barSlug || wsId) && (
-          <WorldSection
+          <RetrokeSection
+            accent="green"
             eyebrow="Esta sala"
-            title={'📍 ' + (venueState && venueState.venueName ? venueState.venueName : 'Cargando sala...')}
+            title={<><RetrokeIcon name="pin" size={16} glow /> {venueState && venueState.venueName ? venueState.venueName : 'Cargando sala...'}</>}
             subtitle="Mejores notas de esta sala"
             action={
               venueState && !venueState.error ? (
@@ -471,12 +484,12 @@ export default function Rankings() {
               ) : null
             }
           >
-            {!venueState && <WorldSkeleton lines={4} />}
-            {venueState && venueState.error && <WorldEmptyState icon="🔍" message="No encontramos esta sala." />}
+            {!venueState && <RetrokeSkeleton lines={4} />}
+            {venueState && venueState.error && <RetrokeEmptyState icon={<RetrokeIcon name="search" size={26} />} message="No encontramos esta sala." />}
             {venueState && !venueState.error && (
               <RankingList rows={venueState.rows} emptyMessage="Esta sala todavía no tiene presentaciones calificadas." viewer={viewer} followingIds={followingIds} onToggleFollow={toggleFollow} />
             )}
-          </WorldSection>
+          </RetrokeSection>
         )}
 
         <Link to="/world" className="world-footer-link">← Retroke World</Link>
