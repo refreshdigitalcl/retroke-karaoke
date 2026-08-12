@@ -29,6 +29,13 @@ function venueName(row) {
 export default function LiveViewer(props) {
   var liveSessionId = props.liveSessionId
 
+  // OJO: video y audio SIEMPRE estan montados en el DOM (nunca detras de un
+  // if condicional) -- el track de video/audio puede llegar por WebSocket
+  // antes de que React termine de pintar el elemento, y si en ese momento
+  // el <video>/<audio> todavia no existe, track.attach() no tiene donde
+  // engancharse y queda en negro para siempre (el bug que se vio en la
+  // primera prueba real). Montar siempre y superponer el mensaje de estado
+  // encima con position:absolute evita esa carrera.
   var videoRef = useRef(null)
   var audioRef = useRef(null)
   var roomRef = useRef(null)
@@ -44,6 +51,13 @@ export default function LiveViewer(props) {
   var viewerCountState = useState(0)
   var viewerCount = viewerCountState[0]
   var setViewerCount = viewerCountState[1]
+
+  // Safari/iOS bloquea el autoplay con sonido salvo que venga de un toque
+  // directo del usuario. El video (sin audio propio) igual arranca solo;
+  // el audio necesita este boton la primera vez.
+  var needsTapForSoundState = useState(false)
+  var needsTapForSound = needsTapForSoundState[0]
+  var setNeedsTapForSound = needsTapForSoundState[1]
 
   useEffect(function () {
     if (!liveSessionId) return
@@ -101,8 +115,16 @@ export default function LiveViewer(props) {
         roomRef.current = room
 
         room.on(RoomEvent.TrackSubscribed, function (track) {
-          if (track.kind === 'video' && videoRef.current) track.attach(videoRef.current)
-          if (track.kind === 'audio' && audioRef.current) track.attach(audioRef.current)
+          if (track.kind === 'video' && videoRef.current) {
+            track.attach(videoRef.current)
+          }
+          if (track.kind === 'audio' && audioRef.current) {
+            track.attach(audioRef.current)
+            var playPromise = audioRef.current.play()
+            if (playPromise && playPromise.catch) {
+              playPromise.catch(function () { setNeedsTapForSound(true) })
+            }
+          }
         })
         room.on(RoomEvent.TrackUnsubscribed, function (track) {
           track.detach()
@@ -136,8 +158,15 @@ export default function LiveViewer(props) {
     }
   }, [])
 
+  function handleEnableSound() {
+    if (audioRef.current) {
+      audioRef.current.muted = false
+      audioRef.current.play().then(function () { setNeedsTapForSound(false) }).catch(function () {})
+    }
+  }
+
   var displayStatus = row ? row.status : 'starting'
-  var showVideo = connStatus === 'connected' && displayStatus !== 'audio_only'
+  var showOverlay = connStatus !== 'connected'
 
   return (
     <div className="rk-live-viewer">
@@ -147,7 +176,8 @@ export default function LiveViewer(props) {
         .rk-lv-video-wrap video { width: 100%; height: 100%; object-fit: cover; display: block; }
         .rk-lv-badge { position: absolute; top: 14px; left: 14px; display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #fff; background: #e91e8c; padding: 4px 10px; border-radius: 999px; }
         .rk-lv-viewers { position: absolute; top: 14px; right: 14px; font-size: 12px; font-weight: 600; background: rgba(0,0,0,0.5); padding: 6px 12px; border-radius: 999px; display: flex; align-items: center; gap: 6px; }
-        .rk-lv-status-msg { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 20px; color: rgba(255,255,255,0.6); font-size: 14px; }
+        .rk-lv-status-msg { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 20px; color: rgba(255,255,255,0.7); font-size: 14px; background: rgba(5,3,10,0.55); }
+        .rk-lv-sound-btn { position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: #1a0b2e; background: #fff; padding: 10px 18px; border: none; border-radius: 999px; }
         .rk-lv-info { padding: 18px 4px; }
         .rk-lv-title { font-family: 'Space Grotesk', system-ui, sans-serif; font-size: 20px; font-weight: 700; margin-bottom: 4px; }
         .rk-lv-meta { font-size: 13px; color: rgba(255,255,255,0.55); }
@@ -156,15 +186,22 @@ export default function LiveViewer(props) {
       `}</style>
 
       <div className="rk-lv-video-wrap">
-        {showVideo && <video ref={videoRef} autoPlay playsInline />}
+        <video ref={videoRef} autoPlay muted playsInline />
         <audio ref={audioRef} autoPlay />
-        {connStatus === 'connected' && (
+
+        {!showOverlay && (
           <>
             <span className="rk-lv-badge">{displayStatus === 'active' ? 'En vivo' : STATUS_LABEL[displayStatus]}</span>
             <span className="rk-lv-viewers"><RetrokeIcon name="users" size={13} /> {viewerCount}</span>
+            {needsTapForSound && (
+              <button className="rk-lv-sound-btn" onClick={handleEnableSound}>
+                Activar sonido
+              </button>
+            )}
           </>
         )}
-        {connStatus !== 'connected' && (
+
+        {showOverlay && (
           <div className="rk-lv-status-msg">
             {connStatus === 'connecting' && 'Conectando...'}
             {connStatus === 'ended' && 'Esta transmision ya termino. Vuelve a Retroke World para ver quien esta en vivo ahora.'}
