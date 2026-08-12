@@ -125,17 +125,71 @@ export default function Challenges() {
         .ms-fill { height: 100%; border-radius: var(--rk-radius-pill); }
         .ms-label { margin-top: 6px; font-size: 10.5px; color: var(--rk-text-soft); }
 
-        .dc-subtitle { font-size: 11.5px; font-weight: 700; color: var(--rk-text-soft); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+        .dc-subtitle { font-size: 11px; font-weight: 800; color: rgba(255,255,255,0.55); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 9px; display: flex; align-items: center; gap: 7px; }
+        .dc-subtitle::before { content: ''; width: 14px; height: 2px; border-radius: 999px; background: linear-gradient(90deg, var(--rk-magenta), #FF8A3D); }
         .dc-empty { font-size: 12.5px; color: var(--rk-text-faint); padding: 2px 0 4px; }
         .dc-link { color: var(--rk-yellow); text-decoration: underline; }
-        .dc-list { display: flex; flex-direction: column; gap: 4px; }
-        .dc-row { display: flex; align-items: center; gap: 10px; padding: 8px 2px; }
-        .dc-avatar { font-size: 20px; flex-shrink: 0; }
+        .dc-list { display: flex; flex-direction: column; gap: 7px; }
+        .dc-row {
+          position: relative; display: flex; align-items: center; gap: 12px;
+          padding: 11px 13px; border-radius: var(--rk-radius-md);
+          background: linear-gradient(100deg, rgba(233,30,140,0.07), rgba(255,255,255,0.02) 55%);
+          border: 1px solid rgba(255,255,255,0.08);
+          transition: border-color 0.2s ease, transform 0.2s ease;
+        }
+        .dc-row:hover { border-color: rgba(233,30,140,0.4); transform: translateX(2px); }
+        .dc-avatar {
+          font-size: 19px; flex-shrink: 0; width: 34px; height: 34px; border-radius: var(--rk-radius-pill);
+          display: flex; align-items: center; justify-content: center;
+          background: rgba(255,255,255,0.06); border: 1px solid rgba(255,138,61,0.35);
+        }
         .dc-name { font-size: 13px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .dc-meta { font-size: 11px; color: var(--rk-text-soft); margin-top: 1px; }
-        .dc-badge-done { display: inline-flex; align-items: center; gap: 4px; font-size: 10.5px; font-weight: 700; color: var(--rk-green); background: rgba(126,217,87,0.12); border-radius: var(--rk-radius-pill); padding: 4px 9px; white-space: nowrap; flex-shrink: 0; }
-        .dc-badge-pending { font-size: 10.5px; font-weight: 700; color: var(--rk-text-soft); background: rgba(255,255,255,0.08); border-radius: var(--rk-radius-pill); padding: 4px 9px; white-space: nowrap; flex-shrink: 0; }
+        .dc-meta { font-size: 11px; color: #FF8A3D; font-weight: 700; margin-top: 2px; letter-spacing: 0.01em; }
+        .dc-badge-done { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--rk-green); background: rgba(126,217,87,0.14); border: 1px solid rgba(126,217,87,0.35); border-radius: var(--rk-radius-pill); padding: 4px 10px; white-space: nowrap; flex-shrink: 0; }
+        .dc-badge-pending { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: #FF8A3D; background: rgba(255,138,61,0.12); border: 1px solid rgba(255,138,61,0.35); border-radius: var(--rk-radius-pill); padding: 4px 10px; white-space: nowrap; flex-shrink: 0; }
         .dc-share-btn { display: inline-flex; align-items: center; background: none; border: none; color: var(--rk-text-soft); cursor: pointer; padding: 2px 4px; flex-shrink: 0; }
+
+        /* Arena de Desafios 1 a 1 -- tratamiento distinto y mas "combativo"
+           a proposito, para que se sienta como el duelo que es y no otra
+           tarjeta generica mas. Misma tecnica de texto degradado animado que
+           ya prueba funcionar en .world-hero-eyebrow, con paleta mas caliente
+           (magenta -> naranja -> amarillo) en vez de la espectral completa. */
+        .rk-duel-arena {
+          position: relative;
+          border-radius: var(--rk-radius-lg);
+          padding: var(--rk-space-5) var(--rk-space-5) var(--rk-space-6);
+          background: linear-gradient(155deg, rgba(233,30,140,0.22) 0%, rgba(8,5,14,0.97) 45%, rgba(255,138,61,0.14) 100%);
+          border: 1px solid rgba(233,30,140,0.45);
+          box-shadow: 0 0 45px -16px rgba(233,30,140,0.55), 0 0 80px -22px rgba(255,138,61,0.4);
+          overflow: hidden;
+          animation: rkDuelPulse 3.6s ease-in-out infinite;
+        }
+        .rk-duel-arena::before {
+          content: ''; position: absolute; left: 0; right: 0; top: 0; height: 3px;
+          background: repeating-linear-gradient(115deg, var(--rk-magenta) 0 16px, #FF8A3D 16px 32px);
+          opacity: 0.9;
+        }
+        @keyframes rkDuelPulse {
+          0%, 100% { box-shadow: 0 0 45px -16px rgba(233,30,140,0.5), 0 0 80px -22px rgba(255,138,61,0.3); }
+          50% { box-shadow: 0 0 64px -12px rgba(233,30,140,0.8), 0 0 100px -16px rgba(255,138,61,0.55); }
+        }
+        .rk-duel-eyebrow {
+          display: inline-flex; align-items: center; gap: 6px;
+          font-size: 10.5px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase;
+          color: #FF8A3D; background: rgba(255,138,61,0.12); border: 1px solid rgba(255,138,61,0.4);
+          border-radius: var(--rk-radius-pill); padding: 4px 11px; margin-bottom: 12px;
+        }
+        .rk-duel-title {
+          display: flex; align-items: center; gap: 10px;
+          font-family: var(--rk-font-display); font-weight: 800; font-size: clamp(19px, 3.6vw, 25px);
+          background: linear-gradient(100deg, #fff 6%, var(--rk-magenta) 32%, #FF8A3D 58%, var(--rk-yellow) 82%, #fff 100%);
+          background-size: 240% auto;
+          -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+          animation: rkDuelTitleShift 6s ease-in-out infinite;
+        }
+        @keyframes rkDuelTitleShift { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+        .rk-duel-subtitle { font-size: 12.5px; color: rgba(255,255,255,0.55); margin-top: 6px; margin-bottom: 20px; }
+        .rk-duel-body { position: relative; z-index: 1; }
       `}</style>
 
       <div className="world-inner">
@@ -196,12 +250,12 @@ export default function Challenges() {
         </RetrokeSection>
 
         {hasParticipant && (
-          <RetrokeSection
-            accent="yellow"
-            eyebrow="1 a 1"
-            title={<><RetrokeIcon name="fire" size={16} glow /> Desafíos entre cantantes</>}
-            subtitle="Reta a alguien del Ranking Retroke a superar tu nota"
-          >
+          <section className="rk-duel-arena">
+            <div className="rk-duel-eyebrow"><RetrokeIcon name="swords" size={12} /> Arena 1 a 1</div>
+            <h3 className="rk-duel-title"><RetrokeIcon name="swords" size={20} glow /> Desafíos entre cantantes</h3>
+            <p className="rk-duel-subtitle">Reta a alguien del Ranking Retroke a superar tu nota</p>
+
+            <div className="rk-duel-body">
             <div>
               <div className="dc-subtitle">Te desafiaron</div>
               {receivedChallenges === null && <RetrokeSkeleton lines={2} />}
@@ -277,7 +331,8 @@ export default function Challenges() {
                 </div>
               )}
             </div>
-          </RetrokeSection>
+            </div>
+          </section>
         )}
 
         <Link to="/world" className="world-footer-link">← Retroke World</Link>

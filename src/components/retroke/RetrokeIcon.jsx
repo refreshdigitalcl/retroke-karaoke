@@ -147,6 +147,16 @@ const ICONS = {
       <rect x="10.3" y="7" width="3.4" height="13" />
       <rect x="14.6" y="15" width="3.4" height="5" />
     </>
+  ),
+  swords: (
+    <>
+      <line x1="5" y1="5" x2="19" y2="19" />
+      <line x1="19" y1="5" x2="5" y2="19" />
+      <path d="M5 5h2.2M5 5v2.2" />
+      <path d="M19 19h-2.2M19 19v-2.2" />
+      <path d="M19 5h-2.2M19 5v2.2" />
+      <path d="M5 19h2.2M5 19v-2.2" />
+    </>
   )
 }
 
