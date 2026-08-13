@@ -61,7 +61,7 @@ export const WORLD_STYLES = `
   .world-live-stats { display: flex; gap: 28px; flex-wrap: wrap; justify-content: center; }
   .world-live-stat { text-align: center; }
   .world-live-stat-value { font-size: 24px; font-weight: 800; color: #F4D03F; }
-  .world-live-stat-label { font-size: 11px; color: rgba(255,255,255,0.5); margin-top: 2px; }
+  .world-live-stat-label { font-size: 11px; color: rgba(255,255,255,0.5); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.04em; }
 
   .world-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
   @media (min-width: 768px) { .world-grid { grid-template-columns: repeat(2, 1fr); } }

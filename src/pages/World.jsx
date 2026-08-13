@@ -143,9 +143,18 @@ async function loadRankingTop() {
   }))
 }
 
-async function loadActiveChallengesCount() {
-  const { count } = await supabase.from('challenges').select('code', { count: 'exact', head: true }).eq('active', true)
-  return count || 0
+// Antes solo se traia el count() para mostrar un numero solo en la
+// tarjeta -- se veia muy vacia. Ahora se trae el catalogo real (icono,
+// titulo, XP, periodo) para poder previsualizar un par de misiones
+// activas, igual que ya hacen "Lo mas cantado" y "Escenarios" al lado.
+async function loadActiveChallenges() {
+  const { data } = await supabase
+    .from('challenges')
+    .select('code, title, icon, xp_reward, period')
+    .eq('active', true)
+    .order('sort_order')
+    .limit(4)
+  return data || []
 }
 
 // Fase 4 -- "Lo mas cantado": agrupado server-side (get_trending_songs RPC)
@@ -211,6 +220,22 @@ function TrendRow(props) {
         {row.artist && <div className="world-trend-artist">{row.artist}</div>}
       </div>
       <div className="world-trend-count">{row.veces}×</div>
+    </div>
+  )
+}
+
+const MISSION_PERIOD_LABEL = { weekly: 'Esta semana', monthly: 'Este mes', ongoing: 'Permanente' }
+
+function MissionRow(props) {
+  const row = props.row
+  return (
+    <div className="world-trend-row">
+      <div className="world-trend-art">{row.icon || '🎯'}</div>
+      <div className="world-trend-info">
+        <div className="world-trend-name">{row.title}</div>
+        <div className="world-trend-artist">{MISSION_PERIOD_LABEL[row.period] || 'Activo'}</div>
+      </div>
+      <div className="world-trend-count">+{row.xp_reward} XP</div>
     </div>
   )
 }
@@ -281,7 +306,7 @@ export default function World() {
   const [liveLoading, setLiveLoading] = useState(true)
   const [rankingTop, setRankingTop] = useState(null)
   const [trending, setTrending] = useState(null)
-  const [challengesCount, setChallengesCount] = useState(null)
+  const [challenges, setChallenges] = useState(null)
   const [experience, setExperience] = useState(undefined) // undefined = cargando, null = sin perfil
   const [activity, setActivity] = useState(null) // Fase 12: null = cargando, [] = sin actividad reciente
 
@@ -313,7 +338,7 @@ export default function World() {
   useEffect(() => {
     loadRankingTop().then(setRankingTop).catch(() => setRankingTop([]))
     loadTrendingSongs().then(setTrending).catch(() => setTrending([]))
-    loadActiveChallengesCount().then(setChallengesCount).catch(() => setChallengesCount(0))
+    loadActiveChallenges().then(setChallenges).catch(() => setChallenges([]))
     loadMyExperience().then(setExperience).catch(() => setExperience(null))
     loadActivityFeed(supabase, 10).then(setActivity).catch(() => setActivity([]))
   }, [])
@@ -378,6 +403,18 @@ export default function World() {
         .rk-world-bgfx-blob-a { position: absolute; top: -160px; left: -160px; width: 32rem; height: 32rem; border-radius: 50%; opacity: 0.25; filter: blur(64px); background: #E91E8C; }
         .rk-world-bgfx-blob-b { position: absolute; bottom: -160px; right: -160px; width: 32rem; height: 32rem; border-radius: 50%; opacity: 0.25; filter: blur(64px); background: #8B5CF6; }
         .world-inner { position: relative; z-index: 1; }
+
+        /* Luna animada del estado vacio de "Ahora en Retroke" -- flota
+           suave y pulsa el glow, para que la tarjeta no se sienta apagada
+           cuando nadie esta cantando. Respeta prefers-reduced-motion. */
+        .rk-world-moon-float { animation: rkWorldMoonFloat 3.4s ease-in-out infinite; }
+        @keyframes rkWorldMoonFloat {
+          0%, 100% { transform: translateY(0) rotate(0deg); filter: drop-shadow(0 0 6px rgba(244,208,63,0.35)); }
+          50% { transform: translateY(-6px) rotate(-8deg); filter: drop-shadow(0 0 14px rgba(244,208,63,0.7)); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .rk-world-moon-float { animation: none; }
+        }
 
         .world-activity-row { display: flex; align-items: flex-start; gap: 10px; padding: 7px 2px; }
         .world-activity-avatar { font-size: 18px; flex-shrink: 0; line-height: 1.4; }
@@ -455,7 +492,7 @@ export default function World() {
             {liveLoading && <RetrokeSkeleton lines={3} />}
             {!liveLoading && live && live.nowPlaying.length === 0 && (
               <RetrokeEmptyState
-                icon={<RetrokeIcon name="moon" size={26} />}
+                icon={<RetrokeIcon name="moon" size={26} className="rk-world-moon-float" />}
                 message="Nadie está cantando en este momento. Vuelve más tarde o revisa los escenarios activos más abajo."
               />
             )}
@@ -511,15 +548,21 @@ export default function World() {
             accent="yellow"
             action={<Link to="/desafios" className="rk-section-action">Ver →</Link>}
           >
-            {challengesCount === null && <RetrokeSkeleton lines={1} />}
-            {challengesCount !== null && (
-              <div style={{ textAlign: 'center', padding: '6px 0' }}>
-                <RetrokeScore value={challengesCount} label={challengesCount === 1 ? 'desafío activo' : 'desafíos activos'} size="lg" color="yellow" />
+            {challenges === null && <RetrokeSkeleton lines={3} />}
+            {challenges !== null && challenges.length === 0 && (
+              <RetrokeEmptyState icon={<RetrokeIcon name="fire" size={26} />} message="No hay misiones activas por ahora." />
+            )}
+            {challenges !== null && challenges.length > 0 && (
+              <div>
+                {challenges.map((row) => (
+                  <MissionRow key={row.code} row={row} />
+                ))}
               </div>
             )}
           </RetrokeSection>
 
           <RetrokeSection
+            className="md:col-span-2 lg:col-span-3"
             accent="green"
             eyebrow="Dónde cantar"
             title={<><RetrokeIcon name="pin" size={16} glow /> Escenarios</>}
