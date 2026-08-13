@@ -86,17 +86,17 @@ var MODES = [
   {
     name: 'Bar', accent: '#E8336B', bg: '/landing/bg-bar.jpg',
     desc: 'Para locales que operan karaoke de forma regular y necesitan control sobre múltiples puntos de atención.',
-    points: ['Panel de operación en vivo', 'Gestión de múltiples locales', 'Estadísticas por sesión', 'Identidad de marca propia', 'Reacciones del público en vivo', 'Cola de cantantes sin límite']
+    points: ['Panel de operación en vivo', 'Gestión de múltiples locales', 'Estadísticas por sesión', 'Identidad de marca propia', 'Reacciones del público en vivo', 'Cola de cantantes sin límite', 'Retroke Live: transmite el show a Retroke World']
   },
   {
     name: 'DJ', accent: '#8B5CF6', bg: '/landing/bg-dj.jpg',
     desc: 'Para animadores y operadores que trabajan en distintos eventos y necesitan un sistema que los acompañe.',
-    points: ['Configuración portátil', 'Control total del evento', 'Calificación en tiempo real', 'Sin instalación en el local', 'Funciona en cualquier notebook', 'Imagen profesional frente al cliente']
+    points: ['Configuración portátil', 'Control total del evento', 'Calificación en tiempo real', 'Sin instalación en el local', 'Funciona en cualquier notebook', 'Imagen profesional frente al cliente', 'Retroke Live: transmite tus eventos a Retroke World']
   },
   {
     name: 'Home', accent: '#4F8AE8', bg: '/landing/bg-home.jpg',
     desc: 'Para uso doméstico: convierte cualquier televisor en un escenario, sin equipos adicionales.',
-    points: ['Funciona desde el navegador', 'El teléfono es el micrófono', 'Sin límite de invitados', 'Análisis vocal — próximamente', 'Ideal para cumpleaños y juntas', 'Sin costo para comenzar']
+    points: ['Funciona desde el navegador', 'El teléfono es el micrófono', 'Sin límite de invitados', 'Análisis vocal — próximamente', 'Ideal para cumpleaños y juntas', 'Sin costo para comenzar', 'Retroke Live: transmite tu fiesta a Retroke World']
   }
 ]
 

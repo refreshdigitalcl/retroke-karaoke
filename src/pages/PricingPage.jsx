@@ -20,6 +20,7 @@ var FEATURE_COPY = {
     ],
     PRO: [
       'Participantes ilimitados',
+      'Retroke Live: transmite tu fiesta en vivo a Retroke World',
       'Análisis vocal Retroke Score',
       'Stickers en reacciones',
       'Música de fondo Retroke Songs',
@@ -41,6 +42,7 @@ var FEATURE_COPY = {
       'Música de fondo (1 canción fija)'
     ],
     PRO: [
+      'Retroke Live: transmite el show en vivo a Retroke World',
       'Stickers en reacciones',
       'Música de fondo Retroke Songs',
       'Datos curiosos del artista',
@@ -62,6 +64,7 @@ var FEATURE_COPY = {
     ],
     PRO: [
       'Eventos ilimitados',
+      'Retroke Live: transmite tus eventos en vivo a Retroke World',
       'Stickers en reacciones',
       'Música de fondo Retroke Songs',
       'Datos curiosos del artista',
@@ -82,6 +85,7 @@ var COMPARISON_TABLE = {
     { label: 'Cola de canciones', free: true, pro: true },
     { label: 'Calificación del público', free: true, pro: true },
     { label: 'Reacciones con emojis', free: true, pro: true },
+    { label: 'Retroke Live (transmisión en vivo a Retroke World)', free: false, pro: true },
     { label: 'Stickers en reacciones', free: false, pro: true },
     { label: 'Música de fondo', free: '1 canción fija', pro: 'Retroke Songs' },
     { label: 'Datos curiosos del artista', free: false, pro: true },
@@ -98,6 +102,7 @@ var COMPARISON_TABLE = {
     { label: 'Cola de canciones', free: true, pro: true },
     { label: 'Calificación del público', free: true, pro: true },
     { label: 'Reacciones con emojis', free: true, pro: true },
+    { label: 'Retroke Live (transmisión en vivo a Retroke World)', free: false, pro: true },
     { label: 'Stickers en reacciones', free: false, pro: true },
     { label: 'Música de fondo', free: '1 canción fija', pro: 'Retroke Songs' },
     { label: 'Datos curiosos del artista', free: false, pro: true },
@@ -115,6 +120,7 @@ var COMPARISON_TABLE = {
     { label: 'Cola de canciones', free: true, pro: true },
     { label: 'Calificación del público', free: true, pro: true },
     { label: 'Reacciones con emojis', free: true, pro: true },
+    { label: 'Retroke Live (transmisión en vivo a Retroke World)', free: false, pro: true },
     { label: 'Stickers en reacciones', free: false, pro: true },
     { label: 'Música de fondo', free: '1 canción fija', pro: 'Retroke Songs' },
     { label: 'Datos curiosos del artista', free: false, pro: true },
