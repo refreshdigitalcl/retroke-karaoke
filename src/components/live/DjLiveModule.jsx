@@ -63,6 +63,10 @@ export default function DjLiveModule(props) {
   var mutedIds = mutedIdsState[0]
   var setMutedIds = mutedIdsState[1]
 
+  var modErrorState = useState('')
+  var modError = modErrorState[0]
+  var setModError = modErrorState[1]
+
   useEffect(function () {
     return function () {
       // Si el DJ cierra el panel o navega fuera sin apretar "Finalizar",
@@ -230,21 +234,73 @@ export default function DjLiveModule(props) {
     })
   }
 
+  // Fix: el DJ borraba un comentario y desaparecia de SU panel, pero el
+  // visor lo seguia mostrando -- no era un bug del visor (ya escucha el
+  // evento DELETE en tiempo real), era que el DELETE de aca nunca se
+  // confirmaba. `.delete()` de Supabase no lanza error si RLS bloquea la
+  // fila (borra 0 filas y responde "ok" igual), asi que el optimista de
+  // arriba se quedaba como verdad final sin chequear si la fila
+  // realmente se borro en la base -- si nunca se borro, nunca sale el
+  // evento DELETE que el visor necesita para actualizarse. Ahora se
+  // espera la respuesta real y, si no borro nada, se recupera el
+  // comentario y se avisa en vez de fallar en silencio.
   function handleDeleteComment(commentId) {
-    // Optimista: lo saco de la lista al toque, y si falla el DELETE (RLS
-    // lo rechaza, red caida, etc.) lo recupero con el proximo fetch/evento.
+    setModError('')
     setComments(function (prev) { return prev.filter(function (c) { return c.id !== commentId } ) })
-    supabase.from('live_comments').delete().eq('id', commentId)
+    supabase
+      .from('live_comments')
+      .delete()
+      .eq('id', commentId)
+      .select('id')
+      .then(function (result) {
+        if (result.error || !result.data || result.data.length === 0) {
+          setModError('No se pudo borrar el comentario. Intenta de nuevo.')
+          refetchComments()
+        }
+      })
+  }
+
+  function refetchComments() {
+    if (!liveSessionId) return
+    supabase
+      .from('live_comments')
+      .select('id,participant_id,display_name,avatar,text,created_at')
+      .eq('live_session_id', liveSessionId)
+      .order('created_at', { ascending: false })
+      .limit(50)
+      .then(function (result) { setComments((result.data || []).slice().reverse()) })
   }
 
   function handleToggleMute(participantId) {
     if (!participantId) return
-    if (mutedIds.has(participantId)) {
+    setModError('')
+    var wasMuted = mutedIds.has(participantId)
+    if (wasMuted) {
       setMutedIds(function (prev) { var next = new Set(prev); next.delete(participantId); return next })
-      supabase.from('live_muted_participants').delete().eq('live_session_id', liveSessionId).eq('participant_id', participantId)
+      supabase
+        .from('live_muted_participants')
+        .delete()
+        .eq('live_session_id', liveSessionId)
+        .eq('participant_id', participantId)
+        .select('id')
+        .then(function (result) {
+          if (result.error || !result.data || result.data.length === 0) {
+            setModError('No se pudo quitar el silencio. Intenta de nuevo.')
+            setMutedIds(function (prev) { return new Set(prev).add(participantId) })
+          }
+        })
     } else {
       setMutedIds(function (prev) { return new Set(prev).add(participantId) })
-      supabase.from('live_muted_participants').insert({ live_session_id: liveSessionId, participant_id: participantId })
+      supabase
+        .from('live_muted_participants')
+        .insert({ live_session_id: liveSessionId, participant_id: participantId })
+        .select('id')
+        .then(function (result) {
+          if (result.error) {
+            setModError('No se pudo silenciar. Intenta de nuevo.')
+            setMutedIds(function (prev) { var next = new Set(prev); next.delete(participantId); return next })
+          }
+        })
     }
   }
 
@@ -392,6 +448,11 @@ export default function DjLiveModule(props) {
             <span>Chat en vivo -- moderacion</span>
             <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{comments.length} mensajes</span>
           </div>
+          {modError && (
+            <div className="text-xs px-4 py-2" style={{ background: 'rgba(255,77,77,0.1)', color: '#C23030', borderBottom: '1px solid rgba(255,77,77,0.25)' }}>
+              {modError}
+            </div>
+          )}
           <div style={{ maxHeight: 260, overflowY: 'auto' }}>
             {comments.length === 0 && (
               <div className="text-xs text-center py-6" style={{ color: 'var(--text-muted)' }}>
