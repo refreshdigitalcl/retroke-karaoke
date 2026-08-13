@@ -198,14 +198,59 @@ export default function PublicProfile() {
     <div className="world-page">
       <style>{WORLD_STYLES}{RETROKE_STYLES}{`
         .world-page { background: var(--rk-bg-gradient); }
-        .pp-header { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
-        .pp-avatar-wrap { width: 76px; height: 76px; border-radius: var(--rk-radius-pill); overflow: hidden; display: flex; align-items: center; justify-content: center; font-size: 36px; background: rgba(233,30,140,0.15); border: 2px solid rgba(244,208,63,0.5); box-shadow: var(--rk-glow-yellow); }
+        .pp-header {
+          position: relative; overflow: hidden;
+          display: flex; flex-direction: column; gap: 16px;
+          padding: 20px 18px 22px; border-radius: var(--rk-radius-lg);
+          background: linear-gradient(160deg, rgba(233,30,140,0.1), rgba(139,92,246,0.06) 45%, rgba(10,5,18,0.4));
+          border: 1px solid rgba(233,30,140,0.35);
+          box-shadow: 0 0 0 1px rgba(139,92,246,0.12), 0 0 34px -10px rgba(233,30,140,0.45);
+        }
+        .pp-header::before {
+          content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+          background: linear-gradient(90deg, #e91e8c, #8b5cf6, #f4d03f, #7ed957, #e91e8c);
+          background-size: 300% auto; animation: ppStripeShift 5s linear infinite;
+        }
+        @keyframes ppStripeShift { from { background-position: 0% 0; } to { background-position: 300% 0; } }
+
+        .pp-header-top { display: flex; align-items: center; gap: 18px; }
+        .pp-avatar-wrap {
+          width: 84px; height: 84px; border-radius: 50%; overflow: hidden; flex-shrink: 0;
+          display: flex; align-items: center; justify-content: center; font-size: 38px;
+          background: rgba(233,30,140,0.15); border: 2.5px solid rgba(244,208,63,0.6);
+          box-shadow: var(--rk-glow-yellow); animation: ppAvatarPulse 3.2s ease-in-out infinite;
+        }
         .pp-avatar-wrap img { width: 100%; height: 100%; object-fit: cover; }
-        .pp-level { display: inline-flex; align-items: center; gap: 5px; }
-        .pp-instagram { display: inline-flex; align-items: center; gap: 5px; }
-        .pp-counts { display: flex; gap: 22px; }
-        .pp-count-value { font-family: var(--rk-font-display); font-size: 17px; font-weight: 800; }
-        .pp-count-label { font-size: 10.5px; color: var(--rk-text-soft); margin-top: 1px; }
+        @keyframes ppAvatarPulse {
+          0%, 100% { box-shadow: var(--rk-glow-yellow); }
+          50% { box-shadow: var(--rk-glow-yellow-strong); }
+        }
+
+        .pp-stats-row { flex: 1; display: flex; }
+        .pp-stat { flex: 1; text-align: center; padding: 0 4px; }
+        .pp-stat + .pp-stat { border-left: 1px solid var(--rk-border); }
+        .pp-stat-value { font-family: var(--rk-font-display); font-size: 19px; font-weight: 800; color: var(--rk-yellow); text-shadow: 0 0 14px rgba(244,208,63,0.5); line-height: 1.1; }
+        .pp-stat-label { font-size: 9.5px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--rk-text-soft); margin-top: 3px; }
+
+        .pp-header-name { text-align: center; }
+        .pp-header-name h1 {
+          font-family: var(--rk-font-display); font-size: 24px; font-weight: 800; margin: 0;
+          background: linear-gradient(90deg, #ff5fb0, #b98bff, #f4d03f, #ff5fb0);
+          background-size: 260% auto; -webkit-background-clip: text; background-clip: text; color: transparent;
+          animation: ppTitleShift 6s linear infinite;
+        }
+        @keyframes ppTitleShift { from { background-position: 0% 0; } to { background-position: 260% 0; } }
+        .pp-level { display: flex; align-items: center; gap: 5px; justify-content: center; margin-top: 4px; font-size: 12.5px; color: var(--rk-text-soft); }
+
+        .pp-instagram-pill {
+          align-self: center; display: inline-flex; align-items: center; gap: 6px;
+          font-size: 12.5px; font-weight: 700; color: #f4d03f; text-decoration: none;
+          padding: 7px 16px; border-radius: var(--rk-radius-pill);
+          background: rgba(244,208,63,0.08); border: 1px solid rgba(244,208,63,0.4);
+        }
+        .pp-instagram-pill:hover { background: rgba(244,208,63,0.14); }
+
+        .pp-header-actions { display: flex; flex-direction: column; align-items: center; gap: 6px; }
         .pp-follow-btn {
           display: inline-flex; align-items: center; gap: 6px;
           font-size: 13px; font-weight: 700; padding: 9px 22px; border-radius: var(--rk-radius-pill); border: none; cursor: pointer;
@@ -244,55 +289,63 @@ export default function PublicProfile() {
         {target && (
           <>
             <div className="pp-header">
-              <div className="pp-avatar-wrap">
-                {target.photo_url ? <img src={target.photo_url} alt="" /> : (target.avatar || '🎤')}
+              <div className="pp-header-top">
+                <div className="pp-avatar-wrap">
+                  {target.photo_url ? <img src={target.photo_url} alt="" /> : (target.avatar || '🎤')}
+                </div>
+                <div className="pp-stats-row">
+                  <div className="pp-stat">
+                    <div className="pp-stat-value">{counts ? counts.followers : '—'}</div>
+                    <div className="pp-stat-label">Seguidores</div>
+                  </div>
+                  <div className="pp-stat">
+                    <div className="pp-stat-value">{counts ? counts.following : '—'}</div>
+                    <div className="pp-stat-label">Siguiendo</div>
+                  </div>
+                  <div className="pp-stat">
+                    <div className="pp-stat-value">{stats ? stats.total_performances || 0 : 0}</div>
+                    <div className="pp-stat-label">Canciones</div>
+                  </div>
+                </div>
               </div>
-              <div>
-                <h1 className="world-hero-title" style={{ fontSize: 26 }}>{target.display_name || 'Cantante Retroke'}</h1>
-                <p className="world-hero-subtitle pp-level" style={{ marginTop: 2 }}>
+
+              <div className="pp-header-name">
+                <h1>{target.display_name || 'Cantante Retroke'}</h1>
+                <p className="pp-level">
                   <RetrokeIcon name="medal" size={13} /> {levelInfo ? levelInfo.name : 'Novato del Micrófono'}
                 </p>
-                {target.show_instagram && target.instagram_handle && (
-                  <a
-                    href={'https://instagram.com/' + target.instagram_handle}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="pp-instagram"
-                    style={{ fontSize: 12.5, color: 'var(--rk-yellow)', marginTop: 4 }}
-                  >
-                    <RetrokeIcon name="camera" size={12} /> @{target.instagram_handle}
-                  </a>
+              </div>
+
+              {target.show_instagram && target.instagram_handle && (
+                <a
+                  href={'https://instagram.com/' + target.instagram_handle}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="pp-instagram-pill"
+                >
+                  <RetrokeIcon name="camera" size={13} /> @{target.instagram_handle}
+                </a>
+              )}
+
+              <div className="pp-header-actions">
+                {isOwnProfile && (
+                  <Link to="/perfil" className="world-section-action">Ir a tu perfil para editar →</Link>
+                )}
+                {!isOwnProfile && canFollow && (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                    <button type="button" className={'pp-follow-btn' + (isFollowing ? ' following' : '')} onClick={handleToggleFollow} disabled={followBusy}>
+                      {followBusy ? (
+                        '...'
+                      ) : isFollowing ? (
+                        <><RetrokeIcon name="check" size={12} /> Siguiendo</>
+                      ) : (
+                        <><RetrokeIcon name="plus" size={12} /> Seguir</>
+                      )}
+                    </button>
+                    {followError && <span className="pp-follow-error">{followError}</span>}
+                  </div>
                 )}
               </div>
-
-              <div className="pp-counts">
-                <div>
-                  <div className="pp-count-value">{counts ? counts.followers : '—'}</div>
-                  <div className="pp-count-label">Seguidores</div>
-                </div>
-                <div>
-                  <div className="pp-count-value">{counts ? counts.following : '—'}</div>
-                  <div className="pp-count-label">Siguiendo</div>
-                </div>
-              </div>
-
-              {isOwnProfile && (
-                <Link to="/perfil" className="world-section-action">Ir a tu perfil para editar →</Link>
-              )}
-              {!isOwnProfile && canFollow && (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-                  <button type="button" className={'pp-follow-btn' + (isFollowing ? ' following' : '')} onClick={handleToggleFollow} disabled={followBusy}>
-                    {followBusy ? (
-                      '...'
-                    ) : isFollowing ? (
-                      <><RetrokeIcon name="check" size={12} /> Siguiendo</>
-                    ) : (
-                      <><RetrokeIcon name="plus" size={12} /> Seguir</>
-                    )}
-                  </button>
-                  {followError && <span className="pp-follow-error">{followError}</span>}
-                </div>
-              )}
             </div>
 
             <RetrokeSection accent="purple" eyebrow="Estados" title={<><RetrokeIcon name="chat" size={16} glow /> Estados</>}>
