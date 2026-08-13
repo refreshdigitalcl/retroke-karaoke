@@ -198,59 +198,55 @@ export default function PublicProfile() {
     <div className="world-page">
       <style>{WORLD_STYLES}{RETROKE_STYLES}{`
         .world-page { background: var(--rk-bg-gradient); }
+        /* Header estilo perfil moderno (Threads/TikTok): todo centrado en
+           una sola columna -- avatar, nombre, stats, instagram, accion --
+           en vez de apretar el avatar contra los numeros en una fila. Un
+           solo acento con glow fijo (nada de animaciones simultaneas
+           compitiendo entre si) para que se sienta pulido, no cargado. */
         .pp-header {
-          position: relative; overflow: hidden;
-          display: flex; flex-direction: column; gap: 16px;
-          padding: 20px 18px 22px; border-radius: var(--rk-radius-lg);
-          background: linear-gradient(160deg, rgba(233,30,140,0.1), rgba(139,92,246,0.06) 45%, rgba(10,5,18,0.4));
-          border: 1px solid rgba(233,30,140,0.35);
-          box-shadow: 0 0 0 1px rgba(139,92,246,0.12), 0 0 34px -10px rgba(233,30,140,0.45);
+          display: flex; flex-direction: column; align-items: center; gap: 4px;
+          padding: 30px 20px 24px; border-radius: var(--rk-radius-lg);
+          background: linear-gradient(160deg, rgba(233,30,140,0.07), rgba(139,92,246,0.04) 55%, rgba(10,5,18,0.3));
+          border: 1px solid var(--rk-border);
+          text-align: center;
         }
-        .pp-header::before {
-          content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
-          background: linear-gradient(90deg, #e91e8c, #8b5cf6, #f4d03f, #7ed957, #e91e8c);
-          background-size: 300% auto; animation: ppStripeShift 5s linear infinite;
-        }
-        @keyframes ppStripeShift { from { background-position: 0% 0; } to { background-position: 300% 0; } }
 
-        .pp-header-top { display: flex; align-items: center; gap: 18px; }
+        .pp-avatar-ring {
+          width: 96px; height: 96px; border-radius: 50%; padding: 3px; flex-shrink: 0;
+          background: conic-gradient(from 180deg, #e91e8c, #8b5cf6, #f4d03f, #7ed957, #e91e8c);
+          box-shadow: var(--rk-glow-magenta);
+          display: flex; align-items: center; justify-content: center;
+        }
         .pp-avatar-wrap {
-          width: 84px; height: 84px; border-radius: 50%; overflow: hidden; flex-shrink: 0;
-          display: flex; align-items: center; justify-content: center; font-size: 38px;
-          background: rgba(233,30,140,0.15); border: 2.5px solid rgba(244,208,63,0.6);
-          box-shadow: var(--rk-glow-yellow); animation: ppAvatarPulse 3.2s ease-in-out infinite;
+          width: 100%; height: 100%; border-radius: 50%; overflow: hidden;
+          display: flex; align-items: center; justify-content: center; font-size: 40px;
+          background: var(--rk-bg-1); border: 3px solid var(--rk-bg-0);
         }
         .pp-avatar-wrap img { width: 100%; height: 100%; object-fit: cover; }
-        @keyframes ppAvatarPulse {
-          0%, 100% { box-shadow: var(--rk-glow-yellow); }
-          50% { box-shadow: var(--rk-glow-yellow-strong); }
+
+        .pp-header-name { margin-top: 14px; }
+        .pp-header-name h1 { font-family: var(--rk-font-display); font-size: 22px; font-weight: 800; margin: 0; color: var(--rk-text); }
+        .pp-level {
+          display: inline-flex; align-items: center; gap: 5px; justify-content: center; margin-top: 7px;
+          font-size: 11px; font-weight: 700; padding: 4px 12px; border-radius: var(--rk-radius-pill);
+          background: rgba(244,208,63,0.1); border: 1px solid rgba(244,208,63,0.35); color: var(--rk-yellow);
         }
 
-        .pp-stats-row { flex: 1; display: flex; }
-        .pp-stat { flex: 1; text-align: center; padding: 0 4px; }
+        .pp-stats-row { display: flex; align-items: stretch; margin-top: 18px; }
+        .pp-stat { padding: 0 20px; text-align: center; }
         .pp-stat + .pp-stat { border-left: 1px solid var(--rk-border); }
-        .pp-stat-value { font-family: var(--rk-font-display); font-size: 19px; font-weight: 800; color: var(--rk-yellow); text-shadow: 0 0 14px rgba(244,208,63,0.5); line-height: 1.1; }
-        .pp-stat-label { font-size: 9.5px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--rk-text-soft); margin-top: 3px; }
-
-        .pp-header-name { text-align: center; }
-        .pp-header-name h1 {
-          font-family: var(--rk-font-display); font-size: 24px; font-weight: 800; margin: 0;
-          background: linear-gradient(90deg, #ff5fb0, #b98bff, #f4d03f, #ff5fb0);
-          background-size: 260% auto; -webkit-background-clip: text; background-clip: text; color: transparent;
-          animation: ppTitleShift 6s linear infinite;
-        }
-        @keyframes ppTitleShift { from { background-position: 0% 0; } to { background-position: 260% 0; } }
-        .pp-level { display: flex; align-items: center; gap: 5px; justify-content: center; margin-top: 4px; font-size: 12.5px; color: var(--rk-text-soft); }
+        .pp-stat-value { font-family: var(--rk-font-display); font-size: 18px; font-weight: 800; color: var(--rk-text); line-height: 1.1; }
+        .pp-stat-label { font-size: 9.5px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--rk-text-faint); margin-top: 3px; }
 
         .pp-instagram-pill {
-          align-self: center; display: inline-flex; align-items: center; gap: 6px;
+          margin-top: 16px; display: inline-flex; align-items: center; gap: 6px;
           font-size: 12.5px; font-weight: 700; color: #f4d03f; text-decoration: none;
           padding: 7px 16px; border-radius: var(--rk-radius-pill);
           background: rgba(244,208,63,0.08); border: 1px solid rgba(244,208,63,0.4);
         }
         .pp-instagram-pill:hover { background: rgba(244,208,63,0.14); }
 
-        .pp-header-actions { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+        .pp-header-actions { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 16px; }
         .pp-follow-btn {
           display: inline-flex; align-items: center; gap: 6px;
           font-size: 13px; font-weight: 700; padding: 9px 22px; border-radius: var(--rk-radius-pill); border: none; cursor: pointer;
@@ -289,23 +285,9 @@ export default function PublicProfile() {
         {target && (
           <>
             <div className="pp-header">
-              <div className="pp-header-top">
+              <div className="pp-avatar-ring">
                 <div className="pp-avatar-wrap">
                   {target.photo_url ? <img src={target.photo_url} alt="" /> : (target.avatar || '🎤')}
-                </div>
-                <div className="pp-stats-row">
-                  <div className="pp-stat">
-                    <div className="pp-stat-value">{counts ? counts.followers : '—'}</div>
-                    <div className="pp-stat-label">Seguidores</div>
-                  </div>
-                  <div className="pp-stat">
-                    <div className="pp-stat-value">{counts ? counts.following : '—'}</div>
-                    <div className="pp-stat-label">Siguiendo</div>
-                  </div>
-                  <div className="pp-stat">
-                    <div className="pp-stat-value">{stats ? stats.total_performances || 0 : 0}</div>
-                    <div className="pp-stat-label">Canciones</div>
-                  </div>
                 </div>
               </div>
 
@@ -314,6 +296,21 @@ export default function PublicProfile() {
                 <p className="pp-level">
                   <RetrokeIcon name="medal" size={13} /> {levelInfo ? levelInfo.name : 'Novato del Micrófono'}
                 </p>
+              </div>
+
+              <div className="pp-stats-row">
+                <div className="pp-stat">
+                  <div className="pp-stat-value">{counts ? counts.followers : '—'}</div>
+                  <div className="pp-stat-label">Seguidores</div>
+                </div>
+                <div className="pp-stat">
+                  <div className="pp-stat-value">{counts ? counts.following : '—'}</div>
+                  <div className="pp-stat-label">Siguiendo</div>
+                </div>
+                <div className="pp-stat">
+                  <div className="pp-stat-value">{stats ? stats.total_performances || 0 : 0}</div>
+                  <div className="pp-stat-label">Canciones</div>
+                </div>
               </div>
 
               {target.show_instagram && target.instagram_handle && (
