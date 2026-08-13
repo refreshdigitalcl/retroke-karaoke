@@ -16,9 +16,9 @@ export async function resolveVenue(supabase, { barSlug, wsId }) {
       return { barId: null, workspaceId: ws.id, name: ws.name, city: null, type: ws.type }
     }
     if (barSlug) {
-      const { data: bar } = await supabase.from('bars').select('id, slug, name, city, description').ilike('slug', barSlug).maybeSingle()
+      const { data: bar } = await supabase.from('bars').select('id, slug, name, city, description, address').ilike('slug', barSlug).maybeSingle()
       if (!bar) return null
-      return { barId: bar.id, workspaceId: null, slug: bar.slug, name: bar.name, city: bar.city, description: bar.description, type: 'BAR' }
+      return { barId: bar.id, workspaceId: null, slug: bar.slug, name: bar.name, city: bar.city, description: bar.description, address: bar.address, type: 'BAR' }
     }
     return null
   } catch (e) {
@@ -121,16 +121,44 @@ export async function loadVenueNowPlaying(supabase, venue) {
   }
 }
 
-// Mismo esquema de deep-link que usa toda la app (spaceParam en
-// KaraokeSessionContext) para entrar a la pantalla en vivo de esta sala.
-// OJO: solo para navegacion de quien ya esta en el local -- World.jsx ya no
-// usa nada equivalente a esto para sus tarjetas de espectador (ver
-// nowPlayingHref en World.jsx), justamente para que un visitante remoto
-// nunca caiga en la sala de espera/registro de un bar.
+// Deliberadamente SIN usar en ningun lado: la pantalla en vivo de un local
+// (sala de espera + registro) no debe ser alcanzable desde Retroke World
+// para nadie que no este fisicamente ahi -- ni desde las tarjetas de
+// espectador (nowPlayingHref en World.jsx) ni desde la ficha de escenario
+// (Escenario.jsx ya no tiene el boton "Entrar en vivo" que usaba esto).
+// Se deja documentado el esquema de deep-link por si algun dia se necesita
+// para navegacion real de staff, pero no para el visitante de World.
 export function venueLiveHref(venue) {
   if (venue.barId) return '/?bar=' + (venue.slug || '')
   if (venue.workspaceId) return '/?ws=' + venue.workspaceId
   return '/'
+}
+
+// "Ir a este bar" (Fase 7 extendido): arma un query de busqueda con lo que
+// tengamos (nombre + direccion + ciudad, lo que exista) para abrir Google
+// Maps o Waze con el lugar precargado. No requiere lat/lng en `bars` --
+// ambos servicios resuelven bien una busqueda por texto, y si el local
+// llega a cargar su direccion exacta despues, mejora solo sin tocar el
+// codigo. Solo tiene sentido para locales fisicos (BAR); DJ/Home no tienen
+// una direccion real a la que "llegar".
+function venueAddressQuery(venue) {
+  const parts = []
+  if (venue.name) parts.push(venue.name)
+  if (venue.address) parts.push(venue.address)
+  if (venue.city) parts.push(venue.city)
+  return parts.join(', ')
+}
+
+export function googleMapsHref(venue) {
+  const q = venueAddressQuery(venue)
+  if (!q) return null
+  return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(q)
+}
+
+export function wazeHref(venue) {
+  const q = venueAddressQuery(venue)
+  if (!q) return null
+  return 'https://waze.com/ul?q=' + encodeURIComponent(q) + '&navigate=yes'
 }
 
 // Link a la pagina de escenario (Fase 7) de una sala, dado el mismo tipo de
