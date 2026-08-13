@@ -122,8 +122,11 @@ export async function loadVenueNowPlaying(supabase, venue) {
 }
 
 // Mismo esquema de deep-link que usa toda la app (spaceParam en
-// KaraokeSessionContext, scenarioHref en World.jsx) para entrar a la
-// pantalla en vivo de esta sala.
+// KaraokeSessionContext) para entrar a la pantalla en vivo de esta sala.
+// OJO: solo para navegacion de quien ya esta en el local -- World.jsx ya no
+// usa nada equivalente a esto para sus tarjetas de espectador (ver
+// nowPlayingHref en World.jsx), justamente para que un visitante remoto
+// nunca caiga en la sala de espera/registro de un bar.
 export function venueLiveHref(venue) {
   if (venue.barId) return '/?bar=' + (venue.slug || '')
   if (venue.workspaceId) return '/?ws=' + venue.workspaceId

@@ -42,19 +42,26 @@ import WorldLiveSection from '../components/live/WorldLiveSection'
 
 const LIVE_REFRESH_MS = 20000
 
-// Mismo esquema de deep-link que ya usa toda la app (ver spaceParam en
-// KaraokeSessionContext y SessionHub.jsx): con workspace_id se va directo a
-// esa sala, con el slug del bar se arma /?bar=slug.
-function scenarioHref(row) {
-  if (row.bar_id && row.bars && row.bars.slug) return '/?bar=' + row.bars.slug
-  if (row.workspace_id) return '/?ws=' + row.workspace_id
+// "Ahora en Retroke": la unica tarjeta clickeable de quien esta cantando en
+// este momento. A proposito NO manda a la sala/registro del local (antes lo
+// hacia via un deep-link tipo /?bar=slug o /?ws=id, igual al que usa
+// SessionHub.jsx para staff) -- un visitante de World puede estar en
+// cualquier parte, sin relacion con ese local, y jamas debe poder aterrizar
+// en la sala de espera ni en el registro solo por curiosear quien canta. El
+// unico destino valido es el perfil publico del cantante (espectador puro,
+// igual que Retroke Live). Si no logramos resolver su participantId, la
+// tarjeta simplemente no es un link.
+function nowPlayingHref(row) {
+  if (row.participantId) return '/u/' + row.participantId
   return null
 }
 
-// Fase 7: a diferencia de scenarioHref (que manda directo a la pantalla en
-// vivo, para "estoy viendo a esta persona cantar AHORA"), esto manda a la
-// ficha del escenario -- pensado para cuando el interes es la sala en si
-// (lista de "Escenarios" mas abajo), no una presentacion puntual.
+// Fase 7: a diferencia de nowPlayingHref (que manda al perfil publico del
+// cantante, para "estoy viendo a esta persona cantar AHORA"), esto manda a
+// la ficha del escenario -- pensado para cuando el interes es la sala en si
+// (lista de "Escenarios" mas abajo), no una presentacion puntual. La ficha
+// de escenario (Fase 7) ya es espectador-only por diseno: no tiene camino a
+// inscripcion ni a la sala en vivo del local.
 function escenarioPageHref(row) {
   if (row.bar_id && row.bars && row.bars.slug) return '/escenario?bar=' + row.bars.slug
   if (row.workspace_id) return '/escenario?ws=' + row.workspace_id
@@ -78,6 +85,7 @@ async function loadLiveSnapshot() {
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString()
   const nowPlayingSelect =
     'id,bar_id,workspace_id,' +
+    'singerEntryId:current_singer->>id,' +
     'singerName:current_singer->>name,song:current_singer->>song,' +
     'artistName:current_singer->>artistName,artworkUrl:current_singer->>artworkUrl,' +
     'bars(name,city,slug),workspaces(name,type)'
@@ -91,13 +99,31 @@ async function loadLiveSnapshot() {
     supabase.from('sessions').select(scenariosSelect).eq('status', 'active').order('started_at', { ascending: false }).limit(6)
   ])
 
+  // current_singer (JSON en sessions) no trae participant_id -- solo el id
+  // del turno en queue_entries. Para poder linkear "En vivo ahora" al perfil
+  // publico (y nunca a la sala/registro del local) resolvemos ese
+  // participant_id con una segunda consulta contra queue_entries, que si lo
+  // tiene. Es de solo lectura publica, igual que el resto de esta pagina.
+  var nowPlayingRows = nowPlayingRes.data || []
+  var entryIds = nowPlayingRows.map(function (r) { return r.singerEntryId }).filter(Boolean)
+  var participantByEntryId = {}
+  if (entryIds.length > 0) {
+    var entriesRes = await supabase.from('queue_entries').select('id,participant_id').in('id', entryIds)
+    ;(entriesRes.data || []).forEach(function (e) {
+      if (e.participant_id) participantByEntryId[e.id] = e.participant_id
+    })
+  }
+  var nowPlaying = nowPlayingRows.map(function (r) {
+    return { ...r, participantId: participantByEntryId[r.singerEntryId] || null }
+  })
+
   return {
     stats: {
       activeStages: stagesRes.count || 0,
       activeArtists: artistsRes.count || 0,
       recentReactions: reactionsRes.count || 0
     },
-    nowPlaying: nowPlayingRes.data || [],
+    nowPlaying: nowPlaying,
     scenarios: scenariosRes.data || []
   }
 }
@@ -156,7 +182,7 @@ async function loadMyExperience() {
 
 function NowPlayingCard(props) {
   const row = props.row
-  const href = scenarioHref(row)
+  const href = nowPlayingHref(row)
   const content = (
     <div className="world-nowplaying-card">
       <div className="world-nowplaying-art">
