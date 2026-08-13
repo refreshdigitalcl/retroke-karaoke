@@ -242,6 +242,12 @@ export default function SessionHub() {
         >
           Planes y precios
         </a>
+        <a
+          href="/world"
+          className="text-xs md:text-sm tracking-[3px] uppercase font-bold text-neutral-300 transition-colors hub-nav-link"
+        >
+          Retroke World
+        </a>
       </nav>
 
       <img
