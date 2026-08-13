@@ -360,7 +360,25 @@ export default function World() {
   return (
     <div className="world-page">
       <style>{WORLD_STYLES}{RETROKE_STYLES}{`
-        .world-page { background: var(--rk-bg-gradient); }
+        .world-page { background: var(--rk-bg-gradient); position: relative; }
+
+        /* Fondo tomado de PricingPage.jsx (le encanto al equipo): grid
+           sutil + dos manchas de glow en las esquinas, fijas al viewport
+           para que se sigan viendo al hacer scroll. Se agrega ENCIMA del
+           degrade radial que World ya tenia (no lo reemplaza) -- asi se
+           suma la textura/profundidad de Precios sin perder nada del
+           trabajo retro-neon ya hecho aca (grid-room del hero, tarjetas,
+           etc). world-inner sube a z-index 1 para quedar siempre encima. */
+        .rk-world-bgfx { pointer-events: none; position: fixed; inset: 0; z-index: 0; }
+        .rk-world-bgfx-grid {
+          position: absolute; inset: 0; opacity: 0.06;
+          background-image: linear-gradient(rgba(139,92,246,0.7) 1px, transparent 1px), linear-gradient(90deg, rgba(139,92,246,0.7) 1px, transparent 1px);
+          background-size: 48px 48px;
+        }
+        .rk-world-bgfx-blob-a { position: absolute; top: -160px; left: -160px; width: 32rem; height: 32rem; border-radius: 50%; opacity: 0.25; filter: blur(64px); background: #E91E8C; }
+        .rk-world-bgfx-blob-b { position: absolute; bottom: -160px; right: -160px; width: 32rem; height: 32rem; border-radius: 50%; opacity: 0.25; filter: blur(64px); background: #8B5CF6; }
+        .world-inner { position: relative; z-index: 1; }
+
         .world-activity-row { display: flex; align-items: flex-start; gap: 10px; padding: 7px 2px; }
         .world-activity-avatar { font-size: 18px; flex-shrink: 0; line-height: 1.4; }
         .world-activity-body { flex: 1; min-width: 0; }
@@ -405,6 +423,12 @@ export default function World() {
         .rk-experience-stat { text-align: center; padding: 10px 4px; border-radius: var(--rk-radius-md); background: var(--rk-surface); }
         .rk-experience-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
       `}</style>
+
+      <div className="rk-world-bgfx" aria-hidden="true">
+        <div className="rk-world-bgfx-grid" />
+        <div className="rk-world-bgfx-blob-a" />
+        <div className="rk-world-bgfx-blob-b" />
+      </div>
 
       <div className="world-inner">
         <div className="rk-world-hero-wrap">
