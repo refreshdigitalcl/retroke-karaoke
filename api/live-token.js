@@ -78,6 +78,34 @@ export default async function handler(req, res) {
 
   var roomName = 'live-' + (barId || workspaceId)
 
+  // Retroke Live es una feature de plan PRO (BAR/DJ/HOME) -- plan_features
+  // ya no tiene fila FREE para 'retroke_live'. El boton del DJ Panel se
+  // oculta con hasFeature() en el frontend, pero eso es solo cosmetico: si
+  // no se valida aca, cualquiera con acceso al panel podria arrancar una
+  // transmision llamando este endpoint directo aunque su local sea FREE.
+  // Solo se exige para 'start' -- si por lo que sea ya quedo una
+  // transmision viva, 'stop' debe poder cortarla igual sin importar el
+  // plan actual.
+  if (action === 'start') {
+    var planLookup = barId
+      ? await supabaseAsCaller.from('bars').select('plan').eq('id', barId).maybeSingle()
+      : await supabaseAsCaller.from('workspaces').select('plan, type').eq('id', workspaceId).maybeSingle()
+    var planRow = planLookup.data
+    var plan = ((planRow && planRow.plan) || 'FREE').toUpperCase()
+    var wsType = barId ? 'BAR' : (planRow && planRow.type)
+    var featureResult = await supabaseAsCaller
+      .from('plan_features')
+      .select('feature')
+      .eq('plan', plan)
+      .eq('workspace_type', wsType)
+      .eq('feature', 'retroke_live')
+      .maybeSingle()
+    if (!featureResult.data) {
+      res.status(403).json({ error: 'Retroke Live no esta disponible en tu plan actual' })
+      return
+    }
+  }
+
   if (action === 'stop') {
     await supabaseAsCaller
       .from('live_sessions')
