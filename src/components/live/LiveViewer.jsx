@@ -104,6 +104,18 @@ export default function LiveViewer(props) {
   var comments = commentsState[0]
   var setComments = commentsState[1]
 
+  // Reacciones (corazon) por comentario -- filas crudas {id, comment_id,
+  // participant_id}, contadas/derivadas al vuelo en el render (mismo
+  // patron que loadStatuses para status_reactions). commentIdsRef existe
+  // porque live_comment_reactions no tiene columna live_session_id para
+  // filtrar la suscripcion en el server -- se filtra en el cliente contra
+  // los comentarios que esta pantalla ya conoce, para no mezclar
+  // reacciones de otra transmision que este viva al mismo tiempo.
+  var reactionRowsState = useState([])
+  var reactionRows = reactionRowsState[0]
+  var setReactionRows = reactionRowsState[1]
+  var commentIdsRef = useRef(new Set())
+
   var commentDraftState = useState('')
   var commentDraft = commentDraftState[0]
   var setCommentDraft = commentDraftState[1]
@@ -171,7 +183,19 @@ export default function LiveViewer(props) {
       .limit(50)
       .then(function (result) {
         if (cancelled) return
-        setComments((result.data || []).slice().reverse())
+        var rows = (result.data || []).slice().reverse()
+        setComments(rows)
+
+        var ids = rows.map(function (c) { return c.id })
+        if (!ids.length) return
+        supabase
+          .from('live_comment_reactions')
+          .select('id,comment_id,participant_id')
+          .in('comment_id', ids)
+          .then(function (reactionResult) {
+            if (cancelled) return
+            setReactionRows(reactionResult.data || [])
+          })
       })
 
     var chatChannel = supabase
@@ -191,11 +215,37 @@ export default function LiveViewer(props) {
       })
       .subscribe()
 
+    // Reacciones (corazon): igual limitacion que arriba -- sin
+    // live_session_id en la tabla, se escucha sin filtro de servidor y se
+    // descarta en el cliente lo que no pertenezca a un comentario que esta
+    // pantalla ya tiene cargado (commentIdsRef, actualizado en el efecto
+    // de abajo). Para DELETE alcanza con el id de la fila de reaccion
+    // (viene siempre, es la primary key) -- no hace falta REPLICA IDENTITY
+    // FULL como en live_muted_participants.
+    var reactionChannel = supabase
+      .channel('live-chat-reactions-' + liveSessionId)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'live_comment_reactions' }, function (payload) {
+        if (!commentIdsRef.current.has(payload.new.comment_id)) return
+        setReactionRows(function (prev) {
+          if (prev.some(function (r) { return r.id === payload.new.id } )) return prev
+          return prev.concat([payload.new])
+        })
+      })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'live_comment_reactions' }, function (payload) {
+        setReactionRows(function (prev) { return prev.filter(function (r) { return r.id !== payload.old.id } ) })
+      })
+      .subscribe()
+
     return function () {
       cancelled = true
       supabase.removeChannel(chatChannel)
+      supabase.removeChannel(reactionChannel)
     }
   }, [liveSessionId])
+
+  useEffect(function () {
+    commentIdsRef.current = new Set(comments.map(function (c) { return c.id } ))
+  }, [comments])
 
   useEffect(function () {
     if (commentsEndRef.current) {
@@ -356,6 +406,44 @@ export default function LiveViewer(props) {
       })
   }
 
+  // Corazon por comentario (estilo Instagram): toggle simple, un corazon
+  // por participante por comentario (unique en la tabla). Se espera la
+  // respuesta real de Supabase en vez de confiar ciegamente en el
+  // optimista -- la misma leccion del bug recien corregido en el panel
+  // del DJ (un delete/insert que RLS bloquea no siempre avisa con error,
+  // asi que hay que confirmar con .select() que de verdad paso).
+  function handleToggleCommentLike(commentId) {
+    if (!participant) return
+    var mine = reactionRows.find(function (r) { return r.comment_id === commentId && r.participant_id === participant.id })
+    if (mine) {
+      setReactionRows(function (prev) { return prev.filter(function (r) { return r.id !== mine.id } ) })
+      supabase
+        .from('live_comment_reactions')
+        .delete()
+        .eq('id', mine.id)
+        .select('id')
+        .then(function (result) {
+          if (result.error || !result.data || result.data.length === 0) {
+            setReactionRows(function (prev) { return prev.concat([mine]) })
+          }
+        })
+      return
+    }
+    supabase
+      .from('live_comment_reactions')
+      .insert({ comment_id: commentId, participant_id: participant.id })
+      .select('id,comment_id,participant_id')
+      .single()
+      .then(function (result) {
+        if (result.data) {
+          setReactionRows(function (prev) {
+            if (prev.some(function (r) { return r.id === result.data.id } )) return prev
+            return prev.concat([result.data])
+          })
+        }
+      })
+  }
+
   var displayStatus = row ? row.status : 'starting'
   var showOverlay = connStatus !== 'connected'
   var needsName = participant && !participant.display_name
@@ -430,10 +518,22 @@ export default function LiveViewer(props) {
           box-shadow: 0 0 8px -1px var(--rk-chat-accent, #e91e8c);
           display: flex; align-items: center; justify-content: center; font-size: 13px;
         }
-        .rk-lv-chat-body { min-width: 0; }
+        .rk-lv-chat-body { min-width: 0; flex: 1; }
         .rk-lv-chat-name { font-size: 12px; font-weight: 700; color: var(--rk-chat-accent, #f4d03f); margin-right: 6px; }
         .rk-lv-chat-time { font-size: 10px; color: rgba(255,255,255,0.35); }
         .rk-lv-chat-text { font-size: 13px; color: rgba(255,255,255,0.92); line-height: 1.4; word-break: break-word; margin-top: 2px; }
+
+        .rk-lv-chat-like {
+          display: flex; flex-direction: column; align-items: center; gap: 2px; flex-shrink: 0;
+          background: none; border: none; cursor: pointer; padding: 2px 4px; font-size: 15px;
+          opacity: 0.65; transition: opacity 0.15s ease;
+        }
+        .rk-lv-chat-like:hover { opacity: 1; }
+        .rk-lv-chat-like:disabled { cursor: default; }
+        .rk-lv-chat-like.mine { opacity: 1; animation: rkLvHeartPop 0.32s ease; }
+        @keyframes rkLvHeartPop { 0% { transform: scale(1); } 45% { transform: scale(1.4); } 100% { transform: scale(1); } }
+        .rk-lv-chat-like-count { font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.5); }
+        .rk-lv-chat-like.mine .rk-lv-chat-like-count { color: #e91e8c; }
 
         .rk-lv-chat-form { display: flex; gap: 8px; padding: 13px 16px; border-top: 1px solid rgba(255,255,255,0.08); background: rgba(0,0,0,0.15); }
         .rk-lv-chat-input {
@@ -509,6 +609,8 @@ export default function LiveViewer(props) {
         <div className="rk-lv-chat-list">
           {comments.length === 0 && <div className="rk-lv-chat-empty">Todavia no hay comentarios. Se el primero en saludar.</div>}
           {comments.map(function (c) {
+            var commentLikes = reactionRows.filter(function (r) { return r.comment_id === c.id })
+            var likedByMe = !!(participant && commentLikes.some(function (r) { return r.participant_id === participant.id } ))
             return (
               <div key={c.id} className="rk-lv-chat-row" style={{ '--rk-chat-accent': chatAccentColor(c.display_name) }}>
                 <span className="rk-lv-chat-avatar">{c.avatar || '🎤'}</span>
@@ -517,6 +619,16 @@ export default function LiveViewer(props) {
                   <span className="rk-lv-chat-time">{timeAgo(c.created_at)}</span>
                   <div className="rk-lv-chat-text">{c.text}</div>
                 </div>
+                <button
+                  type="button"
+                  className={'rk-lv-chat-like' + (likedByMe ? ' mine' : '')}
+                  onClick={function () { handleToggleCommentLike(c.id) }}
+                  disabled={!participant}
+                  title={likedByMe ? 'Quitar corazon' : 'Reaccionar con corazon'}
+                >
+                  <span>{likedByMe ? '❤️' : '🤍'}</span>
+                  {commentLikes.length > 0 && <span className="rk-lv-chat-like-count">{commentLikes.length}</span>}
+                </button>
               </div>
             )
           })}
