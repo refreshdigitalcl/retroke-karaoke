@@ -136,6 +136,7 @@ export default function LandingPage() {
             <a href="#modos">Modalidades</a>
             <a href="#confianza">Confianza</a>
             <a href="#planes">Planes</a>
+            <a href="/world">Retroke World</a>
           </div>
           <div className="r-nav-actions">
             <a href="/dj" className="r-link-btn">Iniciar sesión</a>
@@ -155,6 +156,7 @@ export default function LandingPage() {
             <a href="#modos" onClick={function () { setMenuOpen(false) }}>Modalidades</a>
             <a href="#confianza" onClick={function () { setMenuOpen(false) }}>Confianza</a>
             <a href="#planes" onClick={function () { setMenuOpen(false) }}>Planes</a>
+            <a href="/world" onClick={function () { setMenuOpen(false) }}>Retroke World</a>
             <a href="/dj" className="r-link-btn">Iniciar sesión</a>
             <a href="/precios" className="r-btn r-btn-primary">Comenzar</a>
             <a href="/downloads/retroke.apk" download className="apk-nav-btn" title="Descargar la app de Retroke para Android">
@@ -402,6 +404,7 @@ export default function LandingPage() {
             <a href="#modos">Modalidades</a>
             <a href="#confianza">Confianza</a>
             <a href="#planes">Planes</a>
+            <a href="/world">Retroke World</a>
           </nav>
           <div className="r-footer-actions">
             <a href="/dj" className="r-link-btn">Iniciar sesión</a>
