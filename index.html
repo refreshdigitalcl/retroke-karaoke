@@ -5,6 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Retroke - El Karaoke cambió para Siempre - Plataforma de entretención para bar/dj y home</title>
     <meta name="description" content="Retroke - El Karaoke cambió para Siempre - Plataforma de entretención para bar/dj y home." />
+
+    <!-- "Agregar a inicio" (PWA/standalone) -- iOS Safari guarda mucho menos
+         confiable el localStorage (sesion de Google, id de dispositivo) de
+         una pestaña normal que se cierra del todo, sobre todo en sitios
+         abiertos desde otra app (la Camara al escanear un QR). Instalado
+         como app desde el celular corre en su propio contenedor con
+         almacenamiento mucho mas persistente -- asi no hay que iniciar
+         sesion de nuevo cada vez que alguien cierra Safari entre cantada y
+         cantada. -->
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="icon" href="/favicon.png" />
+    <meta name="theme-color" content="#05030a" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Retroke" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
