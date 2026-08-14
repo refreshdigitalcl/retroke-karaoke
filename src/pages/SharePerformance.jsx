@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import ShareResultCard from '../components/ShareResultCard'
 import ShareButton from '../components/share/ShareButton'
+import RetroNeonBg from '../components/RetroNeonBg'
 
 // Pagina publica /r/:performanceId — el link que se comparte en redes.
 // Muestra la misma tarjeta 9:16 que se ve en vivo en el celular del
@@ -119,17 +120,19 @@ export default function SharePerformance() {
 
   if (state.loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-page)', color: '#fff' }}>
-        Cargando resultado...
+      <div className="min-h-screen flex items-center justify-center relative" style={{ background: 'var(--bg-page)', color: '#fff' }}>
+        <RetroNeonBg />
+        <span className="relative z-10">Cargando resultado...</span>
       </div>
     )
   }
 
   if (state.error || !state.data) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4 px-6 text-center" style={{ background: 'var(--bg-page)', color: '#fff' }}>
-        <p>{state.error || 'No encontramos este resultado.'}</p>
-        <Link to="/registro" className="underline">Ir a Retroke</Link>
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 px-6 text-center relative" style={{ background: 'var(--bg-page)', color: '#fff' }}>
+        <RetroNeonBg />
+        <p className="relative z-10">{state.error || 'No encontramos este resultado.'}</p>
+        <Link to="/registro" className="underline relative z-10">Ir a Retroke</Link>
       </div>
     )
   }
@@ -137,28 +140,31 @@ export default function SharePerformance() {
   const d = state.data
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-6 py-10 gap-5" style={{ background: 'var(--bg-page)' }}>
-      <ShareResultCard
-        ref={cardRef}
-        singerName={d.singerName}
-        avatar={d.avatar}
-        photoUrl={d.photoUrl}
-        song={d.song}
-        artistName={d.artistName}
-        artworkUrl={d.artworkUrl}
-        notaFinal={d.notaFinal}
-        vocalScore={d.vocalScore}
-        subScores={d.subScores ? {
-          pitchScore: d.subScores.pitch_score,
-          rhythmScore: d.subScores.rhythm_score,
-          stabilityScore: d.subScores.stability_score,
-          energyScore: d.subScores.energy_score
-        } : null}
-        confidence={d.confidence}
-        levelName={d.levelName}
-        achievementIcons={d.achievementIcons}
-      />
-      <div className="w-full max-w-sm flex flex-col gap-3">
+    <div className="min-h-screen flex flex-col items-center justify-center px-6 py-10 gap-5 relative" style={{ background: 'var(--bg-page)' }}>
+      <RetroNeonBg />
+      <div className="relative z-10">
+        <ShareResultCard
+          ref={cardRef}
+          singerName={d.singerName}
+          avatar={d.avatar}
+          photoUrl={d.photoUrl}
+          song={d.song}
+          artistName={d.artistName}
+          artworkUrl={d.artworkUrl}
+          notaFinal={d.notaFinal}
+          vocalScore={d.vocalScore}
+          subScores={d.subScores ? {
+            pitchScore: d.subScores.pitch_score,
+            rhythmScore: d.subScores.rhythm_score,
+            stabilityScore: d.subScores.stability_score,
+            energyScore: d.subScores.energy_score
+          } : null}
+          confidence={d.confidence}
+          levelName={d.levelName}
+          achievementIcons={d.achievementIcons}
+        />
+      </div>
+      <div className="w-full max-w-sm flex flex-col gap-3 relative z-10">
         <ShareButton
           mode="download"
           cardRef={cardRef}

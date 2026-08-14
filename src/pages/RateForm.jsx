@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useKaraokeSession } from '../contexts/KaraokeSessionContext'
 import { getBalancedPhrases } from '../lib/ratingPhrases'
+import RetroNeonBg from '../components/RetroNeonBg'
 
 var SCORES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
@@ -31,8 +32,9 @@ export default function RateForm() {
 
   if (screenMode !== 'rating' || !currentSinger) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-6 bg-black text-center">
-        <div>
+      <div className="min-h-screen flex items-center justify-center px-6 bg-black text-center relative">
+        <RetroNeonBg />
+        <div className="relative z-10">
           <p className="text-4xl mb-4">🎤</p>
           <p className="text-neutral-400">
             Aun no hay votacion abierta. Vuelve cuando termine la cancion.
@@ -54,8 +56,9 @@ export default function RateForm() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-6 bg-black">
-      <div className="max-w-sm w-full rounded-3xl border-2 border-purple-500 bg-neutral-950/90 p-7 text-center rate-card-in">
+    <div className="min-h-screen flex items-center justify-center px-6 bg-black relative">
+      <RetroNeonBg />
+      <div className="max-w-sm w-full rounded-3xl border-2 border-purple-500 bg-neutral-950/90 p-7 text-center rate-card-in relative z-10">
         <div
           className="w-20 h-20 rounded-full overflow-hidden flex items-center justify-center text-4xl bg-pink-600 mx-auto mb-4"
           style={{ boxShadow: '0 0 22px 5px rgba(233, 30, 140, 0.5)' }}

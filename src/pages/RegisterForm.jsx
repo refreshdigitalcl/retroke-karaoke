@@ -10,6 +10,7 @@ import { buildShareText } from '../lib/shareCard'
 import { computeNotaFinal, LEVELS } from '../lib/gamification'
 import ShareResultCard from '../components/ShareResultCard'
 import ShareButton from '../components/share/ShareButton'
+import RetroNeonBg from '../components/RetroNeonBg'
 
 const AVATARS = ['🔥', '🦄', '👽', '🐸', '🎤', '🐙', '⭐', '👑', '🍄', '🌊', '🎸', '🦋']
 
@@ -705,22 +706,25 @@ function PerformanceShareScreen(props) {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-6 py-10 gap-5" style={{ background: 'var(--bg-page)' }}>
-      <ShareResultCard
-        ref={shareCardRef}
-        singerName={fallbackName}
-        avatar={fallbackAvatar}
-        photoUrl={fallbackPhoto || null}
-        song={fallbackSong}
-        artistName={data.artistName}
-        artworkUrl={data.artworkUrl}
-        notaFinal={data.notaFinal}
-        vocalScore={data.vocalScore}
-        subScores={data.subScores}
-        confidence={data.confidence}
-        levelName={levelName}
-      />
-      <div className="w-full max-w-sm flex flex-col gap-3">
+    <div className="min-h-screen flex flex-col items-center justify-center px-6 py-10 gap-5 relative" style={{ background: 'var(--bg-page)' }}>
+      <RetroNeonBg />
+      <div className="relative z-10">
+        <ShareResultCard
+          ref={shareCardRef}
+          singerName={fallbackName}
+          avatar={fallbackAvatar}
+          photoUrl={fallbackPhoto || null}
+          song={fallbackSong}
+          artistName={data.artistName}
+          artworkUrl={data.artworkUrl}
+          notaFinal={data.notaFinal}
+          vocalScore={data.vocalScore}
+          subScores={data.subScores}
+          confidence={data.confidence}
+          levelName={levelName}
+        />
+      </div>
+      <div className="w-full max-w-sm flex flex-col gap-3 relative z-10">
         <ShareButton
           mode="image"
           cardRef={shareCardRef}
@@ -1454,9 +1458,10 @@ export default function RegisterForm() {
 
   if (showThanks) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-6" style={{ background: 'var(--bg-page)' }}>
+      <div className="min-h-screen flex items-center justify-center px-6 relative" style={{ background: 'var(--bg-page)' }}>
+        <RetroNeonBg />
         <div
-          className="max-w-sm w-full rounded-3xl border-2 p-8 text-center"
+          className="max-w-sm w-full rounded-3xl border-2 p-8 text-center relative z-10"
           style={{
             background: 'linear-gradient(135deg, rgba(139,92,246,0.12), rgba(233,30,140,0.10))',
             borderColor: '#8B5CF6',
@@ -1507,8 +1512,9 @@ export default function RegisterForm() {
 
   if (submitted) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-6" style={{ background: 'var(--bg-page)' }}>
-        <div className="max-w-sm w-full rounded-3xl border p-8 text-center" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
+      <div className="min-h-screen flex items-center justify-center px-6 relative" style={{ background: 'var(--bg-page)' }}>
+        <RetroNeonBg />
+        <div className="max-w-sm w-full rounded-3xl border p-8 text-center relative z-10" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
           <div
             className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center text-3xl overflow-hidden"
             style={{ background: 'var(--accent-magenta)' }}
@@ -1541,10 +1547,11 @@ export default function RegisterForm() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-6 py-10" style={{ background: 'var(--bg-page)' }}>
+    <div className="min-h-screen flex items-center justify-center px-6 py-10 relative" style={{ background: 'var(--bg-page)' }}>
+      <RetroNeonBg />
       <form
         onSubmit={handleSubmit}
-        className="max-w-sm w-full rounded-3xl border p-6"
+        className="max-w-sm w-full rounded-3xl border p-6 relative z-10"
         style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}
       >
         <style>{`
