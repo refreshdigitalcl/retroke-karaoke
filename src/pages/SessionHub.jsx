@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import RetroEqualizer from '../components/RetroEqualizer'
 import FloatingDecor from '../components/FloatingDecor'
+import RetroNeonBg from '../components/RetroNeonBg'
 
 function saveRoom(href) {
   try {
@@ -222,6 +223,7 @@ export default function SessionHub() {
 
   return (
     <div className="min-h-screen relative overflow-hidden flex flex-col items-center justify-center px-8 pt-28 pb-12 bg-black">
+      <RetroNeonBg />
       <RetroEqualizer />
       <FloatingDecor />
       <div className="hub-scanlines" aria-hidden="true" />

@@ -26,6 +26,7 @@ import QRCode from '../components/QRCode'
 import FloatingDecor from '../components/FloatingDecor'
 import FullscreenButton from '../components/FullscreenButton'
 import FallingParty from '../components/FallingParty'
+import RetroNeonBg from '../components/RetroNeonBg'
 
 function QueueRow(props) {
   var entry = props.entry
@@ -256,6 +257,7 @@ export default function DisplayQueue(props) {
 
   return (
     <div className="h-screen relative overflow-hidden flex flex-col bg-black">
+      <RetroNeonBg />
       <RetroEqualizer />
       <FloatingDecor />
       <FallingParty />
