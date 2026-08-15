@@ -256,7 +256,7 @@ export default function DisplayQueue(props) {
   var registerUrl = origin + '/registro?' + spaceParam
 
   return (
-    <div className="h-screen relative overflow-hidden flex flex-col bg-black">
+    <div className="h-screen relative overflow-hidden flex flex-col" style={{ background: 'var(--rk-bg-gradient, #05030a)' }}>
       <RetroNeonBg />
       <RetroEqualizer />
       <FloatingDecor />

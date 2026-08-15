@@ -222,7 +222,7 @@ export default function SessionHub() {
   }
 
   return (
-    <div className="min-h-screen relative overflow-hidden flex flex-col items-center justify-center px-8 pt-28 pb-12 bg-black">
+    <div className="min-h-screen relative overflow-hidden flex flex-col items-center justify-center px-8 pt-28 pb-12" style={{ background: 'var(--rk-bg-gradient, #05030a)' }}>
       <RetroNeonBg />
       <RetroEqualizer />
       <FloatingDecor />
