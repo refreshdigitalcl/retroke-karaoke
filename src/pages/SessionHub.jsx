@@ -232,70 +232,72 @@ export default function SessionHub() {
   var activeCount = sessions === null ? null : sessions.length
 
   return (
-    <div className="min-h-screen relative overflow-hidden flex flex-col items-center px-8 pt-32 pb-12" style={{ background: 'var(--rk-bg-gradient, #05030a)' }}>
+    <div className="min-h-screen relative overflow-x-hidden flex flex-col items-center px-5 sm:px-8 lg:px-14 pt-28 sm:pt-32 pb-12" style={{ background: 'var(--rk-bg-gradient, #05030a)' }}>
       <style>{RETROKE_STYLES}</style>
       <RetroNeonBg />
 
       <RetrokeNavbar active={null} />
 
-      <div className="rk-hub-hero-wrap">
-        <RetrokeAtmosphere variant="full" grid scanlines />
-        <div className="rk-hub-hero-content">
-          <SelectionHero activeCount={activeCount} />
-        </div>
-      </div>
-
-      <div className="relative w-full flex flex-col items-center" style={{ zIndex: 1 }}>
-        {sessions === null && (
-          <div className="w-full max-w-sm">
-            <RetrokeSkeleton lines={3} />
+      <div className="rk-hub-page">
+        <div className="rk-hub-hero-wrap">
+          <RetrokeAtmosphere variant="full" grid scanlines />
+          <div className="rk-hub-hero-content">
+            <SelectionHero activeCount={activeCount} />
           </div>
-        )}
+        </div>
 
-        {sessions !== null && sessions.length > 0 && (
-          <div className="w-full max-w-md mb-7">
-            <div className="rk-hub-search">
-              <RetrokeIcon name="search" size={16} className="rk-hub-search-icon" />
-              <input
-                type="text"
-                value={query}
-                onChange={function (e) { setQuery(e.target.value) }}
-                placeholder="Buscar sala por nombre"
+        <div className="relative w-full flex flex-col items-center" style={{ zIndex: 1 }}>
+          {sessions === null && (
+            <div className="w-full max-w-sm">
+              <RetrokeSkeleton lines={3} />
+            </div>
+          )}
+
+          {sessions !== null && sessions.length > 0 && (
+            <div className="w-full max-w-md mb-7">
+              <div className="rk-hub-search">
+                <RetrokeIcon name="search" size={16} className="rk-hub-search-icon" />
+                <input
+                  type="text"
+                  value={query}
+                  onChange={function (e) { setQuery(e.target.value) }}
+                  placeholder="Buscar sala por nombre"
+                />
+              </div>
+            </div>
+          )}
+
+          {sessions !== null && sessions.length === 0 && (
+            <div className="w-full max-w-sm">
+              <RetrokeEmptyState
+                icon={<RetrokeIcon name="mic" size={30} glow />}
+                message="No hay ninguna sala activa en este momento. Cuando un DJ inicie una sesion, va a aparecer aqui automaticamente."
               />
             </div>
-          </div>
-        )}
+          )}
 
-        {sessions !== null && sessions.length === 0 && (
-          <div className="w-full max-w-sm">
-            <RetrokeEmptyState
-              icon={<RetrokeIcon name="mic" size={30} glow />}
-              message="No hay ninguna sala activa en este momento. Cuando un DJ inicie una sesion, va a aparecer aqui automaticamente."
-            />
-          </div>
-        )}
+          {sessions !== null && sessions.length > 0 && filteredSessions.length === 0 && (
+            <p className="text-sm" style={{ color: 'var(--rk-text-faint)' }}>No encontramos ninguna sala con ese nombre.</p>
+          )}
 
-        {sessions !== null && sessions.length > 0 && filteredSessions.length === 0 && (
-          <p className="text-sm" style={{ color: 'var(--rk-text-faint)' }}>No encontramos ninguna sala con ese nombre.</p>
-        )}
-
-        {filteredSessions !== null && filteredSessions.length > 0 && (
-          <div
-            className={'w-full max-w-3xl grid gap-4 pb-4' + (filteredSessions.length > 1 ? ' sm:grid-cols-2' : '')}
-          >
-            {filteredSessions.map(function (s, i) {
-              return (
-                <RoomExperienceCard
-                  key={s.id}
-                  session={s}
-                  index={i}
-                  variant={filteredSessions.length === 1 ? 'hero' : 'default'}
-                  onSelect={handlePick}
-                />
-              )
-            })}
-          </div>
-        )}
+          {filteredSessions !== null && filteredSessions.length > 0 && (
+            <div
+              className={'rk-hub-grid' + (filteredSessions.length > 1 ? ' has-multiple' : '')}
+            >
+              {filteredSessions.map(function (s, i) {
+                return (
+                  <RoomExperienceCard
+                    key={s.id}
+                    session={s}
+                    index={i}
+                    variant={filteredSessions.length === 1 ? 'hero' : 'default'}
+                    onSelect={handlePick}
+                  />
+                )
+              })}
+            </div>
+          )}
+        </div>
       </div>
 
       {selected && (
@@ -319,16 +321,28 @@ export default function SessionHub() {
       </a>
 
       <style>{`
+        .rk-hub-page {
+          position: relative;
+          width: 100%;
+          max-width: 1280px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+
         .rk-hub-hero-wrap {
           position: relative;
           width: 100%;
-          max-width: 720px;
+          max-width: 860px;
           overflow: hidden;
-          min-height: 380px;
+          min-height: 340px;
           display: flex;
           align-items: center;
           justify-content: center;
           border-radius: var(--rk-radius-xl, 30px);
+        }
+        @media (min-width: 1024px) {
+          .rk-hub-hero-wrap { max-width: 980px; min-height: 400px; }
         }
         .rk-hub-hero-content {
           position: relative;
@@ -336,6 +350,27 @@ export default function SessionHub() {
           width: 100%;
           display: flex;
           justify-content: center;
+        }
+
+        .rk-hub-grid {
+          width: 100%;
+          max-width: 1180px;
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 16px;
+          padding-bottom: 16px;
+        }
+        .rk-hub-grid:not(.has-multiple) {
+          max-width: 560px;
+        }
+        @media (min-width: 640px) {
+          .rk-hub-grid.has-multiple { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (min-width: 1024px) {
+          .rk-hub-grid.has-multiple { grid-template-columns: repeat(3, 1fr); }
+        }
+        @media (min-width: 1440px) {
+          .rk-hub-grid.has-multiple { grid-template-columns: repeat(4, 1fr); }
         }
 
         .rk-hub-search {
