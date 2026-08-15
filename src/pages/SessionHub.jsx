@@ -1,8 +1,25 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import RetroEqualizer from '../components/RetroEqualizer'
-import FloatingDecor from '../components/FloatingDecor'
+import { useRetrokeFont } from '../lib/fonts'
 import RetroNeonBg from '../components/RetroNeonBg'
+import RetrokeAtmosphere from '../components/retroke/RetrokeAtmosphere'
+import RetrokeEmptyState from '../components/retroke/RetrokeEmptyState'
+import RetrokeSkeleton from '../components/retroke/RetrokeSkeleton'
+import RetrokeIcon from '../components/retroke/RetrokeIcon'
+import { RETROKE_STYLES } from '../components/retroke/retrokeStyles'
+import RetrokeNavbar from '../components/RetrokeNavbar'
+import SelectionHero from '../components/SelectionHero'
+import RoomExperienceCard from '../components/RoomExperienceCard'
+
+// SessionHub -- rediseño maestro de la pantalla de seleccion (retroke.cl
+// sin ?bar/?ws) y de la navegacion global. Ver conversacion "REDISEÑO
+// MAESTRO DE EXPERIENCIA" -- transformacion visual, sin regresion
+// funcional: toda la logica de abajo (useActiveSessions, PinGate,
+// saveRoom, el sonido de bienvenida, el boton de descarga del APK) sigue
+// siendo exactamente la misma que ya funcionaba, solo cambia la capa
+// visual que la envuelve, ahora conectada al mismo sistema (Retroke
+// Visual System 2.0 / tokens --rk-*) que ya usa Retroke World, en vez de
+// tener su propio lenguaje aislado.
 
 function saveRoom(href) {
   try {
@@ -157,19 +174,10 @@ function PinGate(props) {
   )
 }
 
-var HUB_FONTS_HREF = 'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap'
-
 export default function SessionHub() {
   var sessions = useActiveSessions()
 
-  useEffect(function () {
-    if (document.querySelector('link[data-hub-fonts]')) return
-    var link = document.createElement('link')
-    link.rel = 'stylesheet'
-    link.href = HUB_FONTS_HREF
-    link.setAttribute('data-hub-fonts', 'true')
-    document.head.appendChild(link)
-  }, [])
+  useRetrokeFont()
 
   useEffect(function () {
     var played = false
@@ -221,122 +229,74 @@ export default function SessionHub() {
     }
   }
 
+  var activeCount = sessions === null ? null : sessions.length
+
   return (
-    <div className="min-h-screen relative overflow-hidden flex flex-col items-center justify-center px-8 pt-28 pb-12" style={{ background: 'var(--rk-bg-gradient, #05030a)' }}>
+    <div className="min-h-screen relative overflow-hidden flex flex-col items-center px-8 pt-32 pb-12" style={{ background: 'var(--rk-bg-gradient, #05030a)' }}>
+      <style>{RETROKE_STYLES}</style>
       <RetroNeonBg />
-      <RetroEqualizer />
-      <FloatingDecor />
-      <div className="hub-scanlines" aria-hidden="true" />
 
-      <nav
-        className="fixed top-0 inset-x-0 z-40 flex items-center justify-center gap-6 md:gap-10 px-6 py-4"
-        style={{ background: 'rgba(8,4,14,0.6)', backdropFilter: 'blur(10px)', borderBottom: '1px solid rgba(139,92,246,0.25)' }}
-      >
-        <a
-          href="/inicio"
-          className="text-xs md:text-sm tracking-[3px] uppercase font-bold text-neutral-300 transition-colors hub-nav-link"
-        >
-          Inicio
-        </a>
-        <a
-          href="/precios"
-          className="text-xs md:text-sm tracking-[3px] uppercase font-bold text-neutral-300 transition-colors hub-nav-link"
-        >
-          Planes y precios
-        </a>
-        <a
-          href="/world"
-          className="text-xs md:text-sm tracking-[3px] uppercase font-bold text-neutral-300 transition-colors hub-nav-link"
-        >
-          Retroke World
-        </a>
-      </nav>
+      <RetrokeNavbar active={null} />
 
-      <img
-        src="/landing/retroke-logo-oficial-neon.png"
-        alt="Retroke"
-        className="relative z-10 w-auto mb-3 hub-logo-in"
-        style={{ height: 'clamp(120px, 20vh, 220px)' }}
-      />
-
-      <div className="relative z-10 flex flex-col items-center mb-10">
-        <p className="hub-subtitle text-center">
-          El karaoke cambió <span className="hub-subtitle-break">para siempre</span>
-        </p>
-        <p className="text-sm md:text-base text-neutral-400 mt-5 text-center">
-          Toca una sala activa para abrir su pantalla aquí
-        </p>
+      <div className="rk-hub-hero-wrap">
+        <RetrokeAtmosphere variant="full" grid scanlines />
+        <div className="rk-hub-hero-content">
+          <SelectionHero activeCount={activeCount} />
+        </div>
       </div>
 
-      {sessions === null && (
-        <p className="relative z-10 text-neutral-500">Buscando salas activas...</p>
-      )}
+      <div className="relative w-full flex flex-col items-center" style={{ zIndex: 1 }}>
+        {sessions === null && (
+          <div className="w-full max-w-sm">
+            <RetrokeSkeleton lines={3} />
+          </div>
+        )}
 
-      {sessions !== null && sessions.length > 0 && (
-        <div className="relative z-10 w-full max-w-md mb-6">
-          <input
-            type="text"
-            value={query}
-            onChange={function (e) { setQuery(e.target.value) }}
-            placeholder="🔍 Buscar sala por nombre..."
-            className="w-full h-12 rounded-full px-5 text-sm outline-none"
-            style={{
-              background: 'rgba(20,10,30,0.85)',
-              border: '2px solid rgba(139,92,246,0.5)',
-              color: '#fff',
-              boxShadow: '0 0 20px -4px rgba(139,92,246,0.6)'
-            }}
-          />
-        </div>
-      )}
+        {sessions !== null && sessions.length > 0 && (
+          <div className="w-full max-w-md mb-7">
+            <div className="rk-hub-search">
+              <RetrokeIcon name="search" size={16} className="rk-hub-search-icon" />
+              <input
+                type="text"
+                value={query}
+                onChange={function (e) { setQuery(e.target.value) }}
+                placeholder="Buscar sala por nombre"
+              />
+            </div>
+          </div>
+        )}
 
-      {sessions !== null && sessions.length === 0 && (
-        <div className="relative z-10 max-w-sm rounded-3xl border-2 border-purple-500/40 bg-neutral-950/70 px-8 py-8 text-center">
-          <p className="text-4xl mb-3">🎤</p>
-          <p className="text-neutral-300">
-            No hay ninguna sala activa en este momento. Cuando un DJ inicie una sesion, va a aparecer aqui automaticamente.
-          </p>
-        </div>
-      )}
+        {sessions !== null && sessions.length === 0 && (
+          <div className="w-full max-w-sm">
+            <RetrokeEmptyState
+              icon={<RetrokeIcon name="mic" size={30} glow />}
+              message="No hay ninguna sala activa en este momento. Cuando un DJ inicie una sesion, va a aparecer aqui automaticamente."
+            />
+          </div>
+        )}
 
-      {sessions !== null && sessions.length > 0 && filteredSessions.length === 0 && (
-        <p className="relative z-10 text-neutral-500">No encontramos ninguna sala con ese nombre.</p>
-      )}
+        {sessions !== null && sessions.length > 0 && filteredSessions.length === 0 && (
+          <p className="text-sm" style={{ color: 'var(--rk-text-faint)' }}>No encontramos ninguna sala con ese nombre.</p>
+        )}
 
-      {filteredSessions !== null && filteredSessions.length > 0 && (
-        <div className="relative z-10 w-full max-w-3xl grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {filteredSessions.map(function (s, i) {
-            var icon = s.kind === 'home' ? '🏠' : s.kind === 'dj' ? '🎧' : '🎤'
-            var accent = s.kind === 'home' ? '#7ED957' : s.kind === 'dj' ? '#F4D03F' : '#E91E8C'
-            return (
-              <button
-                key={s.id}
-                onClick={function () { handlePick(s) }}
-                className="hub-card rounded-2xl px-6 py-6 flex items-center gap-4 text-left"
-                style={{
-                  animationDelay: (i * 0.08) + 's',
-                  background: 'linear-gradient(135deg, rgba(20,12,28,0.9), rgba(10,6,14,0.9))',
-                  border: '2px solid ' + accent + '55',
-                  boxShadow: '0 0 0 1px rgba(255,255,255,0.03) inset'
-                }}
-              >
-                <span
-                  className="w-14 h-14 rounded-full flex items-center justify-center text-2xl shrink-0"
-                  style={{ background: accent + '1a', border: '1.5px solid ' + accent + 'aa', boxShadow: '0 0 16px -2px ' + accent }}
-                >
-                  {icon}
-                </span>
-                <span className="min-w-0 flex-1">
-                  <p className="text-lg font-extrabold text-white truncate">{s.placeName}</p>
-                  <p className="text-sm truncate" style={{ color: accent }}>{s.name}</p>
-                </span>
-                {s.pin && <span className="text-lg shrink-0">🔒</span>}
-                <span className="text-2xl shrink-0" style={{ color: accent }}>→</span>
-              </button>
-            )
-          })}
-        </div>
-      )}
+        {filteredSessions !== null && filteredSessions.length > 0 && (
+          <div
+            className={'w-full max-w-3xl grid gap-4 pb-4' + (filteredSessions.length > 1 ? ' sm:grid-cols-2' : '')}
+          >
+            {filteredSessions.map(function (s, i) {
+              return (
+                <RoomExperienceCard
+                  key={s.id}
+                  session={s}
+                  index={i}
+                  variant={filteredSessions.length === 1 ? 'hero' : 'default'}
+                  onSelect={handlePick}
+                />
+              )
+            })}
+          </div>
+        )}
+      </div>
 
       {selected && (
         <PinGate session={selected} onCancel={function () { setSelected(null) }} />
@@ -359,71 +319,54 @@ export default function SessionHub() {
       </a>
 
       <style>{`
-        .hub-scanlines {
-          position: absolute;
-          inset: 0;
+        .rk-hub-hero-wrap {
+          position: relative;
+          width: 100%;
+          max-width: 720px;
+          overflow: hidden;
+          min-height: 380px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: var(--rk-radius-xl, 30px);
+        }
+        .rk-hub-hero-content {
+          position: relative;
           z-index: 1;
+          width: 100%;
+          display: flex;
+          justify-content: center;
+        }
+
+        .rk-hub-search {
+          position: relative;
+          display: flex;
+          align-items: center;
+        }
+        .rk-hub-search-icon {
+          position: absolute;
+          left: 18px;
+          color: var(--rk-text-faint, rgba(255,255,255,0.4));
           pointer-events: none;
-          background: repeating-linear-gradient(
-            to bottom,
-            rgba(255,255,255,0.02) 0px,
-            rgba(255,255,255,0.02) 1px,
-            transparent 1px,
-            transparent 3px
-          );
-          mix-blend-mode: overlay;
         }
-        .hub-logo-in {
-          animation: hubLogoIn 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
-        }
-        @keyframes hubLogoIn {
-          from { opacity: 0; transform: scale(0.9) translateY(-8px); }
-          to { opacity: 1; transform: scale(1) translateY(0); }
-        }
-        .hub-subtitle {
-          font-family: 'Space Grotesk', 'Inter', sans-serif;
-          font-weight: 700;
-          font-size: clamp(1.15rem, 2.8vw, 1.85rem);
-          letter-spacing: 0.2px;
-          line-height: 1.3;
-          margin: 0;
-          background: linear-gradient(100deg, #fff 12%, #E91E8C 32%, #8B5CF6 55%, #F4D03F 76%, #fff 96%);
-          background-size: 260% auto;
-          -webkit-background-clip: text;
-          background-clip: text;
-          -webkit-text-fill-color: transparent;
-          color: transparent;
-          animation: hubSubtitleShift 7s ease-in-out infinite;
-          filter: drop-shadow(0 2px 14px rgba(0,0,0,0.55));
-        }
-        .hub-subtitle-break {
-          font-weight: 500;
-          opacity: 0.88;
-        }
-        @keyframes hubSubtitleShift {
-          0%, 100% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-        }
-        .hub-nav-link {
-          text-decoration: none;
-        }
-        .hub-nav-link:hover, .hub-nav-link:focus {
+        .rk-hub-search input {
+          width: 100%;
+          height: 48px;
+          border-radius: var(--rk-radius-pill, 999px);
+          padding: 0 20px 0 44px;
+          font-size: 14px;
+          outline: none;
           color: #fff;
-          text-shadow: 0 0 10px rgba(139,92,246,0.7);
+          background: var(--rk-surface, rgba(255,255,255,0.045));
+          border: 1px solid var(--rk-border-strong, rgba(255,255,255,0.18));
+          transition: border-color 0.2s ease, box-shadow 0.2s ease;
         }
-        .hub-card {
-          animation: hubCardIn 0.4s ease-out both;
-          transition: transform 0.15s, box-shadow 0.15s, filter 0.15s;
-          cursor: pointer;
+        .rk-hub-search input::placeholder {
+          color: var(--rk-text-faint, rgba(255,255,255,0.4));
         }
-        .hub-card:hover, .hub-card:focus {
-          transform: scale(1.02);
-          filter: brightness(1.08);
-          box-shadow: 0 0 28px 4px rgba(255, 255, 255, 0.1);
-        }
-        @keyframes hubCardIn {
-          from { opacity: 0; transform: translateY(14px); }
-          to { opacity: 1; transform: translateY(0); }
+        .rk-hub-search input:focus {
+          border-color: rgba(139,92,246,0.6);
+          box-shadow: 0 0 0 3px rgba(139,92,246,0.18);
         }
 
         .apk-download-btn {
