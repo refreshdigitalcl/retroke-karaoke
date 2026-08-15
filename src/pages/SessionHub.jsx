@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useRetrokeFont } from '../lib/fonts'
 import RetroNeonBg from '../components/RetroNeonBg'
-import RetrokeAtmosphere from '../components/retroke/RetrokeAtmosphere'
 import RetrokeEmptyState from '../components/retroke/RetrokeEmptyState'
 import RetrokeSkeleton from '../components/retroke/RetrokeSkeleton'
 import RetrokeIcon from '../components/retroke/RetrokeIcon'
@@ -11,7 +10,6 @@ import RetrokeNavbar from '../components/RetrokeNavbar'
 import SelectionHero from '../components/SelectionHero'
 import RoomExperienceCard from '../components/RoomExperienceCard'
 import RetroEqualizer from '../components/RetroEqualizer'
-import FloatingDecor from '../components/FloatingDecor'
 
 // SessionHub -- rediseño maestro de la pantalla de seleccion (retroke.cl
 // sin ?bar/?ws) y de la navegacion global. Ver conversacion "REDISEÑO
@@ -243,11 +241,7 @@ export default function SessionHub() {
 
       <div className="rk-hub-page">
         <div className="rk-hub-hero-wrap">
-          <RetrokeAtmosphere variant="none" grid scanlines />
-          <FloatingDecor hideVinyl />
-          <div className="rk-hub-hero-content">
-            <SelectionHero activeCount={activeCount} />
-          </div>
+          <SelectionHero activeCount={activeCount} />
         </div>
 
         <div className="relative w-full flex flex-col items-center" style={{ zIndex: 1 }}>
@@ -265,7 +259,7 @@ export default function SessionHub() {
                   type="text"
                   value={query}
                   onChange={function (e) { setQuery(e.target.value) }}
-                  placeholder="Buscar sala por nombre"
+                  placeholder="Ingresa el nombre de tu sala para ingresar"
                 />
               </div>
             </div>
@@ -336,24 +330,15 @@ export default function SessionHub() {
 
         .rk-hub-hero-wrap {
           position: relative;
-          width: 100%;
-          max-width: 860px;
-          overflow: hidden;
-          min-height: 340px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border-radius: var(--rk-radius-xl, 30px);
-        }
-        @media (min-width: 1024px) {
-          .rk-hub-hero-wrap { max-width: 980px; min-height: 400px; }
-        }
-        .rk-hub-hero-content {
-          position: relative;
           z-index: 1;
           width: 100%;
+          max-width: 860px;
           display: flex;
           justify-content: center;
+          padding-bottom: 36px;
+        }
+        @media (min-width: 1024px) {
+          .rk-hub-hero-wrap { max-width: 980px; padding-bottom: 44px; }
         }
 
         .rk-hub-grid {
