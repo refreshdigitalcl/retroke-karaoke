@@ -233,7 +233,7 @@ export default function SessionHub() {
   var activeCount = sessions === null ? null : sessions.length
 
   return (
-    <div className="min-h-screen relative overflow-x-hidden flex flex-col items-center px-5 sm:px-8 lg:px-14 pt-28 sm:pt-32 pb-12" style={{ background: 'var(--rk-bg-gradient, #05030a)' }}>
+    <div className="min-h-screen relative overflow-x-hidden flex flex-col items-center px-5 sm:px-8 lg:px-14 pt-20 sm:pt-24 pb-12" style={{ background: 'var(--rk-bg-gradient, #05030a)' }}>
       <style>{RETROKE_STYLES}</style>
       <RetroNeonBg />
       {/* HeroBackdropPhoto vive ahora como hijo directo de la raiz (no

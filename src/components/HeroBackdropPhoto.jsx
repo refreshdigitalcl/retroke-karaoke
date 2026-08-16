@@ -55,10 +55,13 @@ export default function HeroBackdropPhoto() {
            borde real de la pantalla. El alto se fija por breakpoint =
            padding-top de la raiz + min-height de rk-hub-hero-wrap en ese
            mismo breakpoint, para que la foto siga cubriendo justo hasta
-           donde termina el hero:
-             <640px:  112px (pt-28)     + 420px (hero-wrap) = 532px
-             >=640px: 128px (sm:pt-32)  + 420px              = 548px
-             >=1024px:128px             + 520px (hero-wrap lg) = 648px
+           donde termina el hero. El padding-top de la raiz bajo de
+           pt-28/sm:pt-32 a pt-20/sm:pt-24 (usuario pidio subir el hero,
+           mas cerca del navbar) -- estos numeros estan recalculados con
+           esos valores nuevos:
+             <640px:  80px (pt-20)    + 420px (hero-wrap) = 500px
+             >=640px: 96px (sm:pt-24) + 420px              = 516px
+             >=1024px:96px            + 520px (hero-wrap lg) = 616px
            z-index 15: por encima del grid de fondo (RetroNeonBg, z:0) pero
            por debajo del ecualizador (RetroEqualizer, z:20) -- justo lo que
            pidio el usuario ("el ecualizador delante de la imagen"). */
@@ -67,17 +70,17 @@ export default function HeroBackdropPhoto() {
           top: 0;
           left: 50%;
           width: 100vw;
-          height: 532px;
+          height: 500px;
           transform: translateX(-50%);
           z-index: 15;
           overflow: hidden;
           pointer-events: none;
         }
         @media (min-width: 640px) {
-          .hero-backdrop { height: 548px; }
+          .hero-backdrop { height: 516px; }
         }
         @media (min-width: 1024px) {
-          .hero-backdrop { height: 648px; }
+          .hero-backdrop { height: 616px; }
         }
 
         .hero-backdrop-glow {

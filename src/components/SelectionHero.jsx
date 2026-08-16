@@ -47,21 +47,39 @@ export default function SelectionHero(props) {
         .rk-shero-kicker {
           margin: 0;
           font-family: var(--rk-font-display, 'Space Grotesk', sans-serif);
-          font-size: 11px;
-          font-weight: 700;
-          letter-spacing: 0.28em;
+          font-size: 13px;
+          font-weight: 800;
+          letter-spacing: 0.24em;
           text-transform: uppercase;
-          color: var(--rk-text-faint, rgba(255,255,255,0.45));
-          animation: rkSheroFadeIn 0.6s ease 0.05s both;
+          background: linear-gradient(90deg, #F4D03F, #E91E8C, #8B5CF6, #F4D03F);
+          background-size: 300% auto;
+          -webkit-background-clip: text;
+          background-clip: text;
+          -webkit-text-fill-color: transparent;
+          color: transparent;
+          filter: drop-shadow(0 0 12px rgba(233,30,140,0.4));
+          animation: rkSheroKickerShimmer 5s linear infinite, rkSheroFadeIn 0.6s ease 0.05s both;
+        }
+        @keyframes rkSheroKickerShimmer {
+          0% { background-position: 0% center; }
+          100% { background-position: 300% center; }
         }
         .rk-shero-wordmark {
           margin: 16px 0 0;
-          /* +60% sobre el tamaño anterior (clamp(3.2rem, 12vw, 7.5rem)) */
-          height: clamp(5.12rem, 19.2vw, 12rem);
+          /* +25% sobre el tamaño anterior (clamp(5.12rem, 19.2vw, 12rem),
+             que a su vez ya era un +60% del original) */
+          height: clamp(6.4rem, 24vw, 15rem);
           width: auto;
           display: block;
           filter: drop-shadow(0 0 26px rgba(139,92,246,0.45)) drop-shadow(0 0 50px rgba(233,30,140,0.28));
           animation: rkSheroGlow 4.5s ease-in-out infinite, rkSheroFadeIn 0.6s ease 0.13s both;
+        }
+        /* En celular el logo se sentia chico igual (el piso del clamp
+           pesa mas ahi que el techo) -- este breakpoint le da un piso
+           propio: +35% sobre el tamaño anterior en vez del +25% general
+           de arriba. */
+        @media (max-width: 640px) {
+          .rk-shero-wordmark { height: clamp(6.91rem, 24vw, 15rem); }
         }
         @keyframes rkSheroGlow {
           0%, 100% { filter: drop-shadow(0 0 26px rgba(139,92,246,0.45)) drop-shadow(0 0 50px rgba(233,30,140,0.28)); }
