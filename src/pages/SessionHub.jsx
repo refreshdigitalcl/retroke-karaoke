@@ -242,10 +242,8 @@ export default function SessionHub() {
 
       <div className="rk-hub-page">
         <div className="rk-hub-hero-wrap">
-          <div className="rk-hub-hero-layout">
-            <FloatingHeroFigure />
-            <SelectionHero activeCount={activeCount} />
-          </div>
+          <FloatingHeroFigure />
+          <SelectionHero activeCount={activeCount} />
         </div>
 
         <div className="relative w-full flex flex-col items-center" style={{ zIndex: 1 }}>
@@ -337,32 +335,14 @@ export default function SessionHub() {
           z-index: 1;
           width: 100%;
           max-width: 860px;
+          min-height: 420px;
           display: flex;
+          align-items: center;
           justify-content: center;
           padding-bottom: 36px;
         }
         @media (min-width: 1024px) {
-          .rk-hub-hero-wrap { max-width: 1180px; padding-bottom: 44px; }
-        }
-
-        .rk-hub-hero-layout {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 8px;
-          width: 100%;
-        }
-        @media (min-width: 1024px) {
-          .rk-hub-hero-layout {
-            flex-direction: row-reverse;
-            align-items: center;
-            justify-content: center;
-            gap: 56px;
-          }
-          .rk-hub-hero-layout > * {
-            flex: 1 1 0;
-            min-width: 0;
-          }
+          .rk-hub-hero-wrap { max-width: 980px; min-height: 520px; padding-bottom: 44px; }
         }
 
         .rk-hub-grid {
