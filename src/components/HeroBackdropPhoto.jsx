@@ -6,10 +6,16 @@
 // pantalla (no solo del ancho de rk-hub-hero-wrap, que tiene max-width
 // 980/1280px) usando el truco clasico de "romper" el contenedor con
 // left:50% + width:100vw + translateX(-50%), asi calza perfecto en
-// cualquier viewport sin dejar franjas del grid a los costados. La altura
-// sigue atada a rk-hub-hero-wrap (top:0/bottom:0 dentro de el, que ya es
-// position:relative), o sea que el responsive de la altura lo sigue
-// controlando ese wrap (min-height 420px mobile / 520px desktop).
+// cualquier viewport sin dejar franjas del grid a los costados.
+//
+// v3: el alto tambien se extiende hacia ARRIBA mas alla de rk-hub-hero-wrap
+// (top negativo, ver .hero-backdrop) para tapar el hueco que quedaba entre
+// el navbar flotante y el arranque de la foto -- SessionHub.jsx tiene
+// pt-28/sm:pt-32 (112px/128px) de padding arriba de todo, asi que se sube
+// exactamente ese monto para que la imagen llegue al borde real de la
+// pantalla. bottom:0 se mantiene atado a rk-hub-hero-wrap, asi que el
+// responsive del alto total lo sigue marcando ese wrap (min-height 420px
+// mobile / 520px desktop) mas el extra de arriba.
 //
 // Fusion con la pagina: sin mix-blend-mode contra el fondo real (la foto
 // no tiene canal alfa y ademas el propio .hero-backdrop ahora tiene
@@ -34,9 +40,16 @@ export default function HeroBackdropPhoto() {
       <div className="hero-backdrop-tint" />
 
       <style>{`
+        /* top negativo: SessionHub.jsx tiene pt-28/sm:pt-32 (112px/128px)
+           de padding arriba de todo el contenido, asi que el borde superior
+           de rk-hub-hero-wrap (el ancestro posicionado de este elemento) ya
+           arranca 112-128px mas abajo que el borde real de la pantalla. Sin
+           este ajuste quedaba un hueco negro (solo grid, sin foto) entre el
+           navbar flotante y el arranque de la imagen -- se sube el mismo
+           monto para que la foto llegue hasta el tope real. */
         .hero-backdrop {
           position: absolute;
-          top: 0;
+          top: -112px;
           bottom: 0;
           left: 50%;
           width: 100vw;
@@ -44,6 +57,9 @@ export default function HeroBackdropPhoto() {
           z-index: 0;
           overflow: hidden;
           pointer-events: none;
+        }
+        @media (min-width: 640px) {
+          .hero-backdrop { top: -128px; }
         }
 
         .hero-backdrop-glow {
@@ -89,18 +105,26 @@ export default function HeroBackdropPhoto() {
         }
 
         /* Franja oscura vertical donde vive el texto (kicker/logo/
-           subtitulo), dejando que la foto respire mas arriba y abajo. */
+           subtitulo). Ojo: como .hero-backdrop ahora se extiende ~112-128px
+           mas arriba que rk-hub-hero-wrap (ver arriba), el texto ya NO
+           queda al 50% de esta caja sino mas abajo, cerca del 58-60% --
+           los stops estan recalculados para esa proporcion, dejando bien
+           despejada la franja superior (ahi es donde antes quedaba el
+           hueco negro, ahora se ve la foto) y una transicion limpia hacia
+           el resto de la pagina en la base. */
         .hero-backdrop-fade {
           position: absolute;
           inset: 0;
           background: linear-gradient(
             to bottom,
-            var(--rk-bg-0, #05030a) 0%,
-            rgba(5,3,10,0.35) 14%,
-            rgba(5,3,10,0.72) 34%,
-            rgba(5,3,10,0.86) 50%,
-            rgba(5,3,10,0.7) 66%,
-            rgba(5,3,10,0.3) 84%,
+            rgba(5,3,10,0.1) 0%,
+            rgba(5,3,10,0.02) 14%,
+            rgba(5,3,10,0.18) 30%,
+            rgba(5,3,10,0.58) 44%,
+            rgba(5,3,10,0.85) 58%,
+            rgba(5,3,10,0.85) 68%,
+            rgba(5,3,10,0.55) 80%,
+            rgba(5,3,10,0.16) 92%,
             var(--rk-bg-0, #05030a) 100%
           );
         }

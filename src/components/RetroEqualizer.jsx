@@ -19,7 +19,11 @@ function EqualizerColumn({ side }) {
 
   return (
     <div
-      className={`absolute top-0 bottom-0 ${side === 'left' ? 'left-3' : 'right-3'} w-[70px] flex items-end gap-[5px] opacity-55 pointer-events-none z-0`}
+      // z-20: por encima de HeroBackdropPhoto (z-0) y del texto del hero
+      // (z-1) en SessionHub.jsx, para que el ecualizador quede siempre
+      // visible sobre la foto de fondo en vez de taparlo -- sigue por
+      // debajo del navbar flotante (z-index var(--rk-z-sticky), 40).
+      className={`absolute top-0 bottom-0 ${side === 'left' ? 'left-3' : 'right-3'} w-[70px] flex items-end gap-[5px] opacity-55 pointer-events-none z-20`}
     >
       {Array.from({ length: BAR_COUNT }).map((_, i) => (
         <div

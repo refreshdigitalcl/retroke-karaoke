@@ -83,7 +83,7 @@ export default function RetrokeNavbar(props) {
         aria-label="Navegacion principal de Retroke"
       >
         <a href="/" className="rk-nav-mark" aria-label="Retroke, ir al inicio">
-          <img src="/landing/retroke-mic-icon.png" alt="" />
+          <img src="/landing/retroke-mic-badge.png" alt="" />
         </a>
 
         <div className="rk-nav-links">
@@ -123,7 +123,7 @@ export default function RetrokeNavbar(props) {
             aria-label="Navegacion"
           >
             <div className="rk-nav-drawer-head">
-              <img src="/landing/retroke-mic-icon.png" alt="" className="rk-nav-drawer-mark" />
+              <img src="/landing/retroke-mic-badge.png" alt="" className="rk-nav-drawer-mark" />
               <button
                 type="button"
                 className="rk-nav-drawer-close"
