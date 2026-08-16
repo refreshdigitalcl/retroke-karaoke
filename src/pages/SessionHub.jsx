@@ -9,7 +9,7 @@ import { RETROKE_STYLES } from '../components/retroke/retrokeStyles'
 import RetrokeNavbar from '../components/RetrokeNavbar'
 import SelectionHero from '../components/SelectionHero'
 import RoomExperienceCard from '../components/RoomExperienceCard'
-import NeonStageFrame from '../components/NeonStageFrame'
+import RetroEqualizer from '../components/RetroEqualizer'
 import HeroBackdropPhoto from '../components/HeroBackdropPhoto'
 
 // SessionHub -- rediseño maestro de la pantalla de seleccion (retroke.cl
@@ -236,17 +236,15 @@ export default function SessionHub() {
     <div className="min-h-screen relative overflow-x-hidden flex flex-col items-center px-5 sm:px-8 lg:px-14 pt-28 sm:pt-32 pb-12" style={{ background: 'var(--rk-bg-gradient, #05030a)' }}>
       <style>{RETROKE_STYLES}</style>
       <RetroNeonBg />
-      <NeonStageFrame />
+      <RetroEqualizer />
 
       <RetrokeNavbar active={null} />
 
       <div className="rk-hub-page">
         <div className="rk-hub-hero-wrap">
           <HeroBackdropPhoto />
-          <SelectionHero />
+          <SelectionHero activeCount={activeCount} />
         </div>
-
-        <div className="rk-hub-divider" aria-hidden="true" />
 
         <div className="relative w-full flex flex-col items-center" style={{ zIndex: 1 }}>
           {sessions === null && (
@@ -256,7 +254,7 @@ export default function SessionHub() {
           )}
 
           {sessions !== null && sessions.length > 0 && (
-            <div className="rk-hub-control">
+            <div className="w-full max-w-md mb-7">
               <div className="rk-hub-search">
                 <RetrokeIcon name="search" size={16} className="rk-hub-search-icon" />
                 <input
@@ -266,13 +264,6 @@ export default function SessionHub() {
                   placeholder="Ingresa el nombre de tu sala para ingresar"
                 />
               </div>
-
-              {activeCount !== null && activeCount > 0 && (
-                <span className="rk-hub-live-badge">
-                  <span className="rk-hub-live-dot" aria-hidden="true" />
-                  {activeCount === 1 ? '1 sala activa ahora' : activeCount + ' salas activas ahora'}
-                </span>
-              )}
             </div>
           )}
 
@@ -294,20 +285,12 @@ export default function SessionHub() {
               className={'rk-hub-grid' + (filteredSessions.length > 1 ? ' has-multiple' : '')}
             >
               {filteredSessions.map(function (s, i) {
-                // Ritmo bento: con 1 sola sala, esa tarjeta se agranda
-                // (variant hero). Con 3+ salas, la primera se destaca
-                // (mismo variant hero + span de 2 columnas) para que la
-                // grilla no sea una fila pareja de cajas identicas -- con
-                // exactamente 2 salas se deja el default parejo, spanear
-                // la primera dejaria a la segunda sola y descompensada.
-                var featured = filteredSessions.length === 1 || (filteredSessions.length >= 3 && i === 0)
                 return (
                   <RoomExperienceCard
                     key={s.id}
                     session={s}
                     index={i}
-                    variant={featured ? 'hero' : 'default'}
-                    gridSpan={filteredSessions.length >= 3 && i === 0 ? 2 : undefined}
+                    variant={filteredSessions.length === 1 ? 'hero' : 'default'}
                     onSelect={handlePick}
                   />
                 )
@@ -356,101 +339,10 @@ export default function SessionHub() {
           display: flex;
           align-items: center;
           justify-content: center;
-          padding-bottom: 8px;
+          padding-bottom: 36px;
         }
         @media (min-width: 1024px) {
-          .rk-hub-hero-wrap { max-width: 980px; min-height: 520px; padding-bottom: 12px; }
-        }
-
-        /* Divisor "haz de luz de escenario": reemplaza la transicion lisa
-           entre la foto del hero y la lista de salas por una linea de
-           energia full-bleed (mismo truco 100vw que HeroBackdropPhoto) con
-           un brillo que recorre de lado a lado -- da una costura con
-           intencion en vez de solo dejar que el degrade se apague. */
-        .rk-hub-divider {
-          position: relative;
-          left: 50%;
-          width: 100vw;
-          transform: translateX(-50%);
-          height: 2px;
-          margin: 10px 0 30px;
-          background: linear-gradient(90deg,
-            transparent 0%,
-            rgba(233,30,140,0.5) 20%,
-            rgba(139,92,246,0.7) 50%,
-            rgba(34,211,238,0.5) 80%,
-            transparent 100%);
-          overflow: hidden;
-        }
-        .rk-hub-divider::after {
-          content: '';
-          position: absolute;
-          inset: 0;
-          width: 30%;
-          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.9), transparent);
-          animation: rkDividerSweep 5s ease-in-out infinite;
-        }
-        @keyframes rkDividerSweep {
-          0% { transform: translateX(-120%); }
-          55%, 100% { transform: translateX(420%); }
-        }
-        @media (min-width: 1024px) {
-          .rk-hub-divider { margin: 14px 0 38px; }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .rk-hub-divider::after { animation: none; display: none; }
-        }
-
-        /* Barra de control: busqueda + badge "en vivo" en una misma fila
-           asimetrica en vez del pill suelto que antes vivia dentro del
-           hero, lejos de donde el usuario realmente actua. */
-        .rk-hub-control {
-          width: 100%;
-          max-width: 620px;
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          margin-bottom: 28px;
-        }
-        @media (max-width: 560px) {
-          .rk-hub-control { flex-direction: column; align-items: stretch; }
-        }
-
-        .rk-hub-live-badge {
-          flex-shrink: 0;
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          padding: 0 16px;
-          height: 48px;
-          border-radius: var(--rk-radius-pill, 999px);
-          background: rgba(126,217,87,0.08);
-          border: 1px solid rgba(126,217,87,0.35);
-          font-family: var(--rk-font-display, 'Space Grotesk', sans-serif);
-          font-size: 11.5px;
-          font-weight: 700;
-          letter-spacing: 0.06em;
-          text-transform: uppercase;
-          color: var(--rk-green, #7ED957);
-          white-space: nowrap;
-        }
-        .rk-hub-live-dot {
-          width: 7px;
-          height: 7px;
-          border-radius: 50%;
-          background: var(--rk-green, #7ED957);
-          box-shadow: 0 0 8px 1px rgba(126,217,87,0.9);
-          animation: rkLiveDotPulse 1.8s ease-in-out infinite;
-        }
-        @keyframes rkLiveDotPulse {
-          0%, 100% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.4; transform: scale(0.7); }
-        }
-        @media (max-width: 560px) {
-          .rk-hub-live-badge { justify-content: center; }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .rk-hub-live-dot { animation: none; }
+          .rk-hub-hero-wrap { max-width: 980px; min-height: 520px; padding-bottom: 44px; }
         }
 
         .rk-hub-grid {
@@ -478,8 +370,6 @@ export default function SessionHub() {
           position: relative;
           display: flex;
           align-items: center;
-          flex: 1;
-          min-width: 0;
         }
         .rk-hub-search-icon {
           position: absolute;
