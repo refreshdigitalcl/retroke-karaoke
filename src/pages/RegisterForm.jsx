@@ -299,27 +299,30 @@ function YourTurnScreen(props) {
   // (igual a una story), lista para capturarse como imagen.
   if (showShareCard && results) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-6 py-10 gap-5" style={{ background: 'var(--bg-page)' }}>
-        <ShareResultCard
-          ref={shareCardRef}
-          singerName={name}
-          avatar={props.avatar}
-          photoUrl={props.photo || null}
-          song={song}
-          artistName={props.artistName}
-          artworkUrl={props.artworkUrl}
-          notaFinal={computeNotaFinal(null, results.scores.finalScore)}
-          vocalScore={results.scores.finalScore}
-          subScores={{
-            pitchScore: results.scores.pitchScore,
-            rhythmScore: results.scores.rhythmScore,
-            stabilityScore: results.scores.stabilityScore,
-            energyScore: results.scores.energyScore
-          }}
-          confidence={results.scores.confidence}
-          levelName={levelName}
-        />
-        <div className="w-full max-w-sm flex flex-col gap-3">
+      <div className="min-h-screen flex flex-col items-center justify-center px-6 py-10 gap-5 relative" style={{ background: 'var(--bg-page)' }}>
+        <RetroNeonBg />
+        <div className="relative z-10">
+          <ShareResultCard
+            ref={shareCardRef}
+            singerName={name}
+            avatar={props.avatar}
+            photoUrl={props.photo || null}
+            song={song}
+            artistName={props.artistName}
+            artworkUrl={props.artworkUrl}
+            notaFinal={computeNotaFinal(null, results.scores.finalScore)}
+            vocalScore={results.scores.finalScore}
+            subScores={{
+              pitchScore: results.scores.pitchScore,
+              rhythmScore: results.scores.rhythmScore,
+              stabilityScore: results.scores.stabilityScore,
+              energyScore: results.scores.energyScore
+            }}
+            confidence={results.scores.confidence}
+            levelName={levelName}
+          />
+        </div>
+        <div className="w-full max-w-sm flex flex-col gap-3 relative z-10">
           <ShareButton
             mode="image"
             cardRef={shareCardRef}
@@ -341,9 +344,10 @@ function YourTurnScreen(props) {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-6" style={{ background: 'var(--bg-page)' }}>
+    <div className="min-h-screen flex items-center justify-center px-6 relative" style={{ background: 'var(--bg-page)' }}>
+      <RetroNeonBg />
       <div
-        className="max-w-sm w-full rounded-3xl border-2 p-8 text-center your-turn-pulse"
+        className="max-w-sm w-full rounded-3xl border-2 p-8 text-center your-turn-pulse relative z-10"
         style={{ background: 'var(--bg-card)', borderColor: '#F4D03F', boxShadow: '0 0 40px -8px rgba(244,208,63,0.6)' }}
       >
         <p className="text-6xl mb-3">🎤</p>
@@ -618,6 +622,7 @@ function PerformanceShareScreen(props) {
   var fallbackPhoto = props.photo
   var fallbackSong = props.song
   var onBack = props.onBack
+  var onRestart = props.onRestart
 
   var dataState = useState(null)
   var data = dataState[0]
@@ -732,6 +737,16 @@ function PerformanceShareScreen(props) {
           title="Mi resultado en Retroke"
           text={buildShareText({ song: fallbackSong, artistName: data ? data.artistName : '', notaFinal: data ? data.notaFinal : null })}
         />
+        {onRestart && (
+          <button
+            type="button"
+            onClick={onRestart}
+            className="w-full h-11 rounded-xl font-bold text-white"
+            style={{ background: 'linear-gradient(90deg, #E91E8C, #8B5CF6)' }}
+          >
+            Cantar de nuevo
+          </button>
+        )}
         <button
           type="button"
           onClick={onBack}
@@ -1170,6 +1185,31 @@ export default function RegisterForm() {
     try { return localStorage.getItem('retroke_finished_' + entryId) === '1' } catch (e) { return false }
   }
 
+  // Bug reportado: si alguien termina de cantar (queue_entries.status sigue
+  // sin llegar a 'completed' hasta que el DJ avanza a la siguiente persona)
+  // y escanea el QR de nuevo, retroke_entry_<sessionId> en localStorage
+  // sigue apuntando a esa entrada, asi que la pagina lo devolvia siempre a
+  // "Ya estas en la cola" -- aunque myPerformanceId ya probaba que esa
+  // ronda estaba terminada. Este reset limpia todo el rastro de la
+  // inscripcion anterior (localStorage + estado en memoria) para volver al
+  // formulario en blanco y poder anotarse de nuevo, sin esperar a que el
+  // DJ cierre la ronda.
+  function handleRestart() {
+    if (storageKey) {
+      try { localStorage.removeItem(storageKey) } catch (e) {}
+    }
+    if (myEntryId) {
+      try { localStorage.removeItem('retroke_finished_' + myEntryId) } catch (e) {}
+    }
+    setMyEntryId(null)
+    setMyPerformanceId(null)
+    setSubmitted(false)
+    setShowThanks(false)
+    setShowShareCardScreen(false)
+    setShowPerformance(false)
+    setOptimisticPosition(null)
+  }
+
   useEffect(function () {
     if (!isHome || !myEntryId) return
     sendPresenceHeartbeat(myEntryId)
@@ -1452,6 +1492,7 @@ export default function RegisterForm() {
         song={song}
         participantId={participant ? participant.id : null}
         onBack={function () { setShowShareCardScreen(false) }}
+        onRestart={handleRestart}
       />
     )
   }
@@ -1486,6 +1527,14 @@ export default function RegisterForm() {
                 Ver mi tarjeta 📲
               </button>
               <ShareResultButton performanceId={myPerformanceId} song={song} artistName={detectedArtist} />
+              <button
+                type="button"
+                onClick={handleRestart}
+                className="w-full h-11 rounded-xl font-medium mt-3"
+                style={{ color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
+              >
+                Cantar de nuevo
+              </button>
             </>
           )}
         </div>
@@ -1521,15 +1570,12 @@ export default function RegisterForm() {
           >
             {photo ? <img src={photo} alt={name} className="w-full h-full object-cover" /> : avatar}
           </div>
-          <p className="text-lg font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
-            Ya estas en la cola, {name}
-          </p>
-          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{song}</p>
-          <p className="text-sm mt-4" style={{ color: 'var(--accent-yellow)' }}>
-            Posicion {position} en la cola
-          </p>
-          {myPerformanceId && (
+          {myPerformanceId ? (
             <>
+              <p className="text-lg font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
+                Ya cantaste, {name}
+              </p>
+              <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{song}</p>
               <button
                 type="button"
                 onClick={function () { setShowShareCardScreen(true) }}
@@ -1539,6 +1585,24 @@ export default function RegisterForm() {
                 Ver mi tarjeta 📲
               </button>
               <ShareResultButton performanceId={myPerformanceId} song={song} artistName={detectedArtist} />
+              <button
+                type="button"
+                onClick={handleRestart}
+                className="w-full h-11 rounded-xl font-medium mt-3"
+                style={{ color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
+              >
+                Cantar de nuevo
+              </button>
+            </>
+          ) : (
+            <>
+              <p className="text-lg font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
+                Ya estas en la cola, {name}
+              </p>
+              <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{song}</p>
+              <p className="text-sm mt-4" style={{ color: 'var(--accent-yellow)' }}>
+                Posicion {position} en la cola
+              </p>
             </>
           )}
         </div>
