@@ -32,7 +32,7 @@ export default function RateForm() {
 
   if (screenMode !== 'rating' || !currentSinger) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-6 bg-black text-center relative">
+      <div className="min-h-screen flex items-center justify-center px-6 text-center relative" style={{ background: 'var(--rk-bg-gradient, #05030a)' }}>
         <RetroNeonBg />
         <div className="relative z-10">
           <p className="text-4xl mb-4">🎤</p>
@@ -56,7 +56,7 @@ export default function RateForm() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-6 bg-black relative">
+    <div className="min-h-screen flex items-center justify-center px-6 relative" style={{ background: 'var(--rk-bg-gradient, #05030a)' }}>
       <RetroNeonBg />
       <div className="max-w-sm w-full rounded-3xl border-2 border-purple-500 bg-neutral-950/90 p-7 text-center rate-card-in relative z-10">
         <div

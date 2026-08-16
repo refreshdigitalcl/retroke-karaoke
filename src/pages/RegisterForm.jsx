@@ -299,7 +299,7 @@ function YourTurnScreen(props) {
   // (igual a una story), lista para capturarse como imagen.
   if (showShareCard && results) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-6 py-10 gap-5 relative" style={{ background: 'var(--bg-page)' }}>
+      <div className="min-h-screen flex flex-col items-center justify-center px-6 py-10 gap-5 relative" style={{ background: 'var(--rk-bg-gradient, #05030a)' }}>
         <RetroNeonBg />
         <div className="relative z-10">
           <ShareResultCard
@@ -344,7 +344,7 @@ function YourTurnScreen(props) {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-6 relative" style={{ background: 'var(--bg-page)' }}>
+    <div className="min-h-screen flex items-center justify-center px-6 relative" style={{ background: 'var(--rk-bg-gradient, #05030a)' }}>
       <RetroNeonBg />
       <div
         className="max-w-sm w-full rounded-3xl border-2 p-8 text-center your-turn-pulse relative z-10"
@@ -711,7 +711,7 @@ function PerformanceShareScreen(props) {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-6 py-10 gap-5 relative" style={{ background: 'var(--bg-page)' }}>
+    <div className="min-h-screen flex flex-col items-center justify-center px-6 py-10 gap-5 relative" style={{ background: 'var(--rk-bg-gradient, #05030a)' }}>
       <RetroNeonBg />
       <div className="relative z-10">
         <ShareResultCard
@@ -1499,7 +1499,7 @@ export default function RegisterForm() {
 
   if (showThanks) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-6 relative" style={{ background: 'var(--bg-page)' }}>
+      <div className="min-h-screen flex items-center justify-center px-6 relative" style={{ background: 'var(--rk-bg-gradient, #05030a)' }}>
         <RetroNeonBg />
         <div
           className="max-w-sm w-full rounded-3xl border-2 p-8 text-center relative z-10"
@@ -1561,7 +1561,7 @@ export default function RegisterForm() {
 
   if (submitted) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-6 relative" style={{ background: 'var(--bg-page)' }}>
+      <div className="min-h-screen flex items-center justify-center px-6 relative" style={{ background: 'var(--rk-bg-gradient, #05030a)' }}>
         <RetroNeonBg />
         <div className="max-w-sm w-full rounded-3xl border p-8 text-center relative z-10" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
           <div
@@ -1611,7 +1611,7 @@ export default function RegisterForm() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-6 py-10 relative" style={{ background: 'var(--bg-page)' }}>
+    <div className="min-h-screen flex items-center justify-center px-6 py-10 relative" style={{ background: 'var(--rk-bg-gradient, #05030a)' }}>
       <RetroNeonBg />
       <form
         onSubmit={handleSubmit}

@@ -120,7 +120,7 @@ export default function SharePerformance() {
 
   if (state.loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center relative" style={{ background: 'var(--bg-page)', color: '#fff' }}>
+      <div className="min-h-screen flex items-center justify-center relative" style={{ background: 'var(--rk-bg-gradient, #05030a)', color: '#fff' }}>
         <RetroNeonBg />
         <span className="relative z-10">Cargando resultado...</span>
       </div>
@@ -129,7 +129,7 @@ export default function SharePerformance() {
 
   if (state.error || !state.data) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4 px-6 text-center relative" style={{ background: 'var(--bg-page)', color: '#fff' }}>
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 px-6 text-center relative" style={{ background: 'var(--rk-bg-gradient, #05030a)', color: '#fff' }}>
         <RetroNeonBg />
         <p className="relative z-10">{state.error || 'No encontramos este resultado.'}</p>
         <Link to="/registro" className="underline relative z-10">Ir a Retroke</Link>
@@ -140,7 +140,7 @@ export default function SharePerformance() {
   const d = state.data
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-6 py-10 gap-5 relative" style={{ background: 'var(--bg-page)' }}>
+    <div className="min-h-screen flex flex-col items-center justify-center px-6 py-10 gap-5 relative" style={{ background: 'var(--rk-bg-gradient, #05030a)' }}>
       <RetroNeonBg />
       <div className="relative z-10">
         <ShareResultCard
