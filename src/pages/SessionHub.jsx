@@ -10,6 +10,7 @@ import RetrokeNavbar from '../components/RetrokeNavbar'
 import SelectionHero from '../components/SelectionHero'
 import RoomExperienceCard from '../components/RoomExperienceCard'
 import RetroEqualizer from '../components/RetroEqualizer'
+import FloatingHeroFigure from '../components/FloatingHeroFigure'
 
 // SessionHub -- rediseño maestro de la pantalla de seleccion (retroke.cl
 // sin ?bar/?ws) y de la navegacion global. Ver conversacion "REDISEÑO
@@ -241,7 +242,10 @@ export default function SessionHub() {
 
       <div className="rk-hub-page">
         <div className="rk-hub-hero-wrap">
-          <SelectionHero activeCount={activeCount} />
+          <div className="rk-hub-hero-layout">
+            <FloatingHeroFigure />
+            <SelectionHero activeCount={activeCount} />
+          </div>
         </div>
 
         <div className="relative w-full flex flex-col items-center" style={{ zIndex: 1 }}>
@@ -338,7 +342,27 @@ export default function SessionHub() {
           padding-bottom: 36px;
         }
         @media (min-width: 1024px) {
-          .rk-hub-hero-wrap { max-width: 980px; padding-bottom: 44px; }
+          .rk-hub-hero-wrap { max-width: 1180px; padding-bottom: 44px; }
+        }
+
+        .rk-hub-hero-layout {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 8px;
+          width: 100%;
+        }
+        @media (min-width: 1024px) {
+          .rk-hub-hero-layout {
+            flex-direction: row-reverse;
+            align-items: center;
+            justify-content: center;
+            gap: 56px;
+          }
+          .rk-hub-hero-layout > * {
+            flex: 1 1 0;
+            min-width: 0;
+          }
         }
 
         .rk-hub-grid {
