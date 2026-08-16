@@ -5,6 +5,7 @@ import RetroNeonBg from '../components/RetroNeonBg'
 import RetrokeEmptyState from '../components/retroke/RetrokeEmptyState'
 import RetrokeSkeleton from '../components/retroke/RetrokeSkeleton'
 import RetrokeIcon from '../components/retroke/RetrokeIcon'
+import RetrokeSection from '../components/retroke/RetrokeSection'
 import { RETROKE_STYLES } from '../components/retroke/retrokeStyles'
 import RetrokeNavbar from '../components/RetrokeNavbar'
 import SelectionHero from '../components/SelectionHero'
@@ -250,58 +251,72 @@ export default function SessionHub() {
           <SelectionHero activeCount={activeCount} />
         </div>
 
-        <div className="relative w-full flex flex-col items-center" style={{ zIndex: 1 }}>
-          {sessions === null && (
-            <div className="w-full max-w-sm">
-              <RetrokeSkeleton lines={3} />
-            </div>
-          )}
+        {/* Panel al estilo Retroke World (RetrokeSection): mismo tratamiento
+            que usa "Escenarios" alla (eyebrow + titulo con icono + subtitulo
+            + linea de acento superior + superficie con borde), envolviendo
+            SIN tocar la logica/estructura interna de siempre -- busqueda,
+            skeleton, estado vacio y grilla siguen exactamente igual adentro. */}
+        <RetrokeSection
+          className="w-full"
+          size="lg"
+          accent="green"
+          eyebrow="Dónde cantar"
+          title={<><RetrokeIcon name="pin" size={16} glow /> Escenarios activos</>}
+          subtitle="Toca una sala para sumarte a la cola"
+        >
+          <div className="relative w-full flex flex-col items-center" style={{ zIndex: 1 }}>
+            {sessions === null && (
+              <div className="w-full max-w-sm">
+                <RetrokeSkeleton lines={3} />
+              </div>
+            )}
 
-          {sessions !== null && sessions.length > 0 && (
-            <div className="w-full max-w-md mb-7">
-              <div className="rk-hub-search">
-                <RetrokeIcon name="search" size={16} className="rk-hub-search-icon" />
-                <input
-                  type="text"
-                  value={query}
-                  onChange={function (e) { setQuery(e.target.value) }}
-                  placeholder="Ingresa el nombre de tu sala para ingresar"
+            {sessions !== null && sessions.length > 0 && (
+              <div className="w-full max-w-md mb-7">
+                <div className="rk-hub-search">
+                  <RetrokeIcon name="search" size={16} className="rk-hub-search-icon" />
+                  <input
+                    type="text"
+                    value={query}
+                    onChange={function (e) { setQuery(e.target.value) }}
+                    placeholder="Ingresa el nombre de tu sala para ingresar"
+                  />
+                </div>
+              </div>
+            )}
+
+            {sessions !== null && sessions.length === 0 && (
+              <div className="w-full max-w-sm">
+                <RetrokeEmptyState
+                  icon={<RetrokeIcon name="mic" size={30} glow />}
+                  message="No hay ninguna sala activa en este momento. Cuando un DJ inicie una sesion, va a aparecer aqui automaticamente."
                 />
               </div>
-            </div>
-          )}
+            )}
 
-          {sessions !== null && sessions.length === 0 && (
-            <div className="w-full max-w-sm">
-              <RetrokeEmptyState
-                icon={<RetrokeIcon name="mic" size={30} glow />}
-                message="No hay ninguna sala activa en este momento. Cuando un DJ inicie una sesion, va a aparecer aqui automaticamente."
-              />
-            </div>
-          )}
+            {sessions !== null && sessions.length > 0 && filteredSessions.length === 0 && (
+              <p className="text-sm" style={{ color: 'var(--rk-text-faint)' }}>No encontramos ninguna sala con ese nombre.</p>
+            )}
 
-          {sessions !== null && sessions.length > 0 && filteredSessions.length === 0 && (
-            <p className="text-sm" style={{ color: 'var(--rk-text-faint)' }}>No encontramos ninguna sala con ese nombre.</p>
-          )}
-
-          {filteredSessions !== null && filteredSessions.length > 0 && (
-            <div
-              className={'rk-hub-grid' + (filteredSessions.length > 1 ? ' has-multiple' : '')}
-            >
-              {filteredSessions.map(function (s, i) {
-                return (
-                  <RoomExperienceCard
-                    key={s.id}
-                    session={s}
-                    index={i}
-                    variant={filteredSessions.length === 1 ? 'hero' : 'default'}
-                    onSelect={handlePick}
-                  />
-                )
-              })}
-            </div>
-          )}
-        </div>
+            {filteredSessions !== null && filteredSessions.length > 0 && (
+              <div
+                className={'rk-hub-grid' + (filteredSessions.length > 1 ? ' has-multiple' : '')}
+              >
+                {filteredSessions.map(function (s, i) {
+                  return (
+                    <RoomExperienceCard
+                      key={s.id}
+                      session={s}
+                      index={i}
+                      variant={filteredSessions.length === 1 ? 'hero' : 'default'}
+                      onSelect={handlePick}
+                    />
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        </RetrokeSection>
       </div>
 
       {selected && (
