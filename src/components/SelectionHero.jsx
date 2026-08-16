@@ -1,11 +1,11 @@
 // SelectionHero -- cabecera de la pantalla de seleccion (SessionHub.jsx).
-// Segunda iteracion del rediseño: se saca el logo (imagen) y el cuadro/
-// wrap que envolvia todo esto -- el usuario pidio que el hero flote
-// directo sobre el fondo/grid/ecualizadores, sin panel ni logo suelto.
-// El wordmark "RETROKE" pasa a ser tipografia (mismo tratamiento de
-// gradiente animado que ya se usaba antes en el subtitulo), no una
-// imagen -- se convierte en el elemento central por su tamaño, como una
-// marquesina, en vez de repetir la marca dos veces (imagen + texto).
+// Tercera iteracion: el wordmark vuelve a ser el logo oficial (imagen
+// /landing/retroke-logo-oficial-neon.png) en vez de texto con gradiente --
+// el usuario pidio la marca real, al mismo tamaño que ocupaba el texto
+// "RETROKE" (mismo clamp de altura que antes usaba font-size), fusionada
+// con la foto de fondo (HeroBackdropPhoto, renderizada aparte en
+// SessionHub.jsx, detras de este header). El kicker y el subtitulo se
+// mantienen sin cambios, en la misma posicion que ya estaba aprobada.
 //
 // activeCount: null mientras useActiveSessions() todavia no responde,
 // numero (incluido 0) una vez que ya se conoce cuantas salas hay activas.
@@ -17,7 +17,11 @@ export default function SelectionHero(props) {
     <header className="rk-shero">
       <p className="rk-shero-kicker">El karaoke cambió para siempre.</p>
 
-      <h1 className="rk-shero-wordmark">RETROKE</h1>
+      <img
+        src="/landing/retroke-logo-oficial-neon.png"
+        alt="RETROKE"
+        className="rk-shero-wordmark"
+      />
 
       <p className="rk-shero-subtitle">
         Selecciona una sala activa para comenzar a vivir la experiencia.
@@ -52,23 +56,15 @@ export default function SelectionHero(props) {
         }
         .rk-shero-wordmark {
           margin: 16px 0 0;
-          line-height: 0.86;
-          font-family: var(--rk-font-display, 'Space Grotesk', sans-serif);
-          font-weight: 800;
-          font-size: clamp(3.2rem, 12vw, 7.5rem);
-          letter-spacing: -0.01em;
-          background: linear-gradient(100deg, #F4D03F 0%, #E91E8C 30%, #8B5CF6 62%, #F4D03F 100%);
-          background-size: 260% auto;
-          -webkit-background-clip: text;
-          background-clip: text;
-          -webkit-text-fill-color: transparent;
-          color: transparent;
-          filter: drop-shadow(0 0 34px rgba(139,92,246,0.32));
-          animation: rkSheroShift 8s ease-in-out infinite, rkSheroFadeIn 0.6s ease 0.13s both;
+          height: clamp(3.2rem, 12vw, 7.5rem);
+          width: auto;
+          display: block;
+          filter: drop-shadow(0 0 26px rgba(139,92,246,0.45)) drop-shadow(0 0 50px rgba(233,30,140,0.28));
+          animation: rkSheroGlow 4.5s ease-in-out infinite, rkSheroFadeIn 0.6s ease 0.13s both;
         }
-        @keyframes rkSheroShift {
-          0%, 100% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
+        @keyframes rkSheroGlow {
+          0%, 100% { filter: drop-shadow(0 0 26px rgba(139,92,246,0.45)) drop-shadow(0 0 50px rgba(233,30,140,0.28)); }
+          50% { filter: drop-shadow(0 0 38px rgba(139,92,246,0.65)) drop-shadow(0 0 64px rgba(233,30,140,0.42)); }
         }
         .rk-shero-subtitle {
           margin: 18px 0 0;

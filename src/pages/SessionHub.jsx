@@ -10,7 +10,7 @@ import RetrokeNavbar from '../components/RetrokeNavbar'
 import SelectionHero from '../components/SelectionHero'
 import RoomExperienceCard from '../components/RoomExperienceCard'
 import RetroEqualizer from '../components/RetroEqualizer'
-import FloatingSideCharacter from '../components/FloatingSideCharacter'
+import HeroBackdropPhoto from '../components/HeroBackdropPhoto'
 
 // SessionHub -- rediseño maestro de la pantalla de seleccion (retroke.cl
 // sin ?bar/?ws) y de la navegacion global. Ver conversacion "REDISEÑO
@@ -237,23 +237,12 @@ export default function SessionHub() {
       <style>{RETROKE_STYLES}</style>
       <RetroNeonBg />
       <RetroEqualizer />
-      <FloatingSideCharacter
-        side="left"
-        webp="/landing/hero-woman.webp"
-        png="/landing/hero-woman.png"
-        accentRgb="233, 30, 140"
-      />
-      <FloatingSideCharacter
-        side="right"
-        webp="/landing/hero-man.webp"
-        png="/landing/hero-man.png"
-        accentRgb="139, 92, 246"
-      />
 
       <RetrokeNavbar active={null} />
 
       <div className="rk-hub-page">
         <div className="rk-hub-hero-wrap">
+          <HeroBackdropPhoto />
           <SelectionHero activeCount={activeCount} />
         </div>
 
