@@ -5,7 +5,6 @@ import RetroNeonBg from '../components/RetroNeonBg'
 import RetrokeEmptyState from '../components/retroke/RetrokeEmptyState'
 import RetrokeSkeleton from '../components/retroke/RetrokeSkeleton'
 import RetrokeIcon from '../components/retroke/RetrokeIcon'
-import RetrokeSection from '../components/retroke/RetrokeSection'
 import { RETROKE_STYLES } from '../components/retroke/retrokeStyles'
 import RetrokeNavbar from '../components/RetrokeNavbar'
 import SelectionHero from '../components/SelectionHero'
@@ -248,22 +247,16 @@ export default function SessionHub() {
 
       <div className="rk-hub-page">
         <div className="rk-hub-hero-wrap">
-          <SelectionHero activeCount={activeCount} />
+          <SelectionHero />
         </div>
 
-        {/* Panel al estilo Retroke World (RetrokeSection): mismo tratamiento
-            que usa "Escenarios" alla (eyebrow + titulo con icono + subtitulo
-            + linea de acento superior + superficie con borde), envolviendo
-            SIN tocar la logica/estructura interna de siempre -- busqueda,
-            skeleton, estado vacio y grilla siguen exactamente igual adentro. */}
-        <RetrokeSection
-          className="w-full"
-          size="lg"
-          accent="green"
-          eyebrow="Dónde cantar"
-          title={<><RetrokeIcon name="pin" size={16} glow /> Escenarios activos</>}
-          subtitle="Toca una sala para sumarte a la cola"
-        >
+        {/* Panel (reusa las clases .rk-section / accent-green de
+            RETROKE_STYLES, mismo look "Retroke World" que ya se habia
+            aprobado: superficie + borde + linea de acento arriba) pero SIN
+            cabecera (eyebrow/titulo) -- el usuario pidio sacar el "Donde
+            cantar" y dejar la busqueda como elemento principal, no un
+            listado con encabezado. */}
+        <div className="rk-section rk-section-accent-green w-full rk-hub-panel">
           <div className="relative w-full flex flex-col items-center" style={{ zIndex: 1 }}>
             {sessions === null && (
               <div className="w-full max-w-sm">
@@ -272,9 +265,15 @@ export default function SessionHub() {
             )}
 
             {sessions !== null && sessions.length > 0 && (
-              <div className="w-full max-w-md mb-7">
+              <div className="w-full max-w-xl mb-7 flex flex-col items-center">
+                {activeCount !== null && activeCount > 0 && (
+                  <span className="rk-hub-live-badge">
+                    <span className="rk-hub-live-dot" aria-hidden="true" />
+                    {activeCount === 1 ? '1 sala activa ahora' : activeCount + ' salas activas ahora'}
+                  </span>
+                )}
                 <div className="rk-hub-search">
-                  <RetrokeIcon name="search" size={16} className="rk-hub-search-icon" />
+                  <RetrokeIcon name="search" size={18} className="rk-hub-search-icon" />
                   <input
                     type="text"
                     value={query}
@@ -316,7 +315,7 @@ export default function SessionHub() {
               </div>
             )}
           </div>
-        </RetrokeSection>
+        </div>
       </div>
 
       {selected && (
@@ -392,35 +391,89 @@ export default function SessionHub() {
           .rk-hub-grid.has-multiple { grid-template-columns: repeat(4, 1fr); }
         }
 
+        /* Panel sin cabecera: solo se necesita el padding/superficie que ya
+           trae .rk-section -- se le saca el gap por defecto (pensado para
+           eyebrow+titulo+body) porque aca adentro solo va el bloque de
+           busqueda/grilla. */
+        .rk-hub-panel { gap: 0; }
+
+        /* Badge "en vivo": antes vivia suelto dentro del hero (lejos de la
+           busqueda); ahora se dibuja pegado arriba del buscador, como
+           contexto directo de la accion ("hay X salas, buscalas aca
+           abajo") en vez de una pieza mas del titulo. */
+        .rk-hub-live-badge {
+          margin-bottom: 14px;
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 7px 16px;
+          border-radius: var(--rk-radius-pill, 999px);
+          background: rgba(126,217,87,0.09);
+          border: 1px solid rgba(126,217,87,0.35);
+          font-family: var(--rk-font-display, 'Space Grotesk', sans-serif);
+          font-size: 11.5px;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: var(--rk-green, #7ED957);
+          animation: rkHubBadgeIn 0.5s ease both;
+        }
+        .rk-hub-live-dot {
+          width: 7px;
+          height: 7px;
+          border-radius: 50%;
+          background: var(--rk-green, #7ED957);
+          box-shadow: 0 0 8px 1px rgba(126,217,87,0.9);
+          animation: rkHubDotPulse 1.8s ease-in-out infinite;
+        }
+        @keyframes rkHubDotPulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.4; transform: scale(0.7); }
+        }
+        @keyframes rkHubBadgeIn {
+          from { opacity: 0; transform: translateY(6px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Barra de busqueda: pasa a ser el elemento principal del panel --
+           mas ancha, mas alta, tipografia mas grande y un borde/glow propio
+           en foco, en vez de un input generico entre otros elementos. */
         .rk-hub-search {
           position: relative;
           display: flex;
           align-items: center;
+          width: 100%;
+          max-width: 560px;
         }
         .rk-hub-search-icon {
           position: absolute;
-          left: 18px;
+          left: 22px;
           color: var(--rk-text-faint, rgba(255,255,255,0.4));
           pointer-events: none;
         }
         .rk-hub-search input {
           width: 100%;
-          height: 48px;
+          height: 58px;
           border-radius: var(--rk-radius-pill, 999px);
-          padding: 0 20px 0 44px;
-          font-size: 14px;
+          padding: 0 24px 0 52px;
+          font-size: 15.5px;
+          font-weight: 500;
           outline: none;
           color: #fff;
           background: var(--rk-surface, rgba(255,255,255,0.045));
-          border: 1px solid var(--rk-border-strong, rgba(255,255,255,0.18));
+          border: 1.5px solid var(--rk-border-strong, rgba(255,255,255,0.18));
+          box-shadow: 0 14px 34px -18px rgba(0,0,0,0.7);
           transition: border-color 0.2s ease, box-shadow 0.2s ease;
         }
         .rk-hub-search input::placeholder {
           color: var(--rk-text-faint, rgba(255,255,255,0.4));
         }
         .rk-hub-search input:focus {
-          border-color: rgba(139,92,246,0.6);
-          box-shadow: 0 0 0 3px rgba(139,92,246,0.18);
+          border-color: rgba(139,92,246,0.7);
+          box-shadow: 0 0 0 4px rgba(139,92,246,0.2), 0 14px 34px -18px rgba(0,0,0,0.7);
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .rk-hub-live-dot, .rk-hub-live-badge { animation: none; }
         }
 
         .apk-download-btn {
