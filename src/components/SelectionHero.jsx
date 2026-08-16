@@ -56,7 +56,8 @@ export default function SelectionHero(props) {
         }
         .rk-shero-wordmark {
           margin: 16px 0 0;
-          height: clamp(3.2rem, 12vw, 7.5rem);
+          /* +60% sobre el tamaño anterior (clamp(3.2rem, 12vw, 7.5rem)) */
+          height: clamp(5.12rem, 19.2vw, 12rem);
           width: auto;
           display: block;
           filter: drop-shadow(0 0 26px rgba(139,92,246,0.45)) drop-shadow(0 0 50px rgba(233,30,140,0.28));

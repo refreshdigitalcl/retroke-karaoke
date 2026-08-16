@@ -1,30 +1,34 @@
 // HeroBackdropPhoto -- la foto grupal (4 personas, luz neon) como fondo
 // atmosferico DETRAS del titulo del hero (kicker + logo + subtitulo), en
-// vez de personajes recortados al costado. Reemplaza el intento anterior
-// de dos figuras con parallax: el usuario pidio simplificar a una sola
-// imagen de fondo, bien fusionada con la pagina.
+// vez de personajes recortados al costado.
 //
-// Tecnica de fusion (para que no se vea como un rectangulo pegado encima
-// del grid): un unico elemento hace de mascara CSS (mask-image, no
-// mix-blend-mode -- esta foto no tiene canal alfa, asi que la transparencia
-// hacia los bordes se logra recortando con un gradiente radial en vez de
-// depender del alfa del PNG) que desvanece la imagen hacia los 4 bordes,
-// mas un degrade vertical opaco (mismo color que --rk-bg-gradient) que
-// oscurece la franja central donde va el texto, para que el kicker/logo/
-// subtitulo mantengan contraste y legibilidad sin perder la foto en los
-// extremos superior e inferior.
+// v2: la foto ahora es full-bleed -- estira de punta a punta de la
+// pantalla (no solo del ancho de rk-hub-hero-wrap, que tiene max-width
+// 980/1280px) usando el truco clasico de "romper" el contenedor con
+// left:50% + width:100vw + translateX(-50%), asi calza perfecto en
+// cualquier viewport sin dejar franjas del grid a los costados. La altura
+// sigue atada a rk-hub-hero-wrap (top:0/bottom:0 dentro de el, que ya es
+// position:relative), o sea que el responsive de la altura lo sigue
+// controlando ese wrap (min-height 420px mobile / 520px desktop).
+//
+// Fusion con la pagina: sin mix-blend-mode contra el fondo real (la foto
+// no tiene canal alfa y ademas el propio .hero-backdrop ahora tiene
+// transform, asi que cualquier mix-blend-mode aca quedaria atrapado en su
+// propio contexto de apilamiento -- por eso el blend de .hero-backdrop-tint
+// solo mezcla contra sus hermanos DENTRO de este componente, que es
+// justamente lo que se necesita). La legibilidad del texto se logra con un
+// degrade vertical opaco (mismo color que --rk-bg-0) que oscurece la franja
+// central, dejando que la foto respire mas arriba y abajo.
 export default function HeroBackdropPhoto() {
   return (
     <div className="hero-backdrop" aria-hidden="true">
       <div className="hero-backdrop-glow glow-a" />
       <div className="hero-backdrop-glow glow-b" />
 
-      <div className="hero-backdrop-mask">
-        <picture>
-          <source srcSet="/landing/hero-group.webp" type="image/webp" />
-          <img src="/landing/hero-group.png" alt="" className="hero-backdrop-img" />
-        </picture>
-      </div>
+      <picture>
+        <source srcSet="/landing/hero-group.webp" type="image/webp" />
+        <img src="/landing/hero-group.png" alt="" className="hero-backdrop-img" />
+      </picture>
 
       <div className="hero-backdrop-fade" />
       <div className="hero-backdrop-tint" />
@@ -32,7 +36,11 @@ export default function HeroBackdropPhoto() {
       <style>{`
         .hero-backdrop {
           position: absolute;
-          inset: 0;
+          top: 0;
+          bottom: 0;
+          left: 50%;
+          width: 100vw;
+          transform: translateX(-50%);
           z-index: 0;
           overflow: hidden;
           pointer-events: none;
@@ -48,14 +56,14 @@ export default function HeroBackdropPhoto() {
         .glow-a {
           top: 4%;
           left: 12%;
-          width: 44%;
+          width: 30%;
           height: 44%;
           background: #E91E8C;
         }
         .glow-b {
           bottom: 2%;
           right: 10%;
-          width: 42%;
+          width: 28%;
           height: 42%;
           background: #22D3EE;
           animation-delay: -3s;
@@ -65,24 +73,19 @@ export default function HeroBackdropPhoto() {
           50% { opacity: 0.48; }
         }
 
-        .hero-backdrop-mask {
+        /* Full-bleed: la imagen estira al 100% del ancho de pantalla
+           (heredado de .hero-backdrop en 100vw) y cubre el alto disponible
+           sin dejar bandas vacias a los costados en ningun breakpoint. */
+        .hero-backdrop-img {
           position: absolute;
           inset: 0;
-          display: flex;
-          align-items: flex-start;
-          justify-content: center;
-          -webkit-mask-image: radial-gradient(ellipse 62% 88% at 50% 42%, #000 45%, transparent 92%);
-          mask-image: radial-gradient(ellipse 62% 88% at 50% 42%, #000 45%, transparent 92%);
-        }
-        .hero-backdrop-img {
-          width: min(120%, 1180px);
-          max-width: none;
+          width: 100%;
           height: 100%;
           object-fit: cover;
-          object-position: 50% 18%;
+          object-position: 50% 22%;
           display: block;
           filter: saturate(1.18) contrast(1.06) brightness(0.9);
-          opacity: 0.88;
+          opacity: 0.9;
         }
 
         /* Franja oscura vertical donde vive el texto (kicker/logo/
@@ -113,8 +116,22 @@ export default function HeroBackdropPhoto() {
           mix-blend-mode: screen;
         }
 
-        @media (max-width: 640px) {
-          .hero-backdrop-img { object-position: 50% 14%; opacity: 0.75; }
+        /* La relacion ancho/alto disponible cambia mucho entre breakpoints
+           (celular angosto y bajo vs. desktop ancho y mas alto) -- se
+           reajusta el encuadre vertical y la opacidad en cada tramo para
+           que las 4 caras del grupo se sigan viendo bien encuadradas y el
+           texto siga legible, sin perder nunca el ancho completo. */
+        @media (max-width: 480px) {
+          .hero-backdrop-img { object-position: 50% 10%; opacity: 0.68; }
+        }
+        @media (min-width: 481px) and (max-width: 767px) {
+          .hero-backdrop-img { object-position: 50% 15%; opacity: 0.76; }
+        }
+        @media (min-width: 768px) and (max-width: 1023px) {
+          .hero-backdrop-img { object-position: 50% 18%; opacity: 0.84; }
+        }
+        @media (min-width: 1440px) {
+          .hero-backdrop-img { object-position: 50% 26%; }
         }
 
         @media (prefers-reduced-motion: reduce) {
