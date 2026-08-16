@@ -23,6 +23,11 @@ export default function RoomExperienceCard(props) {
   var index = props.index || 0
   var variant = props.variant || 'default'
   var onSelect = props.onSelect
+  // gridSpan: opcional -- deja que SessionHub.jsx marque la primera
+  // tarjeta como "destacada" dentro de la grilla (span 2 columnas) cuando
+  // hay 3+ salas, para que la lista tenga ritmo bento en vez de filas
+  // parejas todas del mismo tamaño. No cambia nada si no se pasa.
+  var gridSpan = props.gridSpan
 
   var kind = KIND_MAP[session.kind] || KIND_MAP.bar
   var isHero = variant === 'hero'
@@ -34,6 +39,7 @@ export default function RoomExperienceCard(props) {
       className={'rk-room-card' + (isHero ? ' is-hero' : '')}
       style={{
         animationDelay: (index * 0.07) + 's',
+        gridColumn: gridSpan ? 'span ' + gridSpan : undefined,
         '--room-accent': 'rgb(' + kind.accentRgb + ')',
         '--room-accent-14': 'rgba(' + kind.accentRgb + ',0.14)',
         '--room-accent-16': 'rgba(' + kind.accentRgb + ',0.16)',
