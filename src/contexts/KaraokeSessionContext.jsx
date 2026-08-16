@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, useEffect } from 'react'
+import { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { REACTION_EMOJIS as REACTION_EMOJI_LIST } from '../lib/reactionEmojis'
 import { fetchArtistNameForSong } from '../lib/artistLookup'
@@ -214,8 +214,28 @@ export function KaraokeSessionProvider({ children }) {
   const screenMode = activeSession ? activeSession.screen_mode : 'queue'
   const hasActiveSession = !!activeSession
 
+  // refreshActiveSession se dispara desde 4 lugares a la vez (realtime,
+  // visibilitychange/focus/online, y un poll cada 8s -- ver mas abajo), y
+  // callSinger() justo hace un UPDATE sobre `sessions`, lo que dispara el
+  // canal realtime en el mismo instante en que puede haber otro refresh ya
+  // en vuelo (el poll de 8s, por ejemplo). Si dos llamadas se solapan y la
+  // mas vieja responde despues que la mas nueva, o si una sola consulta
+  // devuelve un `data: null` transitorio (error de red, hiccup momentaneo),
+  // antes esto pisaba `activeSession` con null igual -- y como `queue`/
+  // `ratings`/`reactions` dependen de sessionId (ver el efecto de abajo),
+  // toda la cola se vaciaba en pantalla aunque en Supabase nunca se hubiera
+  // borrado nada. Este era el bug reportado: "llamo a alguien y la cola
+  // completa desaparece, como si nadie se hubiera inscrito".
+  //
+  // Fix: (1) un token de "ultima llamada gana" para que una respuesta vieja
+  // nunca pise el resultado de una mas nueva, y (2) en caso de error de red
+  // NO se limpia activeSession -- se preserva el ultimo estado bueno
+  // conocido en vez de asumir "no hay sesion activa".
+  const refreshRequestIdRef = useRef(0)
+
   const refreshActiveSession = useCallback(async (anchorBarId, anchorWorkspaceId) => {
     if (!anchorBarId && !anchorWorkspaceId) return
+    const requestId = ++refreshRequestIdRef.current
     try {
       let activeQuery = supabase
         .from('sessions')
@@ -226,7 +246,17 @@ export function KaraokeSessionProvider({ children }) {
       activeQuery = anchorBarId
         ? activeQuery.eq('bar_id', anchorBarId)
         : activeQuery.eq('workspace_id', anchorWorkspaceId)
-      const { data } = await activeQuery.maybeSingle()
+      const { data, error } = await activeQuery.maybeSingle()
+
+      // Una respuesta mas nueva ya llego mientras esta esperaba -- se
+      // descarta para no pisar el estado actual con algo desactualizado.
+      if (requestId !== refreshRequestIdRef.current) return
+
+      if (error) {
+        console.error('Error cargando sesion activa:', error)
+        return
+      }
+
       setActiveSession(data || null)
 
       if (!data) {
@@ -240,6 +270,7 @@ export function KaraokeSessionProvider({ children }) {
           ? closedQuery.eq('bar_id', anchorBarId)
           : closedQuery.eq('workspace_id', anchorWorkspaceId)
         const closedResult = await closedQuery.maybeSingle()
+        if (requestId !== refreshRequestIdRef.current) return
         const closed = closedResult.data
         if (closed && closed.closed_at) {
           const minutesAgo = (Date.now() - new Date(closed.closed_at).getTime()) / 60000
@@ -251,6 +282,9 @@ export function KaraokeSessionProvider({ children }) {
         setLastClosedSession(null)
       }
     } catch (err) {
+      // Excepcion real (red caida, etc.) -- se preserva el estado anterior
+      // en vez de vaciar la sesion activa por un problema transitorio.
+      if (requestId !== refreshRequestIdRef.current) return
       console.error('Error cargando sesion activa:', err)
     }
   }, [])
@@ -829,10 +863,20 @@ export function KaraokeSessionProvider({ children }) {
 
   const callSinger = useCallback(
     async (entryId) => {
-      if (!sessionId) return
+      if (!sessionId) return { ok: false, error: 'No hay sesion activa.' }
       const entry = queue.find((e) => e.id === entryId)
-      if (!entry) return
-      await supabase
+      if (!entry) return { ok: false, error: 'No encontramos a esa persona en la cola.' }
+
+      // Igual que en DjLiveModule.jsx / LiveViewer.jsx (bug de "borrar
+      // comentario no se reflejaba"): un .update() bloqueado por RLS no
+      // tira error, simplemente afecta 0 filas -- por eso se encadena
+      // .select('id') y se verifica el resultado, en vez de asumir que la
+      // escritura funciono. Si ESTA escritura falla, se corta aca mismo
+      // (sin tocar queue_entries) para no dejar a la persona marcada como
+      // "called" sin que realmente haya quedado como cantante actual --
+      // ese desfase es justo lo que hacia parecer que "se borraba" de la
+      // cola sin pasar a estar cantando.
+      const sessionUpdateResult = await supabase
         .from('sessions')
         .update({
           current_singer: {
@@ -850,7 +894,25 @@ export function KaraokeSessionProvider({ children }) {
           screen_mode: 'called'
         })
         .eq('id', sessionId)
-      await supabase.from('queue_entries').update({ status: 'called' }).eq('id', entryId)
+        .select('id')
+
+      if (sessionUpdateResult.error || !sessionUpdateResult.data || sessionUpdateResult.data.length === 0) {
+        console.error('callSinger: no se pudo actualizar sessions.current_singer', sessionUpdateResult.error)
+        return { ok: false, error: 'No se pudo llamar al cantante, intenta de nuevo.' }
+      }
+
+      const entryUpdateResult = await supabase
+        .from('queue_entries')
+        .update({ status: 'called' })
+        .eq('id', entryId)
+        .select('id')
+
+      if (entryUpdateResult.error || !entryUpdateResult.data || entryUpdateResult.data.length === 0) {
+        console.error('callSinger: no se pudo actualizar queue_entries.status', entryUpdateResult.error)
+        // El cantante ya quedo como current_singer (la escritura critica
+        // funciono) -- esto solo deja su fila vieja en 'waiting', no
+        // rompe el flujo, pero se registra para poder investigarlo.
+      }
 
       // Detección automática del artista real y portada del album (ya no
       // requiere confirmación manual del DJ).
@@ -879,6 +941,8 @@ export function KaraokeSessionProvider({ children }) {
           })
           .catch(() => {})
       }
+
+      return { ok: true }
     },
     [sessionId, queue]
   )

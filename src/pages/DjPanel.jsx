@@ -2020,7 +2020,13 @@ function QueueRowAdmin(props) {
           </button>
           {canCall && (
             <button
-              onClick={function () { callSinger(entry.id) }}
+              onClick={function () {
+                callSinger(entry.id).then(function (result) {
+                  if (result && result.ok === false) {
+                    window.alert(result.error || 'No se pudo llamar al cantante, intenta de nuevo.')
+                  }
+                })
+              }}
               className="text-xs px-3 py-1.5 rounded-lg font-medium text-white shrink-0"
               style={{ background: 'var(--accent-magenta)' }}
             >
