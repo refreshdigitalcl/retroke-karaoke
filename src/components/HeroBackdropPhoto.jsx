@@ -8,22 +8,33 @@
 // left:50% + width:100vw + translateX(-50%), asi calza perfecto en
 // cualquier viewport sin dejar franjas del grid a los costados.
 //
-// v3: el alto tambien se extiende hacia ARRIBA mas alla de rk-hub-hero-wrap
-// (top negativo, ver .hero-backdrop) para tapar el hueco que quedaba entre
-// el navbar flotante y el arranque de la foto -- SessionHub.jsx tiene
-// pt-28/sm:pt-32 (112px/128px) de padding arriba de todo, asi que se sube
-// exactamente ese monto para que la imagen llegue al borde real de la
-// pantalla. bottom:0 se mantiene atado a rk-hub-hero-wrap, asi que el
-// responsive del alto total lo sigue marcando ese wrap (min-height 420px
-// mobile / 520px desktop) mas el extra de arriba.
+// v4 (stacking fix): este componente ahora se renderiza como hijo directo
+// del contenedor raiz de SessionHub.jsx, YA NO anidado dentro de
+// rk-hub-hero-wrap. Motivo: el usuario pidio que el ecualizador quede
+// delante de esta foto pero detras del texto del hero -- eso es imposible
+// de lograr si la foto y el texto viven dentro del MISMO contenedor con
+// z-index propio (rk-hub-hero-wrap), porque un hijo nunca puede pintarse
+// por fuera del "paquete" de stacking context de su padre, sin importar
+// que z-index interno tenga. Sacando la foto a nivel raiz, los 3 elementos
+// quedan como hermanos reales que compiten con z-index propio: esta foto
+// (z-index bajo) < RetroEqualizer.jsx (z-index 20, sin tocar, se reusa en
+// otras 6 pantallas) < rk-hub-page (z-index alto, contiene el texto del
+// hero, la busqueda y la grilla).
+//
+// Al pasar a ser hijo directo de la raiz (que tiene el padding-top pt-28/
+// sm:pt-32 = 112px/128px), el top ya no necesita ser negativo -- top:0
+// ahora SI es el borde real de la pantalla. A cambio, como perdio el
+// bottom:0 atado a rk-hub-hero-wrap, el alto se fija explicitamente por
+// breakpoint calculando padding-top + min-height de rk-hub-hero-wrap en
+// cada uno (ver .hero-backdrop).
 //
 // Fusion con la pagina: sin mix-blend-mode contra el fondo real (la foto
-// no tiene canal alfa y ademas el propio .hero-backdrop ahora tiene
-// transform, asi que cualquier mix-blend-mode aca quedaria atrapado en su
-// propio contexto de apilamiento -- por eso el blend de .hero-backdrop-tint
-// solo mezcla contra sus hermanos DENTRO de este componente, que es
-// justamente lo que se necesita). La legibilidad del texto se logra con un
-// degrade vertical opaco (mismo color que --rk-bg-0) que oscurece la franja
+// no tiene canal alfa y ademas el propio .hero-backdrop tiene transform,
+// asi que cualquier mix-blend-mode aca quedaria atrapado en su propio
+// contexto de apilamiento -- por eso el blend de .hero-backdrop-tint solo
+// mezcla contra sus hermanos DENTRO de este componente, que es justamente
+// lo que se necesita). La legibilidad del texto se logra con un degrade
+// vertical opaco (mismo color que --rk-bg-0) que oscurece la franja
 // central, dejando que la foto respire mas arriba y abajo.
 export default function HeroBackdropPhoto() {
   return (
@@ -40,26 +51,33 @@ export default function HeroBackdropPhoto() {
       <div className="hero-backdrop-tint" />
 
       <style>{`
-        /* top negativo: SessionHub.jsx tiene pt-28/sm:pt-32 (112px/128px)
-           de padding arriba de todo el contenido, asi que el borde superior
-           de rk-hub-hero-wrap (el ancestro posicionado de este elemento) ya
-           arranca 112-128px mas abajo que el borde real de la pantalla. Sin
-           este ajuste quedaba un hueco negro (solo grid, sin foto) entre el
-           navbar flotante y el arranque de la imagen -- se sube el mismo
-           monto para que la foto llegue hasta el tope real. */
+        /* Hijo directo de la raiz (ver comentario arriba): top:0 ya es el
+           borde real de la pantalla. El alto se fija por breakpoint =
+           padding-top de la raiz + min-height de rk-hub-hero-wrap en ese
+           mismo breakpoint, para que la foto siga cubriendo justo hasta
+           donde termina el hero:
+             <640px:  112px (pt-28)     + 420px (hero-wrap) = 532px
+             >=640px: 128px (sm:pt-32)  + 420px              = 548px
+             >=1024px:128px             + 520px (hero-wrap lg) = 648px
+           z-index 15: por encima del grid de fondo (RetroNeonBg, z:0) pero
+           por debajo del ecualizador (RetroEqualizer, z:20) -- justo lo que
+           pidio el usuario ("el ecualizador delante de la imagen"). */
         .hero-backdrop {
           position: absolute;
-          top: -112px;
-          bottom: 0;
+          top: 0;
           left: 50%;
           width: 100vw;
+          height: 532px;
           transform: translateX(-50%);
-          z-index: 0;
+          z-index: 15;
           overflow: hidden;
           pointer-events: none;
         }
         @media (min-width: 640px) {
-          .hero-backdrop { top: -128px; }
+          .hero-backdrop { height: 548px; }
+        }
+        @media (min-width: 1024px) {
+          .hero-backdrop { height: 648px; }
         }
 
         .hero-backdrop-glow {

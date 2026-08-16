@@ -236,13 +236,17 @@ export default function SessionHub() {
     <div className="min-h-screen relative overflow-x-hidden flex flex-col items-center px-5 sm:px-8 lg:px-14 pt-28 sm:pt-32 pb-12" style={{ background: 'var(--rk-bg-gradient, #05030a)' }}>
       <style>{RETROKE_STYLES}</style>
       <RetroNeonBg />
+      {/* HeroBackdropPhoto vive ahora como hijo directo de la raiz (no
+          dentro de rk-hub-page) a proposito -- ver comentario largo en
+          HeroBackdropPhoto.jsx: es la unica forma de que el ecualizador
+          quede delante de la foto pero detras del texto del hero. */}
+      <HeroBackdropPhoto />
       <RetroEqualizer />
 
       <RetrokeNavbar active={null} />
 
       <div className="rk-hub-page">
         <div className="rk-hub-hero-wrap">
-          <HeroBackdropPhoto />
           <SelectionHero activeCount={activeCount} />
         </div>
 
@@ -323,6 +327,13 @@ export default function SessionHub() {
       <style>{`
         .rk-hub-page {
           position: relative;
+          /* z-index 25: por encima del ecualizador (z:20) -- todo lo de
+             aca adentro (texto del hero, busqueda, grilla de salas) debe
+             pintarse por delante de las barras del ecualizador. La foto
+             de fondo (HeroBackdropPhoto) ya no vive aca adentro, quedo
+             como hermano a nivel raiz con z-index 15 (ver SessionHub
+             arriba y el comentario en HeroBackdropPhoto.jsx). */
+          z-index: 25;
           width: 100%;
           max-width: 1280px;
           display: flex;
