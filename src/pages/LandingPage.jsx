@@ -379,7 +379,7 @@ export default function LandingPage() {
         <Reveal>
           <div className="r-section-inner r-split reverse">
             <div className="r-split-visual r-visual-emojis">
-              <img src="/landing/premium-dj.jpg" alt="Operador controlando una sesión de Retroke en vivo" loading="lazy" />
+              <img src="/landing/premium-crew-phone.jpg" alt="Grupo de amigos cantando y reaccionando desde su teléfono en una sesión de Retroke" loading="lazy" />
               <span className="r-float-emoji e1" aria-hidden="true">🔥</span>
               <span className="r-float-emoji e2" aria-hidden="true">🤯</span>
               <span className="r-float-emoji e3" aria-hidden="true">🫠</span>
@@ -422,7 +422,8 @@ export default function LandingPage() {
       </section>
 
       {/* PLANES */}
-      <section className="r-section r-bg-disco" id="planes">
+      <section className="r-section r-bg-disco" id="planes" style={{ backgroundImage: 'url(/landing/bg-planes-crew.jpg)' }}>
+        <span className="r-disco-fade" aria-hidden="true" />
         <span className="r-disco-beam db1" aria-hidden="true" />
         <span className="r-disco-beam db2" aria-hidden="true" />
         <span className="r-disco-beam db3" aria-hidden="true" />
@@ -705,8 +706,13 @@ export default function LandingPage() {
         .r-bg-network { background-image: radial-gradient(rgba(255,255,255,0.09) 1px, transparent 1px); background-size: 30px 30px; }
         .r-network-glow { position: absolute; top: 10%; left: 50%; transform: translateX(-50%); width: 60%; height: 60%; background: radial-gradient(ellipse, rgba(76,63,224,0.26), transparent 65%); animation: heroFloat 14s ease-in-out infinite; }
 
-        /* Fondo "Planes": luces de disco */
-        .r-bg-disco { background: #0c0c10; }
+        /* Fondo "Planes": foto de grupo + luces de disco encima. Mismo
+           patron que r-bg-ambient (background-image inline + capa de fade),
+           con un degrade mas oscuro (la foto tiene mucho contraste propio y
+           el texto de esta seccion es blanco/centrado, necesita mas
+           contencion que la de r-bg-ambient). */
+        .r-bg-disco { background-color: #0c0c10; background-size: cover; background-position: center 25%; }
+        .r-disco-fade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(12,12,16,0.82) 0%, rgba(12,12,16,0.9) 40%, rgba(12,12,16,0.93) 100%); }
         .r-disco-beam { position: absolute; top: -20%; width: 3px; height: 140%; opacity: 0.35; transform-origin: top center; filter: blur(1px); }
         .db1 { left: 20%; background: linear-gradient(180deg, rgba(232,51,107,0.6), transparent); animation: discoSweep 10s ease-in-out infinite; }
         .db2 { left: 50%; background: linear-gradient(180deg, rgba(34,195,230,0.6), transparent); animation: discoSweep 8s ease-in-out infinite reverse; animation-delay: -2s; }
@@ -732,10 +738,10 @@ export default function LandingPage() {
         .r-split-visual { border-radius: 16px; overflow: hidden; border: 1px solid rgba(232,51,107,0.3); box-shadow: 0 0 0 1px rgba(232,51,107,0.06), 0 30px 70px -30px rgba(232,51,107,0.35); }
         .r-visual-emojis { position: relative; overflow: visible; }
         .r-visual-emojis img { border-radius: 16px; }
-        .r-float-emoji { position: absolute; font-size: 34px; filter: drop-shadow(0 6px 14px rgba(0,0,0,0.5)); animation: emojiFloat 4.5s ease-in-out infinite; }
+        .r-float-emoji { position: absolute; font-size: 40px; filter: drop-shadow(0 6px 14px rgba(0,0,0,0.5)); animation: emojiFloat 4.5s ease-in-out infinite; }
         .e1 { top: -16px; left: -14px; animation-delay: 0s; }
-        .e2 { top: 14%; right: -18px; font-size: 30px; animation-delay: -1.2s; }
-        .e3 { bottom: 10%; left: -20px; font-size: 32px; animation-delay: -2.4s; }
+        .e2 { top: 14%; right: -18px; font-size: 35px; animation-delay: -1.2s; }
+        .e3 { bottom: 10%; left: -20px; font-size: 37px; animation-delay: -2.4s; }
         .e4 { bottom: -16px; right: 10%; animation-delay: -3.4s; }
         @keyframes emojiFloat { 0%, 100% { transform: translateY(0) rotate(-4deg); } 50% { transform: translateY(-12px) rotate(4deg); } }
         .r-split-visual img { width: 100%; height: 100%; object-fit: cover; display: block; }
