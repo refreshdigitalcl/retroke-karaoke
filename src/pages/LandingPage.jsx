@@ -27,6 +27,38 @@ function usePrefersReducedMotion() {
   return reduced
 }
 
+// Parallax del banner principal: mismo patron que useKickerParallax en
+// SelectionHero.jsx (RAF-throttled, scroll pasivo, se aplica por JS
+// directo sobre el DOM en vez de React state para no re-renderizar en cada
+// frame). Va en un elemento DISTINTO al que tiene el zoom Ken Burns
+// (.r-banner-img, animacion CSS) -- una animation con fill-mode:both/
+// forwards en el mismo transform pisaria el inline style de este hook para
+// siempre (leccion ya aprendida con el kicker de SessionHub), asi que el
+// scroll mueve el "frame" contenedor y el zoom vive en la imagen adentro,
+// cada uno dueño de su propio transform.
+function useBannerParallax(ref) {
+  useEffect(function () {
+    if (typeof window === 'undefined') return
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    var el = ref.current
+    if (!el) return
+    var ticking = false
+    function apply() {
+      ticking = false
+      var offset = Math.min(45, window.scrollY * 0.18)
+      el.style.transform = 'translateY(' + offset + 'px)'
+    }
+    function onScroll() {
+      if (ticking) return
+      ticking = true
+      requestAnimationFrame(apply)
+    }
+    apply()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return function () { window.removeEventListener('scroll', onScroll) }
+  }, [ref])
+}
+
 function Reveal(props) {
   var ref = useRef(null)
   var visibleState = useState(false)
@@ -118,6 +150,9 @@ export default function LandingPage() {
   var menuOpen = menuOpenState[0]
   var setMenuOpen = menuOpenState[1]
 
+  var bannerFrameRef = useRef(null)
+  useBannerParallax(bannerFrameRef)
+
   useEffect(function () {
     function onScroll() { setNavScrolled(window.scrollY > 24) }
     window.addEventListener('scroll', onScroll)
@@ -167,13 +202,34 @@ export default function LandingPage() {
         )}
       </nav>
 
-      {/* HERO -- estilo Retroke World: la foto de cabecera reemplaza el
-          cuadro/marco que tenia el logo antes (se veia como una caja suelta,
-          desconectada del resto). Misma tecnica de foto full-bleed que
-          HeroBackdropPhoto.jsx en SessionHub: la imagen cubre todo el ancho
-          real de pantalla, con un degrade hacia --rk-bg-0 para que el texto
-          sobre ella siga legible. Distribucion, informacion y cajas del
-          resto del hero (eyebrow, titulo, ctas, stats) no cambian. */}
+      {/* BANNER PRINCIPAL -- reemplaza el hero anterior (foto tenue detras
+          del texto). Ahora la foto es la protagonista: a todo el ancho real
+          y pegada arriba (primer elemento despues del nav, sin padding), en
+          vez de compartir espacio con el texto. Se le agrego movimiento en
+          3 capas independientes para no repetir el bug de "una animation
+          con fill-mode pisa el transform que pone JS" (ver comentario en
+          useBannerParallax): .r-banner-persp da la perspectiva 3D para la
+          entrada, .r-banner-frame es quien mueve el parallax por JS al
+          hacer scroll, y .r-banner-img adentro tiene su propio zoom Ken
+          Burns por CSS -- cada uno dueño de un solo transform. Debajo va
+          toda la informacion que ya existia (logo, titulo, ctas, stats),
+          ahora en su propio bloque en vez de superpuesta a la foto. */}
+      <div className="r-banner-persp">
+        <div className="r-banner">
+          <div className="r-banner-frame" ref={bannerFrameRef}>
+            <picture>
+              <source srcSet="/landing/inicio-hero.webp" type="image/webp" />
+              <img
+                src="/landing/inicio-hero.png"
+                alt="Publico cantando y celebrando en vivo en un show de Retroke"
+                className="r-banner-img"
+              />
+            </picture>
+          </div>
+          <div className="r-banner-fade" aria-hidden="true" />
+        </div>
+      </div>
+
       <header className="r-hero">
         <div className="r-hero-field" aria-hidden="true">
           <span className="r-hero-glow g1" />
@@ -182,15 +238,6 @@ export default function LandingPage() {
           <span className="r-hero-grid" />
           <span className="r-hero-beam b1" />
           <span className="r-hero-beam b2" />
-        </div>
-
-        <div className="r-hero-photo" aria-hidden="true">
-          <picture>
-            <source srcSet="/landing/inicio-hero.webp" type="image/webp" />
-            <img src="/landing/inicio-hero.png" alt="" className="r-hero-photo-img" />
-          </picture>
-          <div className="r-hero-photo-fade" />
-          <div className="r-hero-photo-tint" />
         </div>
 
         <div className="r-hero-inner">
@@ -439,7 +486,6 @@ export default function LandingPage() {
         .reduced-motion .r-reveal { opacity: 1; transform: none; transition: none; }
         .reduced-motion * { animation: none !important; }
         .reduced-motion .r-hero-logo-plain { filter: drop-shadow(0 0 40px rgba(232,51,107,0.35)) drop-shadow(0 0 80px rgba(76,63,224,0.25)); }
-        .reduced-motion .r-hero-photo-img { opacity: 0.35; }
 
         /* Nav */
         .r-nav { position: sticky; top: 0; z-index: 50; padding: 20px 6vw; transition: background 0.25s ease, border-color 0.25s ease, padding 0.25s ease; border-bottom: 1px solid transparent; }
@@ -457,47 +503,64 @@ export default function LandingPage() {
           50% { filter: drop-shadow(0 0 56px rgba(232,51,107,0.5)) drop-shadow(0 0 100px rgba(76,63,224,0.4)); }
         }
 
-        /* Foto de cabecera full-bleed detras del texto del hero -- mismo
-           criterio que HeroBackdropPhoto.jsx (SessionHub): cubre todo el
-           ancho real de la pantalla (no solo el max-width de r-hero-inner)
-           y se desvanece hacia el fondo de la pagina con un degrade vertical
-           para que el texto encima siga legible. .r-hero ya no tiene
-           max-width propio asi que no hace falta el truco de 100vw, pero
-           se deja el mismo patron por si el contenedor cambia. */
-        .r-hero-photo { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
-        /* v2: la foto original (proyector + cartel de neon) se veia muy clara/
-           blanca en el hero -- el proyector es una pantalla gris clara con
-           texto blanco y el cartel "RETROKE" es neon casi blanco, asi que a
-           55% de opacidad y solo brightness(0.85) quedaban demasiado
-           expuestos. Se corrigio en tres frentes: (1) object-position corrido
-           a la izquierda para recortar mas la pantalla del proyector (la
-           zona mas clara) fuera del encuadre, (2) mas oscurecimiento propio
-           de la imagen (brightness 0.72), (3) el degrade de arriba (donde
-           antes casi no oscurecia, 0.35/0.15) ahora arranca mas oscuro para
-           que esa franja superior clara quede contenida, y (4) el tinte de
-           marca (mix-blend-mode:screen, que solo puede aclarar) se redujo
-           bastante -- a esa intensidad sumaba blanco extra sobre zonas ya
-           claras de la foto en vez de solo teñir el violeta/magenta. */
-        .r-hero-photo-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 32% 34%; display: block; filter: saturate(1.1) contrast(1.05) brightness(0.72); opacity: 0.55; }
-        .r-hero-photo-fade {
+        /* Banner principal -- foto a todo el ancho real, pegada arriba (sin
+           padding, primer elemento tras el nav). object-position corrido a
+           la izquierda: la pantalla del proyector (zona mas clara/blanca de
+           la foto) queda mas recortada, misma correccion que ya se probo
+           antes de convertir esto en banner. .r-banner-persp solo existe
+           para darle "perspective" al hijo -- sin eso rotateX no se ve 3D,
+           se ve como un simple achicado en Y. */
+        .r-banner-persp { perspective: 1100px; }
+        .r-banner {
+          position: relative;
+          width: 100%;
+          height: min(80vh, 640px);
+          min-height: 340px;
+          overflow: hidden;
+          transform-origin: 50% 35%;
+          animation: rBannerIn 1.1s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+        @keyframes rBannerIn {
+          from { opacity: 0; transform: scale(1.06) rotateX(5deg); }
+          to { opacity: 1; transform: scale(1) rotateX(0deg); }
+        }
+        @media (max-width: 900px) {
+          .r-banner { height: min(58vh, 460px); min-height: 300px; }
+        }
+        /* Frame: mas alto/ancho que el banner visible (overflow:hidden lo
+           recorta) para que el parallax por scroll (useBannerParallax,
+           traslada este elemento por JS) nunca deje ver un borde vacio. */
+        .r-banner-frame {
+          position: absolute;
+          left: 0; right: 0;
+          top: -10%;
+          height: 120%;
+          will-change: transform;
+        }
+        .r-banner-img {
+          position: absolute; inset: 0; width: 100%; height: 100%;
+          object-fit: cover; object-position: 32% 32%; display: block;
+          filter: saturate(1.12) contrast(1.05) brightness(0.78);
+          transform-origin: 40% 34%;
+          animation: rBannerKenBurns 22s ease-in-out infinite alternate;
+        }
+        @keyframes rBannerKenBurns {
+          0% { transform: scale(1); }
+          100% { transform: scale(1.09); }
+        }
+        .r-banner-fade {
           position: absolute; inset: 0;
+          pointer-events: none;
           background: linear-gradient(
             to bottom,
-            rgba(8,8,11,0.55) 0%,
-            rgba(8,8,11,0.32) 18%,
-            rgba(8,8,11,0.6) 42%,
-            rgba(8,8,11,0.88) 66%,
-            var(--rk-bg-0, #08080b) 100%
+            rgba(5,3,10,0) 55%,
+            rgba(5,3,10,0.45) 78%,
+            rgba(5,3,10,0.82) 92%,
+            var(--rk-bg-0, #05030a) 100%
           );
         }
-        .r-hero-photo-tint {
-          position: absolute; inset: 0;
-          background: radial-gradient(ellipse 70% 55% at 50% 25%, rgba(139,92,246,0.1) 0%, transparent 70%),
-            linear-gradient(180deg, rgba(233,30,140,0.05), transparent 45%);
-          mix-blend-mode: screen;
-        }
         @media (max-width: 640px) {
-          .r-hero-photo-img { object-position: 28% 22%; opacity: 0.38; }
+          .r-banner-img { object-position: 28% 22%; filter: saturate(1.1) contrast(1.05) brightness(0.7); }
         }
         .r-nav-links { display: flex; gap: 32px; font-size: 13.5px; font-weight: 500; color: #a3a3ad; }
         .r-nav-links a { color: inherit; text-decoration: none; transition: color 0.15s ease; }
@@ -572,7 +635,10 @@ export default function LandingPage() {
         .r-btn-secondary:hover { border-color: rgba(232,51,107,0.7); background: rgba(232,51,107,0.12); }
 
         /* Hero */
-        .r-hero { position: relative; padding: 120px 6vw 90px; overflow: hidden; }
+        /* Antes 120px arriba porque el hero era lo primero bajo el nav
+           sticky -- ahora ese rol lo cumple el banner de foto, asi que
+           .r-hero solo necesita respirar despues de el. */
+        .r-hero { position: relative; padding: 56px 6vw 90px; overflow: hidden; }
         .r-hero-field { position: absolute; inset: 0; pointer-events: none; }
         .r-hero-glow { position: absolute; width: 32rem; height: 32rem; border-radius: 999px; filter: blur(110px); opacity: 0.38; animation: heroFloat 12s ease-in-out infinite; }
         .g1 { background: #e8336b; top: -10rem; left: -8rem; }
