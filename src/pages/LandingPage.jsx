@@ -27,38 +27,6 @@ function usePrefersReducedMotion() {
   return reduced
 }
 
-// Parallax del banner principal: mismo patron que useKickerParallax en
-// SelectionHero.jsx (RAF-throttled, scroll pasivo, se aplica por JS
-// directo sobre el DOM en vez de React state para no re-renderizar en cada
-// frame). Va en un elemento DISTINTO al que tiene el zoom Ken Burns
-// (.r-banner-img, animacion CSS) -- una animation con fill-mode:both/
-// forwards en el mismo transform pisaria el inline style de este hook para
-// siempre (leccion ya aprendida con el kicker de SessionHub), asi que el
-// scroll mueve el "frame" contenedor y el zoom vive en la imagen adentro,
-// cada uno dueño de su propio transform.
-function useBannerParallax(ref) {
-  useEffect(function () {
-    if (typeof window === 'undefined') return
-    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
-    var el = ref.current
-    if (!el) return
-    var ticking = false
-    function apply() {
-      ticking = false
-      var offset = Math.min(45, window.scrollY * 0.18)
-      el.style.transform = 'translateY(' + offset + 'px)'
-    }
-    function onScroll() {
-      if (ticking) return
-      ticking = true
-      requestAnimationFrame(apply)
-    }
-    apply()
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return function () { window.removeEventListener('scroll', onScroll) }
-  }, [ref])
-}
-
 function Reveal(props) {
   var ref = useRef(null)
   var visibleState = useState(false)
@@ -150,9 +118,6 @@ export default function LandingPage() {
   var menuOpen = menuOpenState[0]
   var setMenuOpen = menuOpenState[1]
 
-  var bannerFrameRef = useRef(null)
-  useBannerParallax(bannerFrameRef)
-
   useEffect(function () {
     function onScroll() { setNavScrolled(window.scrollY > 24) }
     window.addEventListener('scroll', onScroll)
@@ -202,46 +167,28 @@ export default function LandingPage() {
         )}
       </nav>
 
-      {/* BANNER PRINCIPAL -- reemplaza el hero anterior (foto tenue detras
-          del texto). Ahora la foto es la protagonista: a todo el ancho real
-          y pegada arriba (primer elemento despues del nav, sin padding), en
-          vez de compartir espacio con el texto. Se le agrego movimiento en
-          3 capas independientes para no repetir el bug de "una animation
-          con fill-mode pisa el transform que pone JS" (ver comentario en
-          useBannerParallax): .r-banner-persp da la perspectiva 3D para la
-          entrada, .r-banner-frame es quien mueve el parallax por JS al
-          hacer scroll, y .r-banner-img adentro tiene su propio zoom Ken
-          Burns por CSS -- cada uno dueño de un solo transform. Debajo va
-          toda la informacion que ya existia (logo, titulo, ctas, stats),
-          ahora en su propio bloque en vez de superpuesta a la foto. */}
-      <div className="r-banner-persp">
-        <div className="r-banner">
-          <div className="r-banner-frame" ref={bannerFrameRef}>
-            <picture>
-              <source srcSet="/landing/inicio-hero.webp" type="image/webp" />
-              <img
-                src="/landing/inicio-hero.png"
-                alt="Publico cantando y celebrando en vivo en un show de Retroke"
-                className="r-banner-img"
-              />
-            </picture>
-          </div>
-          <div className="r-banner-fade" aria-hidden="true" />
-        </div>
-      </div>
-
+      {/* HERO -- vuelta a foja cero, mismo criterio que la pantalla de
+          seleccion de salas (SessionHub/HeroBackdropPhoto.jsx): UNA sola
+          imagen a tope arriba y a todo el ancho, con el texto encima de
+          ella (no separada en un banner + bloque de texto debajo, eso no
+          funciono). El alto de .r-hero lo define el propio contenido
+          (padding + texto), y la foto lo cubre entero con position:absolute
+          inset:0 -- se estira exactamente a la altura que el texto necesite,
+          en vez de un alto fijo en vh. Sin Ken Burns ni parallax esta vez:
+          simple y quieto, como el hero de seleccion de salas (que solo
+          tiene 2 glows suaves pulsando, nada mas). */}
       <header className="r-hero">
-        <div className="r-hero-field" aria-hidden="true">
-          <span className="r-hero-glow g1" />
-          <span className="r-hero-glow g2" />
-          <span className="r-hero-glow g3" />
-          <span className="r-hero-grid" />
-          <span className="r-hero-beam b1" />
-          <span className="r-hero-beam b2" />
+        <div className="r-hero-photo" aria-hidden="true">
+          <picture>
+            <source srcSet="/landing/inicio-hero.webp" type="image/webp" />
+            <img src="/landing/inicio-hero.png" alt="" className="r-hero-photo-img" />
+          </picture>
+          <span className="r-hero-photo-glow glow-a" />
+          <span className="r-hero-photo-glow glow-b" />
+          <div className="r-hero-photo-fade" />
         </div>
 
         <div className="r-hero-inner">
-          <img src="/landing/retroke-logo.png" alt="Retroke" className="r-hero-logo-plain" />
           <p className="r-eyebrow">Plataforma de entretenimiento en vivo</p>
           <h1 className="r-hero-title">
             Todos tienen un lugar en el escenario.
@@ -253,18 +200,6 @@ export default function LandingPage() {
           <div className="r-hero-ctas">
             <a href="/precios" className="r-btn r-btn-primary large">Comenzar ahora</a>
             <a href="#producto" className="r-btn r-btn-secondary large">Ver cómo funciona</a>
-          </div>
-          <div className="r-hero-stats">
-            <div><strong><CountUp target={3} /></strong><span>Modalidades de uso</span></div>
-            <div className="r-stat-divider" />
-            <div><strong><CountUp target={100} suffix="%" /></strong><span>Basado en navegador</span></div>
-            <div className="r-stat-divider" />
-            <div><strong>0</strong><span>Instalaciones requeridas</span></div>
-          </div>
-          <div className="r-hero-eq" aria-hidden="true">
-            {Array.from({ length: 20 }).map(function (_, i) {
-              return <span key={i} style={{ animationDelay: (i * 0.08) + 's' }} />
-            })}
           </div>
         </div>
       </header>
@@ -485,83 +420,12 @@ export default function LandingPage() {
         .r-reveal.visible { opacity: 1; transform: translateY(0); }
         .reduced-motion .r-reveal { opacity: 1; transform: none; transition: none; }
         .reduced-motion * { animation: none !important; }
-        .reduced-motion .r-hero-logo-plain { filter: drop-shadow(0 0 40px rgba(232,51,107,0.35)) drop-shadow(0 0 80px rgba(76,63,224,0.25)); }
-
         /* Nav */
         .r-nav { position: sticky; top: 0; z-index: 50; padding: 20px 6vw; transition: background 0.25s ease, border-color 0.25s ease, padding 0.25s ease; border-bottom: 1px solid transparent; }
         .r-nav.scrolled { background: rgba(8,8,11,0.85); backdrop-filter: blur(14px); border-bottom-color: rgba(255,255,255,0.08); padding: 14px 6vw; }
         .r-nav-inner { max-width: 1240px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
         .r-logo-img { height: 40px; width: auto; display: block; }
         .r-logo-img.small { height: 34px; margin-bottom: 14px; }
-        /* Antes el logo vivia dentro de un cuadro (marco + ring + chispas)
-           que quedaba como una caja suelta sobre el fondo. Ahora flota
-           directo sobre la foto de cabecera, igual que el wordmark del
-           hero de seleccion de salas -- solo el glow lo acompaña. */
-        .r-hero-logo-plain { position: relative; z-index: 2; width: min(360px, 62vw); height: auto; margin: 0 auto 28px; display: block; filter: drop-shadow(0 0 40px rgba(232,51,107,0.45)) drop-shadow(0 0 90px rgba(76,63,224,0.35)); animation: heroLogoGlow 4s ease-in-out infinite; }
-        @keyframes heroLogoGlow {
-          0%, 100% { filter: drop-shadow(0 0 40px rgba(232,51,107,0.35)) drop-shadow(0 0 80px rgba(76,63,224,0.25)); }
-          50% { filter: drop-shadow(0 0 56px rgba(232,51,107,0.5)) drop-shadow(0 0 100px rgba(76,63,224,0.4)); }
-        }
-
-        /* Banner principal -- foto a todo el ancho real, pegada arriba (sin
-           padding, primer elemento tras el nav). object-position corrido a
-           la izquierda: la pantalla del proyector (zona mas clara/blanca de
-           la foto) queda mas recortada, misma correccion que ya se probo
-           antes de convertir esto en banner. .r-banner-persp solo existe
-           para darle "perspective" al hijo -- sin eso rotateX no se ve 3D,
-           se ve como un simple achicado en Y. */
-        .r-banner-persp { perspective: 1100px; }
-        .r-banner {
-          position: relative;
-          width: 100%;
-          height: min(80vh, 640px);
-          min-height: 340px;
-          overflow: hidden;
-          transform-origin: 50% 35%;
-          animation: rBannerIn 1.1s cubic-bezier(0.16, 1, 0.3, 1) both;
-        }
-        @keyframes rBannerIn {
-          from { opacity: 0; transform: scale(1.06) rotateX(5deg); }
-          to { opacity: 1; transform: scale(1) rotateX(0deg); }
-        }
-        @media (max-width: 900px) {
-          .r-banner { height: min(58vh, 460px); min-height: 300px; }
-        }
-        /* Frame: mas alto/ancho que el banner visible (overflow:hidden lo
-           recorta) para que el parallax por scroll (useBannerParallax,
-           traslada este elemento por JS) nunca deje ver un borde vacio. */
-        .r-banner-frame {
-          position: absolute;
-          left: 0; right: 0;
-          top: -10%;
-          height: 120%;
-          will-change: transform;
-        }
-        .r-banner-img {
-          position: absolute; inset: 0; width: 100%; height: 100%;
-          object-fit: cover; object-position: 32% 32%; display: block;
-          filter: saturate(1.12) contrast(1.05) brightness(0.78);
-          transform-origin: 40% 34%;
-          animation: rBannerKenBurns 22s ease-in-out infinite alternate;
-        }
-        @keyframes rBannerKenBurns {
-          0% { transform: scale(1); }
-          100% { transform: scale(1.09); }
-        }
-        .r-banner-fade {
-          position: absolute; inset: 0;
-          pointer-events: none;
-          background: linear-gradient(
-            to bottom,
-            rgba(5,3,10,0) 55%,
-            rgba(5,3,10,0.45) 78%,
-            rgba(5,3,10,0.82) 92%,
-            var(--rk-bg-0, #05030a) 100%
-          );
-        }
-        @media (max-width: 640px) {
-          .r-banner-img { object-position: 28% 22%; filter: saturate(1.1) contrast(1.05) brightness(0.7); }
-        }
         .r-nav-links { display: flex; gap: 32px; font-size: 13.5px; font-weight: 500; color: #a3a3ad; }
         .r-nav-links a { color: inherit; text-decoration: none; transition: color 0.15s ease; }
         .r-nav-links a:hover { color: #fff; }
@@ -634,42 +498,53 @@ export default function LandingPage() {
         .r-btn-secondary { background: rgba(232,51,107,0.06); color: #f2f2f5; border: 1px solid rgba(232,51,107,0.35); }
         .r-btn-secondary:hover { border-color: rgba(232,51,107,0.7); background: rgba(232,51,107,0.12); }
 
-        /* Hero */
-        /* Antes 120px arriba porque el hero era lo primero bajo el nav
-           sticky -- ahora ese rol lo cumple el banner de foto, asi que
-           .r-hero solo necesita respirar despues de el. */
-        .r-hero { position: relative; padding: 56px 6vw 90px; overflow: hidden; }
-        .r-hero-field { position: absolute; inset: 0; pointer-events: none; }
-        .r-hero-glow { position: absolute; width: 32rem; height: 32rem; border-radius: 999px; filter: blur(110px); opacity: 0.38; animation: heroFloat 12s ease-in-out infinite; }
-        .g1 { background: #e8336b; top: -10rem; left: -8rem; }
-        .g2 { background: #4c3fe0; top: -4rem; right: -10rem; animation-delay: -4s; }
-        .g3 { background: #22c3e6; bottom: -14rem; left: 30%; width: 26rem; height: 26rem; opacity: 0.24; animation-delay: -8s; }
-        @keyframes heroFloat {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          50% { transform: translate(3%, 4%) scale(1.08); }
+        /* Hero -- foto a tope arriba y a todo el ancho, con el texto
+           encima (mismo criterio que HeroBackdropPhoto.jsx + SelectionHero
+           en la pantalla de seleccion de salas). .r-hero es position:
+           relative y NO tiene un alto propio fijo -- lo define el padding +
+           el texto de adentro (r-hero-inner, en flujo normal), y la foto
+           (position:absolute inset:0) se estira para cubrir exactamente esa
+           altura, sin importar cuanto mida. .r-hero es lo primero dentro de
+           r-page (justo despues del nav), por eso "a tope arriba" sale solo
+           con padding-top en vez de margin/gap. */
+        .r-hero { position: relative; padding: 96px 6vw 100px; overflow: hidden; }
+        .r-hero-photo { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+        .r-hero-photo-img {
+          position: absolute; inset: 0; width: 100%; height: 100%;
+          object-fit: cover; object-position: 32% 32%; display: block;
+          filter: saturate(1.1) contrast(1.05) brightness(0.75);
+          opacity: 0.62;
         }
-        .r-hero-grid { position: absolute; inset: 0; opacity: 0.045; background-image: linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px); background-size: 64px 64px; mask-image: radial-gradient(ellipse 60% 50% at 50% 0%, black, transparent); animation: gridDrift 30s linear infinite; }
-        @keyframes gridDrift { from { background-position: 0 0, 0 0; } to { background-position: 64px 64px, 64px 64px; } }
-        .r-hero-beam { position: absolute; top: -10%; width: 2px; height: 55%; background: linear-gradient(180deg, rgba(232,51,107,0.35), transparent); opacity: 0.5; transform-origin: top center; animation: beamSweep 9s ease-in-out infinite; }
-        .b1 { left: 38%; animation-delay: 0s; }
-        .b2 { left: 60%; background: linear-gradient(180deg, rgba(76,63,224,0.35), transparent); animation-delay: -4.5s; }
-        @keyframes beamSweep {
-          0%, 100% { transform: rotate(-6deg); opacity: 0.35; }
-          50% { transform: rotate(6deg); opacity: 0.6; }
+        @media (max-width: 640px) {
+          .r-hero-photo-img { object-position: 26% 22%; opacity: 0.5; }
         }
-        .r-hero-eq { display: flex; align-items: flex-end; justify-content: center; gap: 4px; height: 30px; margin-top: 52px; opacity: 0.55; }
-        .r-hero-eq span { width: 3px; border-radius: 2px; background: linear-gradient(180deg, #e8336b, #4c3fe0); height: 6px; animation: eqBounce 1.2s ease-in-out infinite; }
-        @keyframes eqBounce { 0%, 100% { height: 5px; } 50% { height: 26px; } }
+        /* Dos glows suaves pulsando -- mismo recurso que .hero-backdrop-glow
+           en HeroBackdropPhoto.jsx (SessionHub), para que la foto respire
+           un poco de color de marca sin necesitar mix-blend-mode:screen
+           (eso fue lo que dejaba todo "muy blanco" en el intento anterior). */
+        .r-hero-photo-glow { position: absolute; border-radius: 50%; filter: blur(90px); opacity: 0.32; animation: rHeroGlowPulse 6s ease-in-out infinite; }
+        .r-hero-photo-glow.glow-a { top: -6%; left: 6%; width: 34%; height: 55%; background: #E91E8C; }
+        .r-hero-photo-glow.glow-b { bottom: -10%; right: 8%; width: 32%; height: 50%; background: #4c3fe0; animation-delay: -3s; }
+        @keyframes rHeroGlowPulse { 0%, 100% { opacity: 0.22; } 50% { opacity: 0.38; } }
+        /* Degrade: mas oscuro arriba y abajo, mas claro justo donde vive el
+           texto (35-60%) para que la foto se note sin pelear con la
+           legibilidad. */
+        .r-hero-photo-fade {
+          position: absolute; inset: 0;
+          background: linear-gradient(
+            to bottom,
+            rgba(5,3,10,0.55) 0%,
+            rgba(5,3,10,0.3) 20%,
+            rgba(5,3,10,0.4) 55%,
+            rgba(5,3,10,0.72) 82%,
+            var(--rk-bg-0, #05030a) 100%
+          );
+        }
         .r-hero-inner { position: relative; z-index: 2; max-width: 740px; margin: 0 auto; text-align: center; }
-        .r-eyebrow { font-size: 13px; letter-spacing: 0.5px; color: #8f8f99; margin-bottom: 24px; font-weight: 500; }
-        .r-hero-title { font-family: 'Space Grotesk', sans-serif; font-size: clamp(2.1rem, 5vw, 3.6rem); font-weight: 700; line-height: 1.15; letter-spacing: -0.02em; margin-bottom: 24px; background: linear-gradient(100deg, #fff 10%, #ff6fa5 35%, #8b7bff 60%, #22c3e6 80%, #fff 100%); background-size: 250% auto; -webkit-background-clip: text; background-clip: text; color: transparent; animation: heroTitleShift 8s ease-in-out infinite; }
-        @keyframes heroTitleShift { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
-        .r-hero-sub { font-size: 17px; line-height: 1.65; color: #b0b0b8; max-width: 520px; margin: 0 auto 38px; }
-        .r-hero-ctas { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-bottom: 56px; }
-        .r-hero-stats { display: flex; align-items: center; justify-content: center; gap: 30px; }
-        .r-hero-stats strong { font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700; display: block; background: linear-gradient(100deg, #ff6fa5, #8b7bff); -webkit-background-clip: text; background-clip: text; color: transparent; }
-        .r-hero-stats span { font-size: 12px; color: #8f8f99; }
-        .r-stat-divider { width: 1px; height: 28px; background: linear-gradient(180deg, transparent, rgba(232,51,107,0.5), transparent); }
+        .r-eyebrow { font-size: 13px; letter-spacing: 0.5px; color: rgba(255,255,255,0.75); margin-bottom: 24px; font-weight: 500; text-shadow: 0 1px 10px rgba(0,0,0,0.6); }
+        .r-hero-title { font-family: 'Space Grotesk', sans-serif; font-size: clamp(2.1rem, 5vw, 3.6rem); font-weight: 700; line-height: 1.15; letter-spacing: -0.02em; margin-bottom: 24px; color: #fff; text-shadow: 0 2px 24px rgba(0,0,0,0.55), 0 0 40px rgba(139,92,246,0.3); }
+        .r-hero-sub { font-size: 17px; line-height: 1.65; color: rgba(255,255,255,0.78); max-width: 520px; margin: 0 auto 38px; text-shadow: 0 1px 10px rgba(0,0,0,0.5); }
+        .r-hero-ctas { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
 
         /* Sections */
         .r-section { padding: 110px 6vw; position: relative; overflow: hidden; }
@@ -840,7 +715,6 @@ export default function LandingPage() {
           .r-steps { grid-template-columns: repeat(2, 1fr); gap: 32px; }
           .r-modes { grid-template-columns: 1fr; }
           .r-trust-grid { grid-template-columns: 1fr; }
-          .r-hero-stats { gap: 18px; }
         }
         @media (max-width: 560px) {
           .r-steps { grid-template-columns: 1fr; }
