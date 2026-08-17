@@ -13,6 +13,62 @@ function useGoogleFonts() {
   }, [])
 }
 
+// Tilt 3D interactivo de la foto del hero: al mover el mouse sobre
+// hostRef (todo el .r-hero, no solo la foto -- asi los botones/texto
+// arriba siguen recibiendo el mousemove igual y no hace falta tocar
+// pointer-events), se calcula la posicion relativa del cursor (-1 a 1 en
+// cada eje) y se rota tiltRef (.r-hero-photo-tilt) en rotateX/rotateY.
+// El suavizado lo da una CSS transition en .r-hero-photo-tilt, no un
+// animation -- por eso esto puede escribir el inline style tranquilo, sin
+// repetir el bug de que un animation con fill-mode pise el transform de
+// JS (ver comentario mas detallado donde se uso este mismo patron antes).
+// RAF-throttled igual que los otros hooks de scroll de este archivo, para
+// no recalcular en cada evento nativo de mousemove.
+function useHeroTilt(hostRef, tiltRef) {
+  useEffect(function () {
+    if (typeof window === 'undefined') return
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    var host = hostRef.current
+    var tilt = tiltRef.current
+    if (!host || !tilt) return
+
+    var maxDeg = 7
+    var ticking = false
+    var pending = null
+
+    function apply() {
+      ticking = false
+      if (!pending) return
+      var rect = host.getBoundingClientRect()
+      var nx = ((pending.x - rect.left) / rect.width - 0.5) * 2
+      var ny = ((pending.y - rect.top) / rect.height - 0.5) * 2
+      nx = Math.max(-1, Math.min(1, nx))
+      ny = Math.max(-1, Math.min(1, ny))
+      tilt.style.transform =
+        'rotateY(' + (nx * maxDeg) + 'deg) rotateX(' + (-ny * maxDeg) + 'deg) scale(1.035)'
+    }
+
+    function onMove(e) {
+      pending = { x: e.clientX, y: e.clientY }
+      if (ticking) return
+      ticking = true
+      requestAnimationFrame(apply)
+    }
+
+    function onLeave() {
+      pending = null
+      tilt.style.transform = 'rotateY(0deg) rotateX(0deg) scale(1)'
+    }
+
+    host.addEventListener('mousemove', onMove)
+    host.addEventListener('mouseleave', onLeave)
+    return function () {
+      host.removeEventListener('mousemove', onMove)
+      host.removeEventListener('mouseleave', onLeave)
+    }
+  }, [hostRef, tiltRef])
+}
+
 function usePrefersReducedMotion() {
   var state = useState(false)
   var reduced = state[0]
@@ -118,6 +174,10 @@ export default function LandingPage() {
   var menuOpen = menuOpenState[0]
   var setMenuOpen = menuOpenState[1]
 
+  var heroRef = useRef(null)
+  var heroTiltRef = useRef(null)
+  useHeroTilt(heroRef, heroTiltRef)
+
   useEffect(function () {
     function onScroll() { setNavScrolled(window.scrollY > 24) }
     window.addEventListener('scroll', onScroll)
@@ -167,24 +227,33 @@ export default function LandingPage() {
         )}
       </nav>
 
-      {/* HERO -- vuelta a foja cero, mismo criterio que la pantalla de
-          seleccion de salas (SessionHub/HeroBackdropPhoto.jsx): UNA sola
-          imagen a tope arriba y a todo el ancho, con el texto encima de
-          ella (no separada en un banner + bloque de texto debajo, eso no
-          funciono). El alto de .r-hero lo define el propio contenido
-          (padding + texto), y la foto lo cubre entero con position:absolute
-          inset:0 -- se estira exactamente a la altura que el texto necesite,
-          en vez de un alto fijo en vh. Sin Ken Burns ni parallax esta vez:
-          simple y quieto, como el hero de seleccion de salas (que solo
-          tiene 2 glows suaves pulsando, nada mas). */}
-      <header className="r-hero">
+      {/* HERO -- mismo criterio que la pantalla de seleccion de salas: UNA
+          sola imagen a tope arriba y a todo el ancho, con el texto encima.
+          El alto de .r-hero lo define el propio contenido (padding + texto),
+          la foto lo cubre entero con position:absolute inset:0.
+
+          Efecto 3D (pedido explicito): tilt interactivo al mover el mouse
+          sobre el hero -- useHeroTilt lee la posicion del cursor relativo a
+          .r-hero (ref={heroRef}, asi los clicks en los botones de arriba
+          no se bloquean por pointer-events) y rota .r-hero-photo-tilt en
+          rotateX/rotateY. Esa capa tiene transform-style:preserve-3d y
+          adentro la imagen vive en un plano (translateZ 0) y los 2 glows en
+          otro mas cerca de la camara (translateZ positivo) -- al mover el
+          mouse por encima, la imagen y los glows se separan visualmente en
+          profundidad real, no es solo una rotacion plana. El suavizado es
+          por CSS transition (no por animation), asi que no hay conflicto
+          con el transform que pone JS -- distinto al bug de fill-mode que
+          ya se resolvio antes con animaciones. */}
+      <header className="r-hero" ref={heroRef}>
         <div className="r-hero-photo" aria-hidden="true">
-          <picture>
-            <source srcSet="/landing/inicio-hero.webp" type="image/webp" />
-            <img src="/landing/inicio-hero.png" alt="" className="r-hero-photo-img" />
-          </picture>
-          <span className="r-hero-photo-glow glow-a" />
-          <span className="r-hero-photo-glow glow-b" />
+          <div className="r-hero-photo-tilt" ref={heroTiltRef}>
+            <picture>
+              <source srcSet="/landing/inicio-hero.webp" type="image/webp" />
+              <img src="/landing/inicio-hero.png" alt="" className="r-hero-photo-img" />
+            </picture>
+            <span className="r-hero-photo-glow glow-a" />
+            <span className="r-hero-photo-glow glow-b" />
+          </div>
           <div className="r-hero-photo-fade" />
         </div>
 
@@ -200,6 +269,13 @@ export default function LandingPage() {
           <div className="r-hero-ctas">
             <a href="/precios" className="r-btn r-btn-primary large">Comenzar ahora</a>
             <a href="#producto" className="r-btn r-btn-secondary large">Ver cómo funciona</a>
+          </div>
+          <div className="r-hero-stats">
+            <div><strong><CountUp target={3} /></strong><span>Modalidades de uso</span></div>
+            <div className="r-stat-divider" />
+            <div><strong><CountUp target={100} suffix="%" /></strong><span>Basado en navegador</span></div>
+            <div className="r-stat-divider" />
+            <div><strong>0</strong><span>Instalaciones requeridas</span></div>
           </div>
         </div>
       </header>
@@ -508,12 +584,24 @@ export default function LandingPage() {
            r-page (justo despues del nav), por eso "a tope arriba" sale solo
            con padding-top en vez de margin/gap. */
         .r-hero { position: relative; padding: 96px 6vw 100px; overflow: hidden; }
-        .r-hero-photo { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+        .r-hero-photo { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; perspective: 1000px; }
+        /* Capa que rota en 3D (ver useHeroTilt) -- preserve-3d para que sus
+           hijos (imagen y glows) vivan en planos distintos de verdad y no
+           solo roten juntos como una foto plana. inset:-4% le da margen
+           para que el scale(1.035)/rotate del hover nunca deje ver un
+           borde vacio contra .r-hero-photo (que si tiene overflow:hidden). */
+        .r-hero-photo-tilt {
+          position: absolute; inset: -4%;
+          transform-style: preserve-3d;
+          transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+          will-change: transform;
+        }
         .r-hero-photo-img {
           position: absolute; inset: 0; width: 100%; height: 100%;
           object-fit: cover; object-position: 32% 32%; display: block;
           filter: saturate(1.1) contrast(1.05) brightness(0.75);
           opacity: 0.62;
+          transform: translateZ(0px);
         }
         @media (max-width: 640px) {
           .r-hero-photo-img { object-position: 26% 22%; opacity: 0.5; }
@@ -521,14 +609,20 @@ export default function LandingPage() {
         /* Dos glows suaves pulsando -- mismo recurso que .hero-backdrop-glow
            en HeroBackdropPhoto.jsx (SessionHub), para que la foto respire
            un poco de color de marca sin necesitar mix-blend-mode:screen
-           (eso fue lo que dejaba todo "muy blanco" en el intento anterior). */
-        .r-hero-photo-glow { position: absolute; border-radius: 50%; filter: blur(90px); opacity: 0.32; animation: rHeroGlowPulse 6s ease-in-out infinite; }
+           (eso fue lo que dejaba todo "muy blanco" en el intento anterior).
+           Ahora ademas viven en su propio plano (translateZ positivo, mas
+           cerca de la camara que la foto) -- al inclinar con el mouse, se
+           notan moviendose distinto a la imagen de fondo, ahi es donde se
+           siente la profundidad real en vez de una rotacion plana. */
+        .r-hero-photo-glow { position: absolute; border-radius: 50%; filter: blur(90px); opacity: 0.32; animation: rHeroGlowPulse 6s ease-in-out infinite; transform: translateZ(55px); }
         .r-hero-photo-glow.glow-a { top: -6%; left: 6%; width: 34%; height: 55%; background: #E91E8C; }
         .r-hero-photo-glow.glow-b { bottom: -10%; right: 8%; width: 32%; height: 50%; background: #4c3fe0; animation-delay: -3s; }
         @keyframes rHeroGlowPulse { 0%, 100% { opacity: 0.22; } 50% { opacity: 0.38; } }
         /* Degrade: mas oscuro arriba y abajo, mas claro justo donde vive el
            texto (35-60%) para que la foto se note sin pelear con la
-           legibilidad. */
+           legibilidad. Queda FUERA de .r-hero-photo-tilt a proposito -- no
+           debe rotar con el mouse, tiene que seguir tapando los bordes
+           siempre igual sin importar la inclinacion. */
         .r-hero-photo-fade {
           position: absolute; inset: 0;
           background: linear-gradient(
@@ -544,7 +638,14 @@ export default function LandingPage() {
         .r-eyebrow { font-size: 13px; letter-spacing: 0.5px; color: rgba(255,255,255,0.75); margin-bottom: 24px; font-weight: 500; text-shadow: 0 1px 10px rgba(0,0,0,0.6); }
         .r-hero-title { font-family: 'Space Grotesk', sans-serif; font-size: clamp(2.1rem, 5vw, 3.6rem); font-weight: 700; line-height: 1.15; letter-spacing: -0.02em; margin-bottom: 24px; color: #fff; text-shadow: 0 2px 24px rgba(0,0,0,0.55), 0 0 40px rgba(139,92,246,0.3); }
         .r-hero-sub { font-size: 17px; line-height: 1.65; color: rgba(255,255,255,0.78); max-width: 520px; margin: 0 auto 38px; text-shadow: 0 1px 10px rgba(0,0,0,0.5); }
-        .r-hero-ctas { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+        .r-hero-ctas { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-bottom: 56px; }
+        .r-hero-stats { display: flex; align-items: center; justify-content: center; gap: 30px; }
+        .r-hero-stats strong { font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700; display: block; color: #fff; text-shadow: 0 0 18px rgba(139,92,246,0.5); }
+        .r-hero-stats span { font-size: 12px; color: rgba(255,255,255,0.65); }
+        .r-stat-divider { width: 1px; height: 28px; background: linear-gradient(180deg, transparent, rgba(255,255,255,0.35), transparent); }
+        @media (max-width: 640px) {
+          .r-hero-stats { gap: 18px; }
+        }
 
         /* Sections */
         .r-section { padding: 110px 6vw; position: relative; overflow: hidden; }
