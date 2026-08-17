@@ -465,26 +465,39 @@ export default function LandingPage() {
            max-width propio asi que no hace falta el truco de 100vw, pero
            se deja el mismo patron por si el contenedor cambia. */
         .r-hero-photo { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
-        .r-hero-photo-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 30%; display: block; filter: saturate(1.15) contrast(1.05) brightness(0.85); opacity: 0.55; }
+        /* v2: la foto original (proyector + cartel de neon) se veia muy clara/
+           blanca en el hero -- el proyector es una pantalla gris clara con
+           texto blanco y el cartel "RETROKE" es neon casi blanco, asi que a
+           55% de opacidad y solo brightness(0.85) quedaban demasiado
+           expuestos. Se corrigio en tres frentes: (1) object-position corrido
+           a la izquierda para recortar mas la pantalla del proyector (la
+           zona mas clara) fuera del encuadre, (2) mas oscurecimiento propio
+           de la imagen (brightness 0.72), (3) el degrade de arriba (donde
+           antes casi no oscurecia, 0.35/0.15) ahora arranca mas oscuro para
+           que esa franja superior clara quede contenida, y (4) el tinte de
+           marca (mix-blend-mode:screen, que solo puede aclarar) se redujo
+           bastante -- a esa intensidad sumaba blanco extra sobre zonas ya
+           claras de la foto en vez de solo teñir el violeta/magenta. */
+        .r-hero-photo-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 32% 34%; display: block; filter: saturate(1.1) contrast(1.05) brightness(0.72); opacity: 0.55; }
         .r-hero-photo-fade {
           position: absolute; inset: 0;
           background: linear-gradient(
             to bottom,
-            rgba(8,8,11,0.35) 0%,
-            rgba(8,8,11,0.15) 18%,
-            rgba(8,8,11,0.55) 42%,
+            rgba(8,8,11,0.55) 0%,
+            rgba(8,8,11,0.32) 18%,
+            rgba(8,8,11,0.6) 42%,
             rgba(8,8,11,0.88) 66%,
             var(--rk-bg-0, #08080b) 100%
           );
         }
         .r-hero-photo-tint {
           position: absolute; inset: 0;
-          background: radial-gradient(ellipse 70% 55% at 50% 25%, rgba(139,92,246,0.22) 0%, transparent 70%),
-            linear-gradient(180deg, rgba(233,30,140,0.12), transparent 45%);
+          background: radial-gradient(ellipse 70% 55% at 50% 25%, rgba(139,92,246,0.1) 0%, transparent 70%),
+            linear-gradient(180deg, rgba(233,30,140,0.05), transparent 45%);
           mix-blend-mode: screen;
         }
         @media (max-width: 640px) {
-          .r-hero-photo-img { object-position: 50% 20%; opacity: 0.4; }
+          .r-hero-photo-img { object-position: 28% 22%; opacity: 0.38; }
         }
         .r-nav-links { display: flex; gap: 32px; font-size: 13.5px; font-weight: 500; color: #a3a3ad; }
         .r-nav-links a { color: inherit; text-decoration: none; transition: color 0.15s ease; }
