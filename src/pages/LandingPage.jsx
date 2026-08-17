@@ -444,36 +444,50 @@ export default function LandingPage() {
         </Reveal>
       </section>
 
-      {/* CTA FINAL -- foto de fondo (familia cantando en casa) fusionada con
-          degrade + tinte de marca, mismo criterio que las otras fotos de
-          fondo de esta pagina (nunca mix-blend-mode:screen, eso lava los
-          colores -- ver comentario en el hero). El titulo se redisena mas
-          elegante: dos pesos distintos (linea de entrada mas suave, linea
-          principal en gradiente neon animado con glow pulsante) mas una
-          regla animada abajo, en vez de un solo gradiente estatico. */}
-      <section className="r-final" style={{ backgroundImage: 'url(/landing/bg-final-family.jpg)' }}>
-        <span className="r-final-fade" aria-hidden="true" />
-        <span className="r-final-glow g1" aria-hidden="true" />
-        <span className="r-final-glow g2" aria-hidden="true" />
-        <Reveal>
-          <div className="r-section-inner r-final-grid">
-            <div className="r-final-text">
-              <h2 className="r-final-title">
-                <span className="r-final-title-lead">El escenario es solo el comienzo.</span>
-                <span className="r-final-title-neon">La experiencia la crean todos.</span>
-              </h2>
-              <span className="r-final-rule" aria-hidden="true" />
-              <a href="/precios" className="r-btn r-btn-primary large">Comenzar ahora</a>
-            </div>
-            <div className="r-final-phone-wrap">
-              <div className="r-final-phone">
-                <div className="r-phone-notch" />
-                <img src="/landing/iphone-registro.jpg" alt="Registro para cantar en Retroke, desde el celular" />
-              </div>
-              <span className="r-final-phone-glow" aria-hidden="true" />
-            </div>
+      {/* Espacio negro entre "Planes" y el CTA final -- antes se tocaban
+          directo y quedaba una linea rara en la union (el border-top de
+          1px contra dos fotos de fondo distintas). Ahora hay un respiro
+          real del fondo de la pagina entre las dos "cajas". */}
+      <div className="r-final-gap" aria-hidden="true" />
+
+      {/* CTA FINAL -- ahora es una tarjeta contenida (no full-bleed): la
+          foto vive en r-final-photo como <img> real (no CSS background)
+          para poder animarle un zoom Ken Burns continuo ("efecto
+          sensacional a la imagen"), y r-final-frame le da el contorno tipo
+          neon pedido -- el borde en gradiente que "corre" es un
+          pseudo-element (::before, mask trick), y el glow pulsante es un
+          box-shadow directo en el frame (no en un pseudo-element, para que
+          no lo corte su propio overflow:hidden -- ver comentario en el
+          CSS). Fusion de la foto: mismo criterio de siempre, degrade +
+          tinte con alpha normal (nunca mix-blend-mode:screen). */}
+      <section className="r-final">
+        <div className="r-final-frame">
+          <div className="r-final-photo" aria-hidden="true">
+            <img src="/landing/bg-final-family.jpg" alt="" className="r-final-photo-img" />
+            <span className="r-final-fade" />
+            <span className="r-final-glow g1" />
+            <span className="r-final-glow g2" />
           </div>
-        </Reveal>
+          <Reveal>
+            <div className="r-section-inner r-final-grid">
+              <div className="r-final-text">
+                <h2 className="r-final-title">
+                  <span className="r-final-title-lead">El escenario es solo el comienzo.</span>
+                  <span className="r-final-title-neon">La experiencia la crean todos.</span>
+                </h2>
+                <span className="r-final-rule" aria-hidden="true" />
+                <a href="/precios" className="r-btn r-btn-primary large">Comenzar ahora</a>
+              </div>
+              <div className="r-final-phone-wrap">
+                <div className="r-final-phone">
+                  <div className="r-phone-notch" />
+                  <img src="/landing/iphone-registro.jpg" alt="Registro para cantar en Retroke, desde el celular" />
+                </div>
+                <span className="r-final-phone-glow" aria-hidden="true" />
+              </div>
+            </div>
+          </Reveal>
+        </div>
       </section>
 
       <footer className="r-footer">
@@ -802,12 +816,74 @@ export default function LandingPage() {
            (el borde superior y el footer, ambos planos), mas claro en el
            centro-izquierda donde vive la foto real, con un tinte violeta
            sutil para que combine con los glows existentes. */
-        .r-final { padding: 130px 6vw; border-top: 1px solid rgba(255,255,255,0.08); position: relative; overflow: hidden; background-size: cover; background-position: center 40%; }
+        /* Espacio negro real entre "Planes" y el CTA final, en vez del
+           border-top de 1px que quedaba como una linea rara contra dos
+           fotos de fondo distintas. */
+        .r-final-gap { height: 36px; background: var(--rk-bg-0, #05030a); }
+
+        .r-final { padding: 0 6vw 90px; position: relative; }
+        /* Tarjeta contenida (ya no full-bleed) -- el contorno neon pedido
+           se arma en 2 capas: ::before es el borde en gradiente que "corre"
+           (mask trick, deja ver solo el anillo de 2px, se queda dentro de
+           inset:0 asi que el overflow:hidden del frame -- necesario para
+           recortar el zoom Ken Burns de la foto -- no lo corta), y el
+           glow pulsante va como box-shadow directo en .r-final-frame (no
+           en un pseudo-element): el box-shadow de un elemento NO lo recorta
+           su propio overflow:hidden (eso solo aplica a contenido/hijos que
+           se salen de la caja), asi que el glow si se ve por fuera del
+           borde redondeado en vez de quedar cortado. */
+        .r-final-frame {
+          position: relative;
+          max-width: 1320px;
+          margin: 0 auto;
+          border-radius: 28px;
+          overflow: hidden;
+          padding: 90px 6vw;
+          animation: rFinalGlowPulse 3.2s ease-in-out infinite;
+        }
+        @keyframes rFinalGlowPulse {
+          0%, 100% { box-shadow: 0 30px 80px -30px rgba(0,0,0,0.75), 0 0 18px 1px rgba(233,30,140,0.35), 0 0 38px 6px rgba(139,92,246,0.2); }
+          50% { box-shadow: 0 30px 80px -30px rgba(0,0,0,0.75), 0 0 30px 3px rgba(233,30,140,0.55), 0 0 56px 10px rgba(139,92,246,0.34); }
+        }
+        .r-final-frame::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          border-radius: 28px;
+          padding: 2px;
+          background: linear-gradient(120deg, #E91E8C, #F4D03F, #8B5CF6, #22c3e6, #E91E8C);
+          background-size: 300% 300%;
+          -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+          -webkit-mask-composite: xor;
+          mask-composite: exclude;
+          animation: rFinalBorderChase 6s linear infinite;
+          pointer-events: none;
+          z-index: 3;
+        }
+        @keyframes rFinalBorderChase { to { background-position: 300% 50%; } }
+        @media (max-width: 640px) {
+          .r-final-frame { border-radius: 20px; padding: 64px 7vw; }
+          .r-final-frame::before { border-radius: 20px; }
+        }
+
+        /* Foto de fondo -- ahora un <img> real (antes background-image en
+           CSS) para poder animarle un zoom Ken Burns continuo ("efecto
+           sensacional" pedido). inset:-4%/width:108% le da margen para que
+           el scale del zoom nunca deje ver un borde vacio contra
+           .r-final-photo, que tiene overflow:hidden. */
+        .r-final-photo { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+        .r-final-photo-img {
+          position: absolute; inset: -4%; width: 108%; height: 108%;
+          object-fit: cover; object-position: center 38%; display: block;
+          filter: saturate(1.08) contrast(1.04) brightness(0.85);
+          animation: rFinalKenBurns 20s ease-in-out infinite alternate;
+        }
+        @keyframes rFinalKenBurns { 0% { transform: scale(1); } 100% { transform: scale(1.09); } }
         .r-final-fade {
           position: absolute; inset: 0;
           background:
             radial-gradient(ellipse 55% 60% at 20% 45%, rgba(139,92,246,0.16) 0%, transparent 62%),
-            linear-gradient(180deg, rgba(8,8,11,0.93) 0%, rgba(8,8,11,0.6) 18%, rgba(8,8,11,0.58) 55%, rgba(8,8,11,0.74) 82%, rgba(8,8,11,0.96) 100%);
+            linear-gradient(180deg, rgba(8,8,11,0.72) 0%, rgba(8,8,11,0.55) 30%, rgba(8,8,11,0.55) 60%, rgba(8,8,11,0.8) 100%);
         }
         .r-final-grid { position: relative; z-index: 2; display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 40px; align-items: center; }
         .r-final-text { text-align: left; }
