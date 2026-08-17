@@ -444,14 +444,25 @@ export default function LandingPage() {
         </Reveal>
       </section>
 
-      {/* CTA FINAL */}
-      <section className="r-final">
+      {/* CTA FINAL -- foto de fondo (familia cantando en casa) fusionada con
+          degrade + tinte de marca, mismo criterio que las otras fotos de
+          fondo de esta pagina (nunca mix-blend-mode:screen, eso lava los
+          colores -- ver comentario en el hero). El titulo se redisena mas
+          elegante: dos pesos distintos (linea de entrada mas suave, linea
+          principal en gradiente neon animado con glow pulsante) mas una
+          regla animada abajo, en vez de un solo gradiente estatico. */}
+      <section className="r-final" style={{ backgroundImage: 'url(/landing/bg-final-family.jpg)' }}>
+        <span className="r-final-fade" aria-hidden="true" />
         <span className="r-final-glow g1" aria-hidden="true" />
         <span className="r-final-glow g2" aria-hidden="true" />
         <Reveal>
           <div className="r-section-inner r-final-grid">
             <div className="r-final-text">
-              <h2 className="r-final-title">El escenario es solo el comienzo.<br />La experiencia la crean todos.</h2>
+              <h2 className="r-final-title">
+                <span className="r-final-title-lead">El escenario es solo el comienzo.</span>
+                <span className="r-final-title-neon">La experiencia la crean todos.</span>
+              </h2>
+              <span className="r-final-rule" aria-hidden="true" />
               <a href="/precios" className="r-btn r-btn-primary large">Comenzar ahora</a>
             </div>
             <div className="r-final-phone-wrap">
@@ -784,9 +795,21 @@ export default function LandingPage() {
         .r-trust-title { font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 15.5px; margin-bottom: 10px; color: var(--tc-accent); }
         .r-trust-desc { font-size: 13px; color: #8f8f99; line-height: 1.65; }
 
-        /* Final CTA */
-        .r-final { padding: 110px 6vw; border-top: 1px solid rgba(255,255,255,0.08); position: relative; overflow: hidden; }
-        .r-final-grid { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 40px; align-items: center; }
+        /* Final CTA -- foto de familia cantando en casa, de fondo, fusionada
+           con un degrade (nunca mix-blend-mode:screen -- eso fue lo que
+           dejaba todo blanquecino en el hero, misma leccion aplicada aca).
+           Mas oscuro arriba/abajo para fundirse con las secciones vecinas
+           (el borde superior y el footer, ambos planos), mas claro en el
+           centro-izquierda donde vive la foto real, con un tinte violeta
+           sutil para que combine con los glows existentes. */
+        .r-final { padding: 130px 6vw; border-top: 1px solid rgba(255,255,255,0.08); position: relative; overflow: hidden; background-size: cover; background-position: center 40%; }
+        .r-final-fade {
+          position: absolute; inset: 0;
+          background:
+            radial-gradient(ellipse 55% 60% at 20% 45%, rgba(139,92,246,0.16) 0%, transparent 62%),
+            linear-gradient(180deg, rgba(8,8,11,0.93) 0%, rgba(8,8,11,0.6) 18%, rgba(8,8,11,0.58) 55%, rgba(8,8,11,0.74) 82%, rgba(8,8,11,0.96) 100%);
+        }
+        .r-final-grid { position: relative; z-index: 2; display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 40px; align-items: center; }
         .r-final-text { text-align: left; }
         .r-final-phone-wrap { position: relative; display: flex; justify-content: center; }
         .r-final-phone { position: relative; width: 220px; border-radius: 34px; padding: 10px; background: #111; border: 1px solid rgba(255,255,255,0.14); box-shadow: 0 0 0 1px rgba(232,51,107,0.15), 0 40px 80px -30px rgba(76,63,224,0.55); animation: phoneFloat 5s ease-in-out infinite; }
@@ -799,7 +822,63 @@ export default function LandingPage() {
         .r-final-glow { position: absolute; width: 26rem; height: 26rem; border-radius: 999px; filter: blur(110px); opacity: 0.3; }
         .r-final-glow.g1 { background: #e8336b; top: -6rem; left: 5%; }
         .r-final-glow.g2 { background: #4c3fe0; bottom: -8rem; right: 8%; }
-        .r-final-title { font-family: 'Space Grotesk', sans-serif; font-size: clamp(1.8rem, 3.8vw, 2.8rem); font-weight: 600; line-height: 1.25; letter-spacing: -0.01em; margin-bottom: 34px; background: linear-gradient(100deg, #fff 10%, #ff6fa5 50%, #8b7bff 85%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        /* Titulo del CTA final -- mas elegante y retro-neon: dos pesos
+           distintos en vez de un solo gradiente estatico. La linea de
+           entrada es sobria (blanco suave), la linea principal lleva el
+           tratamiento neon (gradiente animado + glow pulsante en el
+           filter, dos animaciones independientes sobre propiedades
+           distintas asi que no compiten entre si), y una regla fina con su
+           propio glow cierra el bloque antes del boton. */
+        .r-final-title { margin-bottom: 8px; }
+        .r-final-title-lead {
+          display: block;
+          font-family: 'Space Grotesk', sans-serif;
+          font-weight: 500;
+          font-size: clamp(1.15rem, 2.1vw, 1.5rem);
+          color: rgba(255,255,255,0.8);
+          letter-spacing: 0.01em;
+          margin-bottom: 6px;
+          text-shadow: 0 2px 14px rgba(0,0,0,0.65);
+        }
+        .r-final-title-neon {
+          display: block;
+          font-family: 'Space Grotesk', sans-serif;
+          font-weight: 700;
+          font-size: clamp(2.15rem, 4.6vw, 3.5rem);
+          line-height: 1.15;
+          letter-spacing: -0.01em;
+          background: linear-gradient(100deg, #ff6fa5 0%, #f4d03f 25%, #8b7bff 55%, #22c3e6 78%, #ff6fa5 100%);
+          background-size: 280% auto;
+          -webkit-background-clip: text;
+          background-clip: text;
+          color: transparent;
+          animation: rFinalNeonShift 7s ease-in-out infinite, rFinalNeonPulse 3.2s ease-in-out infinite;
+        }
+        @keyframes rFinalNeonShift {
+          0%, 100% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+        }
+        @keyframes rFinalNeonPulse {
+          0%, 100% { filter: drop-shadow(0 0 14px rgba(233,30,140,0.3)) drop-shadow(0 0 30px rgba(139,92,246,0.18)); }
+          50% { filter: drop-shadow(0 0 22px rgba(233,30,140,0.5)) drop-shadow(0 0 44px rgba(139,92,246,0.32)); }
+        }
+        .r-final-rule {
+          display: block;
+          width: 64px;
+          height: 3px;
+          border-radius: 999px;
+          margin: 10px 0 30px;
+          background: linear-gradient(90deg, #E91E8C, #8B5CF6, #22c3e6);
+          box-shadow: 0 0 14px 2px rgba(233,30,140,0.5);
+          animation: rFinalRuleGlow 3.2s ease-in-out infinite;
+        }
+        @media (max-width: 900px) {
+          .r-final-rule { margin-left: auto; margin-right: auto; }
+        }
+        @keyframes rFinalRuleGlow {
+          0%, 100% { opacity: 0.65; }
+          50% { opacity: 1; }
+        }
 
         /* Footer */
         .r-footer { padding: 56px 6vw 40px; border-top: 1px solid rgba(255,255,255,0.08); background: linear-gradient(180deg, transparent, rgba(232,51,107,0.03)); }
