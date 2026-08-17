@@ -121,7 +121,17 @@ async function recordPerformance(singer, sessionId, barId, workspaceId) {
   // canto sin eso, su presentacion queda igual en el historial, solo no
   // suma progreso personal. Nunca bloquea ni rompe el registro de la
   // presentacion si falla.
-  if (singer.participantId) {
+  //
+  // Integridad de datos: ademas, notaFinal debe existir (hubo al menos una
+  // calificacion del publico o un resultado de IA) para que cuente como
+  // "cancion cantada" y sume progreso. Si notaFinal es null (nadie
+  // califico y no hubo analisis de voz -- por ejemplo, alguien abrio el
+  // video, no canto y el DJ cerro la presentacion sin evaluacion) no se
+  // llama ni al RPC: la funcion SQL apply_performance_gamification tiene
+  // el mismo guard server-side por si se invoca desde otro lado, pero acá
+  // se evita la llamada de una vez. El historial (performances, arriba)
+  // se sigue registrando igual, solo la gamificacion queda afuera.
+  if (singer.participantId && notaFinal !== null && notaFinal !== undefined) {
     const ctx = { sessionId, barId, workspaceId }
     applyGamification(singer.participantId, notaFinal, vocalScore, ctx).catch(() => {})
   }

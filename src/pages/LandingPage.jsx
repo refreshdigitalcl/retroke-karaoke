@@ -167,7 +167,13 @@ export default function LandingPage() {
         )}
       </nav>
 
-      {/* HERO */}
+      {/* HERO -- estilo Retroke World: la foto de cabecera reemplaza el
+          cuadro/marco que tenia el logo antes (se veia como una caja suelta,
+          desconectada del resto). Misma tecnica de foto full-bleed que
+          HeroBackdropPhoto.jsx en SessionHub: la imagen cubre todo el ancho
+          real de pantalla, con un degrade hacia --rk-bg-0 para que el texto
+          sobre ella siga legible. Distribucion, informacion y cajas del
+          resto del hero (eyebrow, titulo, ctas, stats) no cambian. */}
       <header className="r-hero">
         <div className="r-hero-field" aria-hidden="true">
           <span className="r-hero-glow g1" />
@@ -177,12 +183,18 @@ export default function LandingPage() {
           <span className="r-hero-beam b1" />
           <span className="r-hero-beam b2" />
         </div>
+
+        <div className="r-hero-photo" aria-hidden="true">
+          <picture>
+            <source srcSet="/landing/inicio-hero.webp" type="image/webp" />
+            <img src="/landing/inicio-hero.png" alt="" className="r-hero-photo-img" />
+          </picture>
+          <div className="r-hero-photo-fade" />
+          <div className="r-hero-photo-tint" />
+        </div>
+
         <div className="r-hero-inner">
-          <div className="r-hero-logo-frame">
-            <span className="r-logo-frame-ring" />
-            <span className="r-logo-spark s1" /><span className="r-logo-spark s2" /><span className="r-logo-spark s3" /><span className="r-logo-spark s4" />
-            <img src="/landing/retroke-logo.png" alt="Retroke" className="r-hero-logo" />
-          </div>
+          <img src="/landing/retroke-logo.png" alt="Retroke" className="r-hero-logo-plain" />
           <p className="r-eyebrow">Plataforma de entretenimiento en vivo</p>
           <h1 className="r-hero-title">
             Todos tienen un lugar en el escenario.
@@ -416,13 +428,18 @@ export default function LandingPage() {
       </footer>
 
       <style>{`
-        .r-page { background: #08080b; color: #f2f2f5; font-family: 'Inter', sans-serif; min-height: 100vh; overflow-x: hidden; }
+        /* Fondo base al estilo Retroke World (mismo degrade que usan
+           World.jsx / SessionHub.jsx) en vez del negro plano anterior --
+           el resto de las secciones ya tenian su propia atmosfera propia
+           encima y no se tocan. */
+        .r-page { background: var(--rk-bg-gradient, #08080b); color: #f2f2f5; font-family: 'Inter', sans-serif; min-height: 100vh; overflow-x: hidden; }
         .r-page * { box-sizing: border-box; }
         .r-reveal { opacity: 0; transform: translateY(20px); transition: opacity 0.7s ease, transform 0.7s ease; }
         .r-reveal.visible { opacity: 1; transform: translateY(0); }
         .reduced-motion .r-reveal { opacity: 1; transform: none; transition: none; }
         .reduced-motion * { animation: none !important; }
-        .reduced-motion .r-hero-logo { filter: drop-shadow(0 0 40px rgba(232,51,107,0.35)) drop-shadow(0 0 80px rgba(76,63,224,0.25)); }
+        .reduced-motion .r-hero-logo-plain { filter: drop-shadow(0 0 40px rgba(232,51,107,0.35)) drop-shadow(0 0 80px rgba(76,63,224,0.25)); }
+        .reduced-motion .r-hero-photo-img { opacity: 0.35; }
 
         /* Nav */
         .r-nav { position: sticky; top: 0; z-index: 50; padding: 20px 6vw; transition: background 0.25s ease, border-color 0.25s ease, padding 0.25s ease; border-bottom: 1px solid transparent; }
@@ -430,19 +447,44 @@ export default function LandingPage() {
         .r-nav-inner { max-width: 1240px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
         .r-logo-img { height: 40px; width: auto; display: block; }
         .r-logo-img.small { height: 34px; margin-bottom: 14px; }
-        .r-hero-logo-frame { position: relative; width: min(420px, 78vw); margin: 0 auto 32px; padding: 34px 30px; border-radius: 22px; background: radial-gradient(ellipse at 50% 30%, rgba(139,60,224,0.18), rgba(14,14,18,0.6) 70%); border: 1px solid rgba(255,255,255,0.09); backdrop-filter: blur(6px); }
-        .r-logo-frame-ring { position: absolute; inset: 0; border-radius: 22px; padding: 1.5px; background: linear-gradient(120deg, #e8336b, #8b3ce0, #22c3e6, #e8336b); background-size: 300% 300%; -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: ringChase 6s linear infinite; }
-        @keyframes ringChase { to { background-position: 300% 50%; } }
-        .r-logo-spark { position: absolute; width: 4px; height: 4px; border-radius: 999px; background: #fff; box-shadow: 0 0 8px 2px currentColor; animation: sparkTwinkle 2.6s ease-in-out infinite; }
-        .s1 { top: 14%; left: 10%; color: #ff6fa5; animation-delay: 0s; }
-        .s2 { top: 70%; left: 6%; color: #22c3e6; animation-delay: -0.8s; }
-        .s3 { top: 20%; right: 8%; color: #8b7bff; animation-delay: -1.6s; }
-        .s4 { bottom: 12%; right: 14%; color: #ff6fa5; animation-delay: -2.2s; }
-        @keyframes sparkTwinkle { 0%, 100% { opacity: 0.2; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.4); } }
-        .r-hero-logo { position: relative; width: 100%; height: auto; display: block; filter: drop-shadow(0 0 40px rgba(232,51,107,0.45)) drop-shadow(0 0 90px rgba(76,63,224,0.35)); animation: heroLogoGlow 4s ease-in-out infinite; }
+        /* Antes el logo vivia dentro de un cuadro (marco + ring + chispas)
+           que quedaba como una caja suelta sobre el fondo. Ahora flota
+           directo sobre la foto de cabecera, igual que el wordmark del
+           hero de seleccion de salas -- solo el glow lo acompaña. */
+        .r-hero-logo-plain { position: relative; z-index: 2; width: min(360px, 62vw); height: auto; margin: 0 auto 28px; display: block; filter: drop-shadow(0 0 40px rgba(232,51,107,0.45)) drop-shadow(0 0 90px rgba(76,63,224,0.35)); animation: heroLogoGlow 4s ease-in-out infinite; }
         @keyframes heroLogoGlow {
           0%, 100% { filter: drop-shadow(0 0 40px rgba(232,51,107,0.35)) drop-shadow(0 0 80px rgba(76,63,224,0.25)); }
           50% { filter: drop-shadow(0 0 56px rgba(232,51,107,0.5)) drop-shadow(0 0 100px rgba(76,63,224,0.4)); }
+        }
+
+        /* Foto de cabecera full-bleed detras del texto del hero -- mismo
+           criterio que HeroBackdropPhoto.jsx (SessionHub): cubre todo el
+           ancho real de la pantalla (no solo el max-width de r-hero-inner)
+           y se desvanece hacia el fondo de la pagina con un degrade vertical
+           para que el texto encima siga legible. .r-hero ya no tiene
+           max-width propio asi que no hace falta el truco de 100vw, pero
+           se deja el mismo patron por si el contenedor cambia. */
+        .r-hero-photo { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+        .r-hero-photo-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 30%; display: block; filter: saturate(1.15) contrast(1.05) brightness(0.85); opacity: 0.55; }
+        .r-hero-photo-fade {
+          position: absolute; inset: 0;
+          background: linear-gradient(
+            to bottom,
+            rgba(8,8,11,0.35) 0%,
+            rgba(8,8,11,0.15) 18%,
+            rgba(8,8,11,0.55) 42%,
+            rgba(8,8,11,0.88) 66%,
+            var(--rk-bg-0, #08080b) 100%
+          );
+        }
+        .r-hero-photo-tint {
+          position: absolute; inset: 0;
+          background: radial-gradient(ellipse 70% 55% at 50% 25%, rgba(139,92,246,0.22) 0%, transparent 70%),
+            linear-gradient(180deg, rgba(233,30,140,0.12), transparent 45%);
+          mix-blend-mode: screen;
+        }
+        @media (max-width: 640px) {
+          .r-hero-photo-img { object-position: 50% 20%; opacity: 0.4; }
         }
         .r-nav-links { display: flex; gap: 32px; font-size: 13.5px; font-weight: 500; color: #a3a3ad; }
         .r-nav-links a { color: inherit; text-decoration: none; transition: color 0.15s ease; }

@@ -35,8 +35,12 @@ export function computeNotaFinal(audienceScore, vocalScore) {
   return hasAudience ? audienceScore : vocalAsNota
 }
 
-// 10 XP base por subir a cantar (siempre suma algo), mas hasta 40 XP extra
-// segun que tan buena estuvo la presentacion (nota 0 a 10 -> 0 a 40 XP).
+// 10 XP base por subir a cantar, mas hasta 40 XP extra segun que tan buena
+// estuvo la presentacion (nota 0 a 10 -> 0 a 40 XP). Esta funcion es solo
+// de referencia (ver comentario en KaraokeSessionContext.jsx): quien
+// realmente escribe XP es la funcion SQL apply_performance_gamification,
+// y esta SOLO se invoca cuando notaFinal ya existe (hubo evaluacion real)
+// -- si no hay evaluacion, no cuenta como cancion cantada y no se llama.
 export function computeXpForPerformance(notaFinal) {
   const base = 10
   const bonus = notaFinal !== null && notaFinal !== undefined ? Math.round((notaFinal / 10) * 40) : 0

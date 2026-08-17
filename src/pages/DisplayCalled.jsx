@@ -1,6 +1,8 @@
 import { useKaraokeSession } from '../contexts/KaraokeSessionContext'
 import RetroEqualizer from '../components/RetroEqualizer'
 import FloatingDecor from '../components/FloatingDecor'
+import RetrokeAtmosphere from '../components/retroke/RetrokeAtmosphere'
+import { RETROKE_STYLES } from '../components/retroke/retrokeStyles'
 
 export default function DisplayCalled() {
   var session = useKaraokeSession()
@@ -16,7 +18,14 @@ export default function DisplayCalled() {
   var artistName = currentSinger.artistName || ''
 
   return (
-    <div className="h-screen relative overflow-hidden flex flex-col items-center justify-center px-8 bg-black">
+    <div
+      className="h-screen relative overflow-hidden flex flex-col items-center justify-center px-8"
+      style={{ background: 'var(--rk-bg-gradient, #05030a)' }}
+    >
+      <style>{RETROKE_STYLES}</style>
+      {/* Mismos colores/grid que Retroke World (RetrokeAtmosphere con grid),
+          solo el fondo -- avatar, nombre, cancion y artista quedan intactos. */}
+      <RetrokeAtmosphere variant="none" grid />
       <RetroEqualizer />
       <FloatingDecor />
 
@@ -34,7 +43,7 @@ export default function DisplayCalled() {
           <span className="text-lg">🎤</span>
           <p
             className="text-base md:text-xl tracking-[6px] uppercase font-extrabold"
-            style={{ color: '#F4D03F' }}
+            style={{ color: 'var(--rk-yellow, #F4D03F)' }}
           >
             Prepárate para cantar
           </p>

@@ -7,6 +7,8 @@ import RetroEqualizer from '../components/RetroEqualizer'
 import QRCode from '../components/QRCode'
 import FallingParty from '../components/FallingParty'
 import FloatingDecor from '../components/FloatingDecor'
+import RetrokeAtmosphere from '../components/retroke/RetrokeAtmosphere'
+import { RETROKE_STYLES } from '../components/retroke/retrokeStyles'
 
 var VOTE_SECONDS = 20
 var RING_RADIUS = 132
@@ -209,7 +211,14 @@ export default function DisplayRating() {
   var ringOffset = RING_CIRC * (1 - secondsLeft / VOTE_SECONDS)
 
   return (
-    <div className="min-h-screen relative overflow-hidden flex items-center justify-center bg-black px-6">
+    <div
+      className="min-h-screen relative overflow-hidden flex items-center justify-center px-6"
+      style={{ background: 'var(--rk-bg-gradient, #05030a)' }}
+    >
+      <style>{RETROKE_STYLES}</style>
+      {/* Mismos colores/grid que Retroke World -- se mantienen los recuadros
+          (hologram-card) y el responsive tal cual, solo cambia el fondo. */}
+      <RetrokeAtmosphere variant="none" grid />
       <RetroEqualizer />
       <FloatingDecor />
       <FallingParty />
