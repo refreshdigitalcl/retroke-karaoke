@@ -311,7 +311,7 @@ export default function PricingPage() {
               ⚡ Todo en detalle
             </p>
             <h2 className="text-2xl md:text-4xl font-extrabold text-white">
-              Free vs PRO, sin letra chica
+              Planes adecuados para tí.
             </h2>
           </div>
 
