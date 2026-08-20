@@ -41,6 +41,58 @@ import WorldLiveSection from '../components/live/WorldLiveSection'
 
 const LIVE_REFRESH_MS = 20000
 
+// Parallax 3D del hero (mismo patron que useHeroTilt en LandingPage.jsx):
+// RAF-throttled mousemove sobre el host, aplica rotateY/rotateX a una capa
+// "tilt" separada de la foto real -- separar las capas es lo que evita el
+// choque entre el transform inline que pone JS aca y cualquier animacion
+// CSS por keyframes que corra sobre la propia <img> (leccion de esta sesion:
+// animation con fill-mode y transform inline sobre el MISMO elemento
+// compiten; en capas distintas no hay conflicto). Respeta reduced-motion.
+function useHeroTilt(hostRef, tiltRef) {
+  useEffect(function () {
+    if (typeof window === 'undefined') return
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    var host = hostRef.current
+    var tilt = tiltRef.current
+    if (!host || !tilt) return
+
+    var maxDeg = 6
+    var ticking = false
+    var pending = null
+
+    function apply() {
+      ticking = false
+      if (!pending) return
+      var rect = host.getBoundingClientRect()
+      var nx = ((pending.x - rect.left) / rect.width - 0.5) * 2
+      var ny = ((pending.y - rect.top) / rect.height - 0.5) * 2
+      nx = Math.max(-1, Math.min(1, nx))
+      ny = Math.max(-1, Math.min(1, ny))
+      tilt.style.transform =
+        'rotateY(' + (nx * maxDeg) + 'deg) rotateX(' + (-ny * maxDeg) + 'deg) scale(1.03)'
+    }
+
+    function onMove(e) {
+      pending = { x: e.clientX, y: e.clientY }
+      if (ticking) return
+      ticking = true
+      requestAnimationFrame(apply)
+    }
+
+    function onLeave() {
+      pending = null
+      tilt.style.transform = 'rotateY(0deg) rotateX(0deg) scale(1)'
+    }
+
+    host.addEventListener('mousemove', onMove)
+    host.addEventListener('mouseleave', onLeave)
+    return function () {
+      host.removeEventListener('mousemove', onMove)
+      host.removeEventListener('mouseleave', onLeave)
+    }
+  }, [hostRef, tiltRef])
+}
+
 // "Ahora en Retroke": la unica tarjeta clickeable de quien esta cantando en
 // este momento. A proposito NO manda a la sala/registro del local (antes lo
 // hacia via un deep-link tipo /?bar=slug o /?ws=id, igual al que usa
@@ -309,6 +361,10 @@ export default function World() {
   const [experience, setExperience] = useState(undefined) // undefined = cargando, null = sin perfil
   const [activity, setActivity] = useState(null) // Fase 12: null = cargando, [] = sin actividad reciente
 
+  const heroPhotoRef = useRef(null)
+  const heroTiltRef = useRef(null)
+  useHeroTilt(heroPhotoRef, heroTiltRef)
+
   const refreshLive = useRef(null)
   refreshLive.current = () => {
     loadLiveSnapshot()
@@ -463,11 +519,32 @@ export default function World() {
            negativo (-44px, exacto al padding-top de .world-page) mas
            height: calc(100% + 44px) hacen que la foto llegue al borde
            real de arriba del viewport ("al tope arriba"), no solo al borde
-           de su wrapper. RETROKE LIVE (WorldLive) queda encima gracias al
-           z-index de .rk-world-hero-content. */
-        .rk-world-hero-wrap { position: relative; margin-bottom: 4px; padding: 0; min-height: 340px; display: flex; align-items: center; justify-content: center; }
-        @media (min-width: 640px) { .rk-world-hero-wrap { min-height: 400px; } }
-        @media (min-width: 1024px) { .rk-world-hero-wrap { min-height: 460px; } }
+           de su wrapper.
+
+           v2 (feedback del usuario: sin zoom, parallax 3d + glitch, mas
+           opaca con tono neon, RETROKE LIVE abajo): se saca el Ken Burns
+           (la foto ahora es estatica) y en su lugar hay DOS efectos en
+           capas separadas para que no compitan por el mismo transform
+           (leccion de esta sesion -- animation CSS + transform inline de
+           JS sobre el MISMO elemento se pisan):
+             1. .rk-world-hero-photo-tilt -- parallax 3D controlado por JS
+                (useHeroTilt, mismo patron que el hero de /inicio): rota
+                levemente segun la posicion del mouse sobre todo el wrap.
+             2. .rk-world-hero-photo-img -- animacion CSS de "glitch"
+                (steps() para que salte en vez de interpolar suave): un
+                estiron breve de traslado/skew + hue-rotate cada 7s, como
+                una interferencia digital retro, sin tocar el transform que
+                controla el tilt (viven en elementos distintos).
+           El tinte (.rk-world-hero-fade) sube ~10% de opacidad y cambia de
+           negro puro a un morado/magenta muy oscuro (rgba(18,4,26,...) en
+           vez de rgba(5,3,10,...)) para que la sombra en si misma lea como
+           un tono retro neon, no solo "oscuro" -- sigue siendo alpha
+           normal (nunca mix-blend-mode:screen, que aclara en vez de
+           oscurecer). RETROKE LIVE (WorldLive) se reubica cerca del borde
+           inferior de la foto (align-items:flex-end) en vez de centrado. */
+        .rk-world-hero-wrap { position: relative; margin-bottom: 4px; padding: 0 0 28px; min-height: 340px; display: flex; align-items: flex-end; justify-content: center; }
+        @media (min-width: 640px) { .rk-world-hero-wrap { min-height: 400px; padding-bottom: 34px; } }
+        @media (min-width: 1024px) { .rk-world-hero-wrap { min-height: 460px; padding-bottom: 42px; } }
 
         .rk-world-hero-photo {
           position: absolute;
@@ -478,32 +555,52 @@ export default function World() {
           transform: translateX(-50%);
           overflow: hidden;
           z-index: 0;
+          pointer-events: none;
+          perspective: 1100px;
+        }
+        .rk-world-hero-photo-tilt {
+          position: absolute;
+          inset: -4%;
+          transform-style: preserve-3d;
+          transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+          will-change: transform;
         }
         .rk-world-hero-photo-img {
           position: absolute;
-          inset: -4%;
-          width: 108%;
-          height: 108%;
+          inset: 0;
+          width: 100%;
+          height: 100%;
           object-fit: cover;
           object-position: 50% 40%;
-          filter: saturate(1.15) contrast(1.06) brightness(0.82);
-          animation: rkWorldHeroKenBurns 22s ease-in-out infinite alternate;
+          filter: saturate(1.15) contrast(1.06) brightness(0.82) hue-rotate(0deg);
+          animation: rkWorldHeroGlitch 7s steps(1, end) infinite;
         }
-        @keyframes rkWorldHeroKenBurns {
-          0% { transform: scale(1); }
-          100% { transform: scale(1.07); }
+        /* Glitch en steps(): cada tramo se sostiene fijo (sin interpolar)
+           y salta al siguiente -- eso da la sensacion de interferencia
+           digital en vez de un movimiento suave. El grueso del ciclo
+           (95%+) queda quieto; solo hay una racha corta al arranque de
+           cada vuelta de 7s. */
+        @keyframes rkWorldHeroGlitch {
+          0%, 4%, 100% { transform: translate(0, 0) skewX(0deg); filter: saturate(1.15) contrast(1.06) brightness(0.82) hue-rotate(0deg); }
+          0.5% { transform: translate(-10px, 3px) skewX(-1.4deg); filter: saturate(1.7) contrast(1.16) brightness(0.92) hue-rotate(20deg); }
+          1% { transform: translate(8px, -3px) skewX(0.9deg); filter: saturate(1.55) contrast(1.1) brightness(0.86) hue-rotate(-16deg); }
+          1.4% { transform: translate(-5px, 2px); filter: saturate(1.4) brightness(0.9) hue-rotate(12deg); }
+          1.8% { transform: translate(4px, 0) skewX(-0.5deg); filter: saturate(1.25) hue-rotate(-6deg); }
+          2.2%, 3.6% { transform: translate(0, 0) skewX(0deg); filter: saturate(1.15) contrast(1.06) brightness(0.82) hue-rotate(0deg); }
         }
         /* Efecto maestro: degrade oscuro normal (nunca mix-blend-mode:screen
            -- esa mezcla solo aclara y "lava" las zonas ya brillantes de la
            foto, leccion aprendida a fondo esta sesion con el hero de
-           /inicio) + dos glows de marca (magenta/violeta) pulsando en las
-           esquinas, coherentes con el resto del sistema Retroke. */
+           /inicio), ~10% mas opaco que la version anterior y con un tono
+           morado/magenta (no negro puro) para que la sombra misma se sienta
+           retro neon + dos glows de marca pulsando en las esquinas. */
         .rk-world-hero-fade {
           position: absolute;
           inset: 0;
           background:
-            linear-gradient(180deg, rgba(5,3,10,0.55) 0%, rgba(5,3,10,0.12) 22%, rgba(5,3,10,0.08) 55%, rgba(5,3,10,0.5) 82%, var(--rk-bg-0, #05030a) 100%),
-            radial-gradient(ellipse 60% 50% at 50% 100%, rgba(5,3,10,0.35) 0%, transparent 70%);
+            linear-gradient(180deg, rgba(18,4,26,0.65) 0%, rgba(18,4,26,0.22) 22%, rgba(14,4,22,0.18) 55%, rgba(16,4,24,0.62) 82%, var(--rk-bg-0, #05030a) 100%),
+            radial-gradient(ellipse 60% 50% at 50% 100%, rgba(14,4,22,0.5) 0%, transparent 70%),
+            radial-gradient(ellipse 70% 55% at 50% 25%, rgba(139,92,246,0.18) 0%, transparent 70%);
         }
         .rk-world-hero-glow { position: absolute; border-radius: 50%; filter: blur(70px); opacity: 0.32; animation: rkWorldHeroGlowPulse 6s ease-in-out infinite; }
         .rk-world-hero-glow.g1 { top: -6%; left: 6%; width: 32%; height: 60%; background: #E91E8C; }
@@ -512,6 +609,7 @@ export default function World() {
         @media (prefers-reduced-motion: reduce) {
           .rk-world-hero-photo-img { animation: none; }
           .rk-world-hero-glow { animation: none; }
+          .rk-world-hero-photo-tilt { transition: none; }
         }
 
         @media (max-width: 480px) { .rk-world-hero-photo-img { object-position: 46% 38%; } }
@@ -528,14 +626,16 @@ export default function World() {
       </div>
 
       <div className="world-inner">
-        <div className="rk-world-hero-wrap">
+        <div className="rk-world-hero-wrap" ref={heroPhotoRef}>
           <div className="rk-world-hero-photo" aria-hidden="true">
-            <picture>
-              <source srcSet="/landing/world-hero-collage.webp" type="image/webp" />
-              <img src="/landing/world-hero-collage.jpg" alt="" className="rk-world-hero-photo-img" />
-            </picture>
-            <span className="rk-world-hero-glow g1" />
-            <span className="rk-world-hero-glow g2" />
+            <div className="rk-world-hero-photo-tilt" ref={heroTiltRef}>
+              <picture>
+                <source srcSet="/landing/world-hero-collage.webp" type="image/webp" />
+                <img src="/landing/world-hero-collage.jpg" alt="" className="rk-world-hero-photo-img" />
+              </picture>
+              <span className="rk-world-hero-glow g1" />
+              <span className="rk-world-hero-glow g2" />
+            </div>
             <span className="rk-world-hero-fade" />
           </div>
           <div className="rk-world-hero-content">
