@@ -42,10 +42,16 @@ export const WORLD_STYLES = `
     100% { background-position: 0% 50%; }
   }
 
+  /* Fondo mas opaco + blur (antes rgba(255,255,255,0.04), casi invisible):
+     desde que este cuadro quedo flotando SOBRE la foto collage del hero de
+     World (efecto maestro, ver World.jsx), necesita su propio contraste de
+     "vidrio esmerilado" para seguir legible pase lo que pase debajo, en vez
+     de depender solo del degrade oscuro de la foto. */
   .world-live {
     display: flex; flex-direction: column; align-items: center; gap: 14px;
     padding: 18px 20px; border-radius: 20px;
-    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(10,6,18,0.55); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255,255,255,0.14); box-shadow: 0 10px 40px rgba(0,0,0,0.35);
     max-width: 640px; margin: 0 auto; width: 100%;
   }
   .world-live-badge {

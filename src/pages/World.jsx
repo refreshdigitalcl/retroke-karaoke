@@ -7,7 +7,6 @@ import { getGlobalXpRank } from '../lib/ranking'
 import { loadActivityFeed } from '../lib/activity'
 import { subscribeToTables } from '../lib/realtime'
 import { useRetrokeFont } from '../lib/fonts'
-import WorldHero from '../components/world/WorldHero'
 import WorldLive from '../components/world/WorldLive'
 import { WORLD_STYLES } from '../components/world/worldStyles'
 import RetrokeSection from '../components/retroke/RetrokeSection'
@@ -450,13 +449,74 @@ export default function World() {
           .rk-activity-scroll { max-height: none; overflow: visible; mask-image: none; -webkit-mask-image: none; }
         }
 
-        .rk-world-hero-wrap { position: relative; overflow: hidden; border-radius: var(--rk-radius-xl); padding: 12px 0 24px; margin-bottom: 4px; min-height: 320px; display: flex; align-items: center; }
-        .rk-world-hero-content { position: relative; z-index: 1; width: 100%; display: flex; flex-direction: column; gap: 28px; }
-        .world-hero-logo {
-          display: block; margin: 0 auto; width: 100%;
-          max-width: clamp(260px, 40vw, 420px); height: auto;
-          filter: drop-shadow(0 0 22px rgba(233,30,140,0.35)) drop-shadow(0 0 40px rgba(139,92,246,0.25));
+        /* Hero de World reemplazado: ya no es logo + titulo + subtitulo
+           (WorldHero.jsx, eliminado de aca), sino el collage promocional
+           fusionado a todo el ancho -- mismo truco full-bleed que
+           HeroBackdropPhoto.jsx usa en SessionHub (left:50% + width:100vw +
+           translateX(-50%) para "romper" el max-width:1080px de
+           .world-inner y el padding lateral de .world-page). La diferencia
+           es que aca la foto vive DENTRO de .rk-world-hero-wrap (no a nivel
+           raiz) porque World no tiene un elemento de stacking por encima que
+           deba quedar delante de ella (a diferencia del ecualizador en
+           SessionHub) -- por eso .rk-world-hero-wrap perdio su overflow
+           propio: ahora quien recorta es .rk-world-hero-photo, y el top
+           negativo (-44px, exacto al padding-top de .world-page) mas
+           height: calc(100% + 44px) hacen que la foto llegue al borde
+           real de arriba del viewport ("al tope arriba"), no solo al borde
+           de su wrapper. RETROKE LIVE (WorldLive) queda encima gracias al
+           z-index de .rk-world-hero-content. */
+        .rk-world-hero-wrap { position: relative; margin-bottom: 4px; padding: 0; min-height: 340px; display: flex; align-items: center; justify-content: center; }
+        @media (min-width: 640px) { .rk-world-hero-wrap { min-height: 400px; } }
+        @media (min-width: 1024px) { .rk-world-hero-wrap { min-height: 460px; } }
+
+        .rk-world-hero-photo {
+          position: absolute;
+          top: -44px;
+          left: 50%;
+          width: 100vw;
+          height: calc(100% + 44px);
+          transform: translateX(-50%);
+          overflow: hidden;
+          z-index: 0;
         }
+        .rk-world-hero-photo-img {
+          position: absolute;
+          inset: -4%;
+          width: 108%;
+          height: 108%;
+          object-fit: cover;
+          object-position: 50% 40%;
+          filter: saturate(1.15) contrast(1.06) brightness(0.82);
+          animation: rkWorldHeroKenBurns 22s ease-in-out infinite alternate;
+        }
+        @keyframes rkWorldHeroKenBurns {
+          0% { transform: scale(1); }
+          100% { transform: scale(1.07); }
+        }
+        /* Efecto maestro: degrade oscuro normal (nunca mix-blend-mode:screen
+           -- esa mezcla solo aclara y "lava" las zonas ya brillantes de la
+           foto, leccion aprendida a fondo esta sesion con el hero de
+           /inicio) + dos glows de marca (magenta/violeta) pulsando en las
+           esquinas, coherentes con el resto del sistema Retroke. */
+        .rk-world-hero-fade {
+          position: absolute;
+          inset: 0;
+          background:
+            linear-gradient(180deg, rgba(5,3,10,0.55) 0%, rgba(5,3,10,0.12) 22%, rgba(5,3,10,0.08) 55%, rgba(5,3,10,0.5) 82%, var(--rk-bg-0, #05030a) 100%),
+            radial-gradient(ellipse 60% 50% at 50% 100%, rgba(5,3,10,0.35) 0%, transparent 70%);
+        }
+        .rk-world-hero-glow { position: absolute; border-radius: 50%; filter: blur(70px); opacity: 0.32; animation: rkWorldHeroGlowPulse 6s ease-in-out infinite; }
+        .rk-world-hero-glow.g1 { top: -6%; left: 6%; width: 32%; height: 60%; background: #E91E8C; }
+        .rk-world-hero-glow.g2 { bottom: -10%; right: 8%; width: 30%; height: 55%; background: #8B5CF6; animation-delay: -3s; }
+        @keyframes rkWorldHeroGlowPulse { 0%, 100% { opacity: 0.22; } 50% { opacity: 0.4; } }
+        @media (prefers-reduced-motion: reduce) {
+          .rk-world-hero-photo-img { animation: none; }
+          .rk-world-hero-glow { animation: none; }
+        }
+
+        @media (max-width: 480px) { .rk-world-hero-photo-img { object-position: 46% 38%; } }
+
+        .rk-world-hero-content { position: relative; z-index: 1; width: 100%; display: flex; flex-direction: column; gap: 28px; padding: 0 18px; }
         .rk-experience-stat { text-align: center; padding: 10px 4px; border-radius: var(--rk-radius-md); background: var(--rk-surface); }
         .rk-experience-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
       `}</style>
@@ -469,9 +529,16 @@ export default function World() {
 
       <div className="world-inner">
         <div className="rk-world-hero-wrap">
-          <RetrokeAtmosphere variant="full" grid />
+          <div className="rk-world-hero-photo" aria-hidden="true">
+            <picture>
+              <source srcSet="/landing/world-hero-collage.webp" type="image/webp" />
+              <img src="/landing/world-hero-collage.jpg" alt="" className="rk-world-hero-photo-img" />
+            </picture>
+            <span className="rk-world-hero-glow g1" />
+            <span className="rk-world-hero-glow g2" />
+            <span className="rk-world-hero-fade" />
+          </div>
           <div className="rk-world-hero-content">
-            <WorldHero />
             <WorldLive stats={live ? live.stats : null} loading={liveLoading} />
           </div>
         </div>
