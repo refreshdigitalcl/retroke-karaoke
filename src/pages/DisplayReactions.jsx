@@ -389,6 +389,7 @@ export default function DisplayReactions() {
                   background: 'linear-gradient(0deg, #E91E8C, #8B5CF6 50%, #F4D03F)'
                 }}
               />
+              <span className="progress-track-ring" aria-hidden="true" />
             </div>
             <div
               className="absolute progress-needle"
@@ -451,7 +452,8 @@ export default function DisplayReactions() {
                   >
                     ¡Reacciona a esta presentacion!
                   </p>
-                  <div className="rounded-2xl border-2 border-yellow-400 bg-neutral-950/90 p-3">
+                  <div className="relative rounded-2xl bg-neutral-950/90 p-3" style={{ boxShadow: '0 0 22px 3px rgba(244, 208, 63, 0.3)' }}>
+                    <span className="qr-flow-ring" aria-hidden="true" />
                     <QRCode url={reactUrl} size={155} />
                   </div>
                 </>
@@ -463,7 +465,8 @@ export default function DisplayReactions() {
                   >
                     ¿Aun no te anotas? ¡Escanea aqui!
                   </p>
-                  <div className="rounded-2xl border-2 border-purple-400 bg-neutral-950/90 p-3" style={{ boxShadow: '0 0 24px 4px rgba(139, 92, 246, 0.35)' }}>
+                  <div className="relative rounded-2xl bg-neutral-950/90 p-3" style={{ boxShadow: '0 0 24px 4px rgba(139, 92, 246, 0.35)' }}>
+                    <span className="qr-flow-ring" aria-hidden="true" />
                     <QRCode url={registerUrl} size={155} />
                   </div>
                 </>
@@ -523,7 +526,43 @@ export default function DisplayReactions() {
         .progress-fill { transition: height 0.5s linear; }
         .progress-track-neon {
           background: rgba(10, 6, 20, 0.55);
-          border: 2px solid rgba(244, 208, 63, 0.55);
+        }
+        .progress-track-ring {
+          position: absolute;
+          inset: 0;
+          border-radius: 9999px;
+          padding: 2px;
+          box-sizing: border-box;
+          background: linear-gradient(180deg, #E91E8C, #F4D03F, #8B5CF6, #7ED957, #E91E8C);
+          background-size: 100% 300%;
+          -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+          -webkit-mask-composite: xor;
+          mask-composite: exclude;
+          animation: progressRingShift 5s linear infinite;
+          pointer-events: none;
+          z-index: 2;
+        }
+        @keyframes progressRingShift {
+          0% { background-position: 50% 0%; }
+          100% { background-position: 50% 300%; }
+        }
+        .qr-flow-ring {
+          position: absolute;
+          inset: 0;
+          border-radius: 16px;
+          padding: 2px;
+          box-sizing: border-box;
+          background: linear-gradient(120deg, #E91E8C, #F4D03F, #8B5CF6, #7ED957, #E91E8C);
+          background-size: 300% 300%;
+          -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+          -webkit-mask-composite: xor;
+          mask-composite: exclude;
+          animation: qrRingShift 5s linear infinite;
+          pointer-events: none;
+        }
+        @keyframes qrRingShift {
+          0% { background-position: 0% 50%; }
+          100% { background-position: 300% 50%; }
         }
         .progress-needle {
           transition: bottom 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
