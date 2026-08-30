@@ -98,11 +98,23 @@ export default function DisplayCalled() {
         <p className="called-name">{currentSinger.name}</p>
         <span className="called-rule" aria-hidden="true" />
 
-        <div className="called-song">
-          <p className="called-song-title">{currentSinger.song}</p>
-          <p className="called-song-artist">
-            {artistName || 'Detectando artista...'}
-          </p>
+        <div className="called-track">
+          <div className="called-track-art">
+            <span className="called-track-art-ring" aria-hidden="true" />
+            <div className="called-track-art-inner">
+              {currentSinger.artworkUrl ? (
+                <img src={currentSinger.artworkUrl} alt="" className="called-track-art-img" />
+              ) : (
+                <span className="called-track-art-note" aria-hidden="true">♫</span>
+              )}
+            </div>
+          </div>
+          <div className="called-track-info">
+            <p className="called-song-title">{currentSinger.song}</p>
+            <p className="called-song-artist">
+              {artistName || 'Detectando artista...'}
+            </p>
+          </div>
         </div>
       </div>
 
@@ -335,6 +347,72 @@ export default function DisplayCalled() {
           background: linear-gradient(90deg, #E91E8C, #F4D03F, #8B5CF6, #7ED957, #E91E8C);
           background-size: 300% 100%;
           animation: calledRingShift 5s linear infinite;
+        }
+
+        /* "Ahora suena": misma idea que la fila de la lista de espera
+           (DisplayQueue.jsx -- caratula cuadrada + nombre de cancion +
+           artista), pero con el lenguaje visual de esta pantalla: el
+           mismo aro de degrade en movimiento que el avatar (adaptado a
+           esquina redondeada en vez de circulo), envuelto en una
+           capsula de vidrio para que se lea como un widget "now
+           playing" aparte del nombre del cantante. */
+        .called-track {
+          display: flex;
+          align-items: center;
+          gap: clamp(14px, 1.8vw, 20px);
+          margin-top: clamp(18px, 3vh, 30px);
+          padding: 8px 26px 8px 8px;
+          border-radius: 999px;
+          background: rgba(10,6,15,0.55);
+          border: 1px solid rgba(139,92,246,0.28);
+          box-shadow: 0 10px 30px -14px rgba(0,0,0,0.7);
+          max-width: 100%;
+        }
+        .called-track-art {
+          position: relative;
+          flex-shrink: 0;
+          width: clamp(56px, 6vw, 76px);
+          height: clamp(56px, 6vw, 76px);
+        }
+        .called-track-art-ring {
+          position: absolute;
+          inset: 0;
+          border-radius: 16px;
+          padding: 3px;
+          box-sizing: border-box;
+          background: linear-gradient(120deg, #E91E8C, #F4D03F, #8B5CF6, #7ED957, #E91E8C);
+          background-size: 300% 300%;
+          -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+          -webkit-mask-composite: xor;
+          mask-composite: exclude;
+          animation: calledRingShift 5s linear infinite;
+          z-index: 1;
+          pointer-events: none;
+        }
+        .called-track-art-inner {
+          position: absolute;
+          inset: 3px;
+          border-radius: 13px;
+          overflow: hidden;
+          background: linear-gradient(135deg, rgba(139,92,246,0.35), rgba(233,30,140,0.35));
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 2;
+        }
+        .called-track-art-img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
+        }
+        .called-track-art-note {
+          font-size: clamp(20px, 2.4vw, 26px);
+          color: rgba(255,255,255,0.85);
+        }
+        .called-track-info {
+          min-width: 0;
+          text-align: left;
         }
 
         .called-song-title {
