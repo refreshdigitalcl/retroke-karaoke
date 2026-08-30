@@ -67,6 +67,28 @@ export default function DisplayCalled() {
       className="h-screen w-full relative overflow-hidden flex items-center justify-center called-page"
       style={{ background: 'var(--rk-bg-gradient, #05030a)' }}
     >
+      {/* Video de fondo exclusivo de esta pantalla (backstage, blanco y
+          negro cinematico). object-fit:cover para full-bleed real; muted +
+          playsInline + autoPlay + loop para que reproduzca solo, sin
+          controles, mientras dure la pantalla de "Prepárate para cantar".
+          El tinte de color (mix-blend-mode:color) inyecta la paleta neon de
+          la marca sobre el blanco y negro, y el scrim oscurece arriba/abajo
+          para que el texto siga legible -- misma logica que el fade del
+          hero de World.jsx, adaptada a video. */}
+      <video
+        className="called-bg-video"
+        src="/called/called-bg.mp4"
+        poster="/called/called-bg-poster.jpg"
+        autoPlay
+        loop
+        muted
+        playsInline
+        preload="auto"
+        aria-hidden="true"
+      />
+      <div className="called-bg-tint" aria-hidden="true" />
+      <div className="called-bg-scrim" aria-hidden="true" />
+
       <div className="called-floor-scene" aria-hidden="true">
         <span className="called-horizon" />
         <div className="called-floor" />
@@ -133,9 +155,50 @@ export default function DisplayCalled() {
           100% { opacity: 1; transform: translate(0,0) scale(1); }
         }
 
+        /* Video de fondo: cubre toda la pantalla, se oscurece un poco
+           (brightness) para que el texto encima siga legible, y se
+           satura levemente para que no quede plano al mezclarse con el
+           tinte de color. */
+        .called-bg-video {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          object-position: 50% 42%;
+          filter: contrast(1.12) brightness(0.7) saturate(1.05);
+          z-index: 0;
+        }
+        /* Tinte de color sobre el blanco y negro: mix-blend-mode:color
+           inyecta la paleta neon de la marca directamente en la
+           luminancia del video, sin taparlo -- el resultado lee como
+           un video con grading de color, no como una capa pegada
+           encima. */
+        .called-bg-tint {
+          position: absolute;
+          inset: 0;
+          z-index: 0;
+          pointer-events: none;
+          background: linear-gradient(135deg, rgba(139,92,246,0.42) 0%, rgba(233,30,140,0.32) 45%, rgba(5,3,10,0.5) 100%);
+          mix-blend-mode: color;
+        }
+        /* Scrim: oscurece arriba (donde va el badge) y abajo (donde va
+           la tarjeta "ahora suena"), deja el centro (avatar) mas
+           visible -- misma logica que el fade del hero de World.jsx. */
+        .called-bg-scrim {
+          position: absolute;
+          inset: 0;
+          z-index: 0;
+          pointer-events: none;
+          background: linear-gradient(to bottom, rgba(5,3,10,0.8) 0%, rgba(5,3,10,0.3) 26%, rgba(5,3,10,0.38) 68%, rgba(5,3,10,0.86) 100%);
+        }
+
         /* Escenario 3D: piso con perspectiva real + linea de horizonte
            fina (nunca un blob difuminado -- eso fue lo que causo la
-           "mancha" de rondas anteriores). Todo nitido. */
+           "mancha" de rondas anteriores). Todo nitido. Con el video de
+           fondo, se agrega mix-blend-mode:screen para que las lineas
+           brillen sobre la imagen en vez de leerse como una grilla
+           pegada encima -- se funden con la escena real. */
         .called-floor-scene {
           position: absolute;
           inset: 0;
@@ -143,6 +206,8 @@ export default function DisplayCalled() {
           perspective: 700px;
           perspective-origin: 50% 42%;
           pointer-events: none;
+          mix-blend-mode: screen;
+          z-index: 1;
         }
         .called-horizon {
           position: absolute;
