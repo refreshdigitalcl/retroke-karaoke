@@ -67,14 +67,21 @@ export default function DisplayCalled() {
       className="h-screen w-full relative overflow-hidden flex items-center justify-center called-page"
       style={{ background: 'var(--rk-bg-gradient, #05030a)' }}
     >
-      {/* Video de fondo exclusivo de esta pantalla (backstage, blanco y
-          negro cinematico). object-fit:cover para full-bleed real; muted +
+      {/* Video de fondo exclusivo de esta pantalla (bar de karaoke, blanco y
+          negro cinematico -- letreros "KARAOKE NIGHT"/"OPEN MIC"/"BAR" y
+          mic en su pie). object-fit:cover para full-bleed real; muted +
           playsInline + autoPlay + loop para que reproduzca solo, sin
           controles, mientras dure la pantalla de "Prepárate para cantar".
-          El tinte de color (mix-blend-mode:color) inyecta la paleta neon de
-          la marca sobre el blanco y negro, y el scrim oscurece arriba/abajo
-          para que el texto siga legible -- misma logica que el fade del
-          hero de World.jsx, adaptada a video. */}
+          El clip original (final.mov) traía ~9s de pantalla en negro al
+          final (el resto del video, pensado para otro uso) -- se recortó a
+          los primeros 13s de contenido real y se le agregó un crossfade de
+          0.6s entre el final y el inicio (ver public/called/called-bg.mp4)
+          para que el loop sea perfectamente continuo, sin el salto brusco
+          de negro a la escena. El tinte de color (mix-blend-mode:color)
+          inyecta la paleta neon de la marca sobre el blanco y negro, y el
+          scrim oscurece arriba/abajo para que el texto siga legible --
+          misma logica que el fade del hero de World.jsx, adaptada a
+          video. */}
       <video
         className="called-bg-video"
         src="/called/called-bg.mp4"
