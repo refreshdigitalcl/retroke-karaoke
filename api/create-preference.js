@@ -26,9 +26,20 @@ export default async function handler(req, res) {
 
   var supabaseAdmin = createClient(supabaseUrl, serviceKey)
 
+  // OJO: ya NO se confia en subscriptions.plan_id para saber que plan
+  // cobrar. check-expirations.js (cron diario que corta suscripciones
+  // vencidas) reescribe plan_id al plan FREE apenas vence -- si esta
+  // funcion siguiera leyendo sub.plan directo, cualquiera que intentara
+  // renovar una suscripcion ya vencida se encontraria con "Este plan no
+  // requiere pago" (porque a esa altura plan_id ya apunta a FREE, precio
+  // 0) y el pago jamas se generaria. En vez de eso, siempre se resuelve
+  // el plan PRO vigente para el tipo de workspace de esa suscripcion --
+  // es el unico plan pago que existe hoy, y es correcto tanto para
+  // "subir a PRO" (suscripcion activa en FREE) como para "renovar" (
+  // suscripcion expired/trial_expired): en ambos casos el destino es PRO.
   var subResult = await supabaseAdmin
     .from('subscriptions')
-    .select('id, external_reference, plan:plans(id, name, price_monthly)')
+    .select('id, external_reference, workspace_id, workspaces(type)')
     .eq('id', subscriptionId)
     .single()
 
@@ -38,7 +49,21 @@ export default async function handler(req, res) {
   }
 
   var sub = subResult.data
-  var plan = sub.plan
+  var workspaceType = sub.workspaces ? sub.workspaces.type : null
+
+  if (!workspaceType) {
+    res.status(400).json({ error: 'No pudimos determinar el tipo de workspace de esa suscripcion' })
+    return
+  }
+
+  var planResult = await supabaseAdmin
+    .from('plans')
+    .select('id, name, price_monthly')
+    .eq('workspace_type', workspaceType)
+    .eq('code', 'PRO')
+    .maybeSingle()
+
+  var plan = planResult.data
 
   if (!plan || Number(plan.price_monthly) <= 0) {
     res.status(400).json({ error: 'Este plan no requiere pago' })

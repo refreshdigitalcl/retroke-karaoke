@@ -391,7 +391,19 @@ function StartSessionGate(props) {
   var workspaceType = props.workspaceType
   var workspacePlan = props.workspacePlan
   var workspaceId = props.workspaceId
+  var subExpiry = props.subExpiry
+  var onRenew = props.onRenew
+  var renewLoading = props.renewLoading
+  var renewError = props.renewError
+  var onShowProfile = props.onShowProfile
   var auth = useAuth()
+
+  // Si la suscripcion de este workspace paso por PRO (o por la prueba
+  // gratis de 24h) y vencio, ofrecemos "Renovar" en vez del generico
+  // "Ver plan PRO" -- son intenciones distintas para el usuario (volver
+  // a algo que ya tenia vs. comprar algo nuevo), y "Renovar" ademas
+  // puede ir directo a Mercado Pago sin pasar por /precios de nuevo.
+  var hadProBefore = !!(subExpiry && (subExpiry.status === 'expired' || subExpiry.status === 'trial_expired'))
 
   var isDjFree = workspaceType === 'DJ' && workspacePlan === 'FREE'
   var DJ_FREE_MONTHLY_LIMIT = 2
@@ -477,16 +489,45 @@ function StartSessionGate(props) {
             Ya usaste tus {DJ_FREE_MONTHLY_LIMIT} eventos gratis este mes
           </p>
           <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>
-            El plan DJ Free incluye {DJ_FREE_MONTHLY_LIMIT} eventos al mes. Sube a DJ PRO para eventos ilimitados,
-            o espera al próximo mes para seguir usando el plan gratis.
+            {hadProBefore
+              ? 'Tu suscripción PRO venció. Renuévala para eventos ilimitados, o espera al próximo mes para seguir usando el plan gratis.'
+              : 'El plan DJ Free incluye ' + DJ_FREE_MONTHLY_LIMIT + ' eventos al mes. Sube a DJ PRO para eventos ilimitados, o espera al próximo mes para seguir usando el plan gratis.'}
           </p>
-          <a
-            href="/precios"
-            className="inline-flex items-center justify-center w-full h-12 rounded-xl font-bold text-white"
-            style={{ background: 'linear-gradient(90deg, #E91E8C, #8B5CF6)' }}
-          >
-            ⭐ Ver plan DJ PRO
-          </a>
+
+          {hadProBefore ? (
+            <button
+              type="button"
+              onClick={onRenew}
+              disabled={renewLoading}
+              className="inline-flex items-center justify-center w-full h-12 rounded-xl font-bold text-white disabled:opacity-60"
+              style={{ background: 'linear-gradient(90deg, #E91E8C, #8B5CF6)' }}
+            >
+              {renewLoading ? 'Redirigiendo a Mercado Pago...' : '🔄 Renovar suscripción PRO'}
+            </button>
+          ) : (
+            <a
+              href="/precios"
+              className="inline-flex items-center justify-center w-full h-12 rounded-xl font-bold text-white"
+              style={{ background: 'linear-gradient(90deg, #E91E8C, #8B5CF6)' }}
+            >
+              ⭐ Ver plan DJ PRO
+            </a>
+          )}
+
+          {renewError && (
+            <p className="text-xs mt-3" style={{ color: 'var(--accent-magenta)' }}>{renewError}</p>
+          )}
+
+          {onShowProfile && (
+            <button
+              type="button"
+              onClick={onShowProfile}
+              className="text-xs mt-4 underline"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              Volver a mi perfil
+            </button>
+          )}
         </div>
       </div>
     )
@@ -850,6 +891,10 @@ function DjPanelInner() {
   var trialJustEnded = trialJustEndedState[0]
   var setTrialJustEnded = trialJustEndedState[1]
 
+  var renewErrorState = useState('')
+  var renewError = renewErrorState[0]
+  var setRenewError = renewErrorState[1]
+
   function loadSubscription() {
     if (!workspaceId) return
     supabase
@@ -908,6 +953,7 @@ function DjPanelInner() {
   function upgradeToRealPro() {
     if (!subExpiry) return
     setStartingTrial(true)
+    setRenewError('')
     fetch('/api/create-preference', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -918,11 +964,17 @@ function DjPanelInner() {
         if (data.init_point) {
           window.location.href = data.init_point
         } else {
+          // Antes esto fallaba en silencio (el boton solo dejaba de decir
+          // "Cargando..." sin ninguna explicacion) -- ahora se muestra el
+          // motivo que devuelve la API para que el usuario no se quede
+          // pensando que no paso nada.
           setStartingTrial(false)
+          setRenewError((data && data.error) || 'No se pudo iniciar el pago. Intenta de nuevo en unos minutos.')
         }
       })
       .catch(function () {
         setStartingTrial(false)
+        setRenewError('No se pudo conectar con el servidor de pagos. Intenta de nuevo en unos minutos.')
       })
   }
   var barIsActive = session.barIsActive
@@ -1253,7 +1305,21 @@ function DjPanelInner() {
         />
       )
     }
-    return <StartSessionGate barName={barName} barIsActive={barIsActive} startSession={startSession} workspaceType={workspaceType} workspacePlan={workspacePlan} workspaceId={workspaceId} />
+    return (
+      <StartSessionGate
+        barName={barName}
+        barIsActive={barIsActive}
+        startSession={startSession}
+        workspaceType={workspaceType}
+        workspacePlan={workspacePlan}
+        workspaceId={workspaceId}
+        subExpiry={subExpiry}
+        onRenew={upgradeToRealPro}
+        renewLoading={startingTrial}
+        renewError={renewError}
+        onShowProfile={function () { setShowProfile(true) }}
+      />
+    )
   }
 
   return (

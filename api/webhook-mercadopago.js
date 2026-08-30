@@ -48,7 +48,7 @@ export default async function handler(req, res) {
 
     var subResult = await supabaseAdmin
       .from('subscriptions')
-      .select('id, workspace_id')
+      .select('id, workspace_id, workspaces(type)')
       .eq('external_reference', externalRef)
       .single()
 
@@ -86,21 +86,51 @@ export default async function handler(req, res) {
       var renewsAt = new Date()
       renewsAt.setDate(renewsAt.getDate() + 30)
 
+      // OJO: en el alta normal (SignupPage.jsx) workspaces.plan ya queda
+      // en 'PRO' desde que se crea el workspace (antes de pagar) -- por
+      // eso historicamente este webhook solo necesitaba extender
+      // expires_at, nunca tocar el plan. Pero desde que existe el flujo
+      // de "renovar" una suscripcion vencida (check-expirations.js baja
+      // workspaces.plan a 'FREE' y subscriptions.plan_id al plan FREE
+      // cuando vence), un pago aprobado sobre una suscripcion en ese
+      // estado necesita RESTAURAR el plan PRO explicitamente -- si no,
+      // el pago se cobra pero la cuenta se queda en FREE. Se resuelve el
+      // plan PRO del tipo de workspace correspondiente (nunca se confia
+      // en el plan_id que la suscripcion ya tenia guardado, por la misma
+      // razon que create-preference.js dejo de confiar en el).
+      var workspaceType = sub.workspaces ? sub.workspaces.type : null
+      var proPlanId = null
+      if (workspaceType) {
+        var proPlanResult = await supabaseAdmin
+          .from('plans')
+          .select('id')
+          .eq('workspace_type', workspaceType)
+          .eq('code', 'PRO')
+          .maybeSingle()
+        proPlanId = proPlanResult.data ? proPlanResult.data.id : null
+      }
+
+      var subUpdate = {
+        status: 'active',
+        provider: 'mercadopago',
+        provider_ref: String(payment.id),
+        renews_at: renewsAt.toISOString(),
+        expires_at: renewsAt.toISOString(),
+        updated_at: new Date().toISOString()
+      }
+      if (proPlanId) subUpdate.plan_id = proPlanId
+
       await supabaseAdmin
         .from('subscriptions')
-        .update({
-          status: 'active',
-          provider: 'mercadopago',
-          provider_ref: String(payment.id),
-          renews_at: renewsAt.toISOString(),
-          expires_at: renewsAt.toISOString(),
-          updated_at: new Date().toISOString()
-        })
+        .update(subUpdate)
         .eq('id', sub.id)
+
+      var workspaceUpdate = { status: 'ACTIVE' }
+      if (proPlanId) workspaceUpdate.plan = 'PRO'
 
       await supabaseAdmin
         .from('workspaces')
-        .update({ status: 'ACTIVE' })
+        .update(workspaceUpdate)
         .eq('id', sub.workspace_id)
     }
 
