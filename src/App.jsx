@@ -1,5 +1,6 @@
 import { Suspense, lazy } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { Analytics } from '@vercel/analytics/react'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { KaraokeSessionProvider } from './contexts/KaraokeSessionContext'
 import { AuthProvider } from './contexts/AuthContext'
@@ -44,6 +45,7 @@ function RouteFallback() {
 export default function App() {
   return (
     <AuthProvider>
+      <Analytics />
       <ThemeProvider>
         <KaraokeSessionProvider>
         <BrowserRouter>
