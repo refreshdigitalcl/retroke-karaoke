@@ -3,6 +3,8 @@ import { useParams, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { isMemeReaction } from '../lib/memeReactions'
 import { buildShareText } from '../lib/shareCard'
+import { getGlobalXpRank } from '../lib/ranking'
+import { loadFollowCounts } from '../lib/follows'
 import ShareResultCard from '../components/ShareResultCard'
 import ShareButton from '../components/share/ShareButton'
 import RetroNeonBg from '../components/RetroNeonBg'
@@ -42,10 +44,10 @@ export default function SharePerformance() {
 
       const lookups = await Promise.all([
         perf.participant_id
-          ? supabase.from('participants').select('avatar').eq('id', perf.participant_id).maybeSingle()
+          ? supabase.from('participants').select('avatar, photo_url').eq('id', perf.participant_id).maybeSingle()
           : Promise.resolve({ data: null }),
         perf.participant_id
-          ? supabase.from('participant_stats').select('level_name').eq('participant_id', perf.participant_id).maybeSingle()
+          ? supabase.from('participant_stats').select('level_name, xp').eq('participant_id', perf.participant_id).maybeSingle()
           : Promise.resolve({ data: null }),
         perf.participant_id
           ? supabase
@@ -91,7 +93,9 @@ export default function SharePerformance() {
       if (cancelled) return
 
       avatar = lookups[0].data ? lookups[0].data.avatar : null
+      const profilePhotoUrl = lookups[0].data ? lookups[0].data.photo_url : null
       levelName = lookups[1].data ? lookups[1].data.level_name : null
+      const xp = lookups[1].data ? lookups[1].data.xp : 0
       achievementIcons = (lookups[2].data || [])
         .map((row) => row.achievements && row.achievements.icon)
         .filter(Boolean)
@@ -110,9 +114,17 @@ export default function SharePerformance() {
         .map((emoji) => ({ emoji, count: reactionCounts[emoji] }))
         .sort((a, b) => b.count - a.count)
         .slice(0, 3)
+      const totalReactions = reactionRows.filter((row) => !isMemeReaction(row.emoji)).length
 
       const mode = perf.bar_id ? 'BAR' : (ws ? ws.type : null)
       const placeName = perf.bar_id ? barPlaceName : (ws ? ws.name : null)
+
+      // Puesto en el ranking global y seguidores/seguidos reales, para el
+      // bloque de perfil de la tarjeta -- mismo criterio que el resto de
+      // la app (nunca se inventa un numero, ver ranking.js/follows.js).
+      const [rank, followCounts] = perf.participant_id
+        ? await Promise.all([getGlobalXpRank(supabase, xp), loadFollowCounts(supabase, perf.participant_id)])
+        : [null, null]
 
       // Mismo esquema de deep-link que usa el resto de la app (ver
       // spaceParam en KaraokeSessionContext): con workspace_id vamos directo
@@ -138,14 +150,17 @@ export default function SharePerformance() {
           vocalScore: perf.vocal_score,
           confidence: perf.vocal_confidence,
           avatar,
-          photoUrl,
+          photoUrl: profilePhotoUrl || photoUrl,
           levelName,
+          rank,
+          followCounts,
           achievementIcons,
           subScores,
           registerHref,
           mode,
           placeName,
           topReactions,
+          totalReactions,
           createdAt: perf.created_at || null
         }
       })
@@ -198,10 +213,13 @@ export default function SharePerformance() {
           } : null}
           confidence={d.confidence}
           levelName={d.levelName}
+          rank={d.rank}
+          followCounts={d.followCounts}
           achievementIcons={d.achievementIcons}
           mode={d.mode}
           placeName={d.placeName}
           topReactions={d.topReactions}
+          totalReactions={d.totalReactions}
           createdAt={d.createdAt}
         />
       </div>

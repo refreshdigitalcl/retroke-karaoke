@@ -9,6 +9,8 @@ import { getOrCreateParticipant, touchParticipantProfile, signInWithGoogle, sign
 import { buildShareText } from '../lib/shareCard'
 import { computeNotaFinal, LEVELS } from '../lib/gamification'
 import { isMemeReaction } from '../lib/memeReactions'
+import { getGlobalXpRank } from '../lib/ranking'
+import { loadFollowCounts } from '../lib/follows'
 import ShareResultCard from '../components/ShareResultCard'
 import ShareButton from '../components/share/ShareButton'
 import RetroNeonBg from '../components/RetroNeonBg'
@@ -40,9 +42,38 @@ function fetchTopReactions(sessionId, queueEntryId) {
         .map(function (emoji) { return { emoji: emoji, count: counts[emoji] } })
         .sort(function (a, b) { return b.count - a.count })
         .slice(0, 3)
-      return { total: rows.length, top: top }
+      // total excluye memes -- mismo criterio que el tally de arriba, para
+      // que el numero que se muestra junto a los emojis en la tarjeta
+      // cuadre con esos mismos emojis.
+      var total = rows.filter(function (r) { return !isMemeReaction(r.emoji) }).length
+      return { total: total, top: top }
     })
     .catch(function () { return { total: null, top: [] } })
+}
+
+// Nivel, puesto en el ranking global (XP) y seguidores/seguidos reales del
+// cantante, para el bloque de perfil de la tarjeta "Momento Retroke".
+// Mismo criterio que el resto de la app (ranking.js/follows.js): nunca se
+// inventa un numero -- si participant_stats todavia no tiene fila, rank
+// queda null y la tarjeta simplemente no muestra ese chip.
+function fetchProfileStats(participantId) {
+  if (!participantId) return Promise.resolve({ levelName: '', rank: null, followCounts: null })
+  return supabase
+    .from('participant_stats')
+    .select('level_name, xp')
+    .eq('participant_id', participantId)
+    .maybeSingle()
+    .then(function (result) {
+      var levelName = result.data && result.data.level_name ? result.data.level_name : LEVELS[0].name
+      var xp = result.data ? result.data.xp : 0
+      return Promise.all([
+        getGlobalXpRank(supabase, xp),
+        loadFollowCounts(supabase, participantId)
+      ]).then(function (r) {
+        return { levelName: levelName, rank: r[0], followCounts: r[1] }
+      })
+    })
+    .catch(function () { return { levelName: '', rank: null, followCounts: null } })
 }
 
 function resizeToSquareJpeg(file) {
@@ -192,22 +223,27 @@ function YourTurnScreen(props) {
   // Nivel actual del participante, para mostrarlo en la tarjeta. Es el
   // nivel de ANTES de esta ronda (el XP de esta presentacion recien se
   // calcula despues, cuando el DJ avanza al siguiente cantante) — igual
-  // sirve para mostrar algo real en vez de nada.
+  // sirve para mostrar algo real en vez de nada. Puesto en el ranking y
+  // seguidores/seguidos viajan juntos (fetchProfileStats).
   var levelNameStateHook = useState('')
   var levelName = levelNameStateHook[0]
   var setLevelName = levelNameStateHook[1]
 
+  var profileStatsHook = useState({ rank: null, followCounts: null })
+  var profileStats = profileStatsHook[0]
+  var setProfileStats = profileStatsHook[1]
+
   // Reacciones reales para la tarjeta "Momento Retroke" -- se piden apenas
   // hay resultado (mismo momento en que se muestra la tarjeta), no antes.
-  var topReactionsStateHook = useState([])
-  var topReactions = topReactionsStateHook[0]
-  var setTopReactions = topReactionsStateHook[1]
+  var topReactionsStateHook = useState({ total: null, top: [] })
+  var topReactionsData = topReactionsStateHook[0]
+  var setTopReactionsData = topReactionsStateHook[1]
 
   useEffect(function () {
     if (!results) return
     var cancelled = false
     fetchTopReactions(sessionId, entryId).then(function (r) {
-      if (!cancelled) setTopReactions(r.top)
+      if (!cancelled) setTopReactionsData(r)
     })
     return function () { cancelled = true }
   }, [results, sessionId, entryId])
@@ -215,16 +251,11 @@ function YourTurnScreen(props) {
   useEffect(function () {
     if (!props.participantId) return
     var cancelled = false
-    supabase
-      .from('participant_stats')
-      .select('level_name')
-      .eq('participant_id', props.participantId)
-      .maybeSingle()
-      .then(function (result) {
-        if (cancelled) return
-        setLevelName(result.data && result.data.level_name ? result.data.level_name : LEVELS[0].name)
-      })
-      .catch(function () {})
+    fetchProfileStats(props.participantId).then(function (r) {
+      if (cancelled) return
+      setLevelName(r.levelName || LEVELS[0].name)
+      setProfileStats({ rank: r.rank, followCounts: r.followCounts })
+    })
     return function () { cancelled = true }
   }, [props.participantId])
 
@@ -369,9 +400,12 @@ function YourTurnScreen(props) {
             }}
             confidence={results.scores.confidence}
             levelName={levelName}
+            rank={profileStats.rank}
+            followCounts={profileStats.followCounts}
             mode={workspaceType}
             placeName={placeName}
-            topReactions={topReactions}
+            topReactions={topReactionsData.top}
+            totalReactions={topReactionsData.total}
             createdAt={new Date().toISOString()}
           />
         </div>
@@ -688,6 +722,10 @@ function PerformanceShareScreen(props) {
   var levelName = levelNameState[0]
   var setLevelName = levelNameState[1]
 
+  var profileStatsState = useState({ rank: null, followCounts: null })
+  var profileStats = profileStatsState[0]
+  var setProfileStats = profileStatsState[1]
+
   var shareCardRef = useRef(null)
 
   useEffect(function () {
@@ -701,7 +739,7 @@ function PerformanceShareScreen(props) {
         if (cancelled || !result.data) return
         var perf = result.data
 
-        function finish(subScores, topReactions) {
+        function finish(subScores, reactionsData) {
           if (cancelled) return
           setData({
             notaFinal: perf.nota_final,
@@ -710,7 +748,8 @@ function PerformanceShareScreen(props) {
             artistName: perf.artist_name || '',
             artworkUrl: perf.artwork_url || '',
             subScores: subScores || null,
-            topReactions: topReactions || [],
+            topReactions: (reactionsData && reactionsData.top) || [],
+            totalReactions: reactionsData ? reactionsData.total : null,
             createdAt: perf.created_at || null
           })
         }
@@ -718,7 +757,7 @@ function PerformanceShareScreen(props) {
         var reactionsPromise = fetchTopReactions(perf.session_id, perf.queue_entry_id)
 
         if (!perf.queue_entry_id) {
-          reactionsPromise.then(function (r) { finish(null, r.top) })
+          reactionsPromise.then(function (r) { finish(null, r) })
           return
         }
 
@@ -734,7 +773,7 @@ function PerformanceShareScreen(props) {
         ])
           .then(function (results) {
             var vr = results[0]
-            var topReactions = results[1].top
+            var reactionsData = results[1]
             var subScores = vr.data
               ? {
                   pitchScore: vr.data.pitch_score,
@@ -743,9 +782,9 @@ function PerformanceShareScreen(props) {
                   energyScore: vr.data.energy_score
                 }
               : null
-            finish(subScores, topReactions)
+            finish(subScores, reactionsData)
           })
-          .catch(function () { finish(null, []) })
+          .catch(function () { finish(null, null) })
       })
       .catch(function () {})
     return function () { cancelled = true }
@@ -754,16 +793,11 @@ function PerformanceShareScreen(props) {
   useEffect(function () {
     if (!participantId) return
     var cancelled = false
-    supabase
-      .from('participant_stats')
-      .select('level_name')
-      .eq('participant_id', participantId)
-      .maybeSingle()
-      .then(function (result) {
-        if (cancelled) return
-        setLevelName(result.data && result.data.level_name ? result.data.level_name : LEVELS[0].name)
-      })
-      .catch(function () {})
+    fetchProfileStats(participantId).then(function (r) {
+      if (cancelled) return
+      setLevelName(r.levelName || LEVELS[0].name)
+      setProfileStats({ rank: r.rank, followCounts: r.followCounts })
+    })
     return function () { cancelled = true }
   }, [participantId])
 
@@ -792,9 +826,12 @@ function PerformanceShareScreen(props) {
           subScores={data.subScores}
           confidence={data.confidence}
           levelName={levelName}
+          rank={profileStats.rank}
+          followCounts={profileStats.followCounts}
           mode={workspaceType}
           placeName={placeName}
           topReactions={data.topReactions}
+          totalReactions={data.totalReactions}
           createdAt={data.createdAt}
         />
       </div>

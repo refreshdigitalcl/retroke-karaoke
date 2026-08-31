@@ -109,6 +109,21 @@ import { useRetrokeFont } from '../lib/fonts'
 //    vez de "line-clamp" multilinea (mas simple y mas predecible al
 //    rasterizar con html2canvas).
 
+// CUARTA VUELTA (ya con el mecanismo de exportacion server-side andando,
+// ver api/momento-card.js): "incluir puesto en Retroke + seguidores/
+// seguidos junto al nombre, de forma moderna, similar al perfil de
+// Retroke" -- se agrega un avatar chico (foto real o emoji, mismos campos
+// `avatar`/`photoUrl` que ya existian como prop pero nunca se usaban desde
+// el rediseño del hero) con el mismo anillo de degrade que el borde de la
+// tarjeta, y a la derecha del nombre un bloque con el puesto (ranking.js)
+// y seguidores/seguidos (follows.js) -- mismos datos y mismo criterio de
+// "nunca inventar" que ya usa el perfil real. "el borde rosa de hoy, en
+// vez de eso los bordes de flujo de colores del avatar de Prepárate para
+// Cantar (DisplayCalled.jsx)": el borde solido de 2.5px se reemplaza por
+// el mismo truco de padding+mask con el degrade pink/yellow/purple/green,
+// fijo (sin animar, porque esto se exporta como imagen estatica). "las
+// reacciones deben mostrar tambien el numero, no solo los emojis": se
+// agrega el total real (excluyendo memes) junto a los 3 emojis.
 const LOGO_SRC = '/landing/retroke-logo-oficial-neon.png'
 
 // La busqueda de iTunes (songLookup.js) devuelve un thumbnail chico
@@ -151,9 +166,12 @@ const ShareResultCard = forwardRef(function ShareResultCard(
     vocalScore,
     confidence,
     levelName,
+    rank,
+    followCounts,
     mode,
     placeName,
     topReactions,
+    totalReactions,
     createdAt
   },
   ref
@@ -165,10 +183,29 @@ const ShareResultCard = forwardRef(function ShareResultCard(
   const topReactionsList = Array.isArray(topReactions) ? topReactions : []
   const hasReactions = topReactionsList.length > 0
   const hiResArtwork = getHiResArtwork(artworkUrl)
+  // Perfil (avatar chico + puesto/seguidores/seguidos) solo se arma si hay
+  // datos reales de seguidores -- si followCounts es null (sin
+  // participant_id, ej. presentacion muy vieja/anonima), nunca se inventa
+  // "0 seguidores" como si fuera un dato real.
+  const hasProfileStats = Boolean(followCounts)
 
   const resultColumns = [
     { key: 'nota', icon: '⭐', label: 'Nota', value: notaTxt, color: '#F4D03F', big: true },
-    hasReactions && { key: 'reactions', icon: '🔥', label: 'Reacciones', value: topReactionsList.map((r) => r.emoji).join(' '), color: '#8B5CF6', emoji: true },
+    hasReactions && {
+      key: 'reactions',
+      icon: '🔥',
+      label: 'Reacciones',
+      color: '#8B5CF6',
+      emoji: true,
+      value: (
+        <>
+          <span>{topReactionsList.map((r) => r.emoji).join(' ')}</span>
+          {typeof totalReactions === 'number' && totalReactions > 0 && (
+            <span className="momento-result-count"> {totalReactions}</span>
+          )}
+        </>
+      )
+    },
     hasVocalScore && { key: 'retroke', icon: '🎤', label: 'Retroke Score', value: vocalScore + '/100', color: '#E91E8C' }
   ].filter(Boolean)
 
@@ -194,9 +231,31 @@ const ShareResultCard = forwardRef(function ShareResultCard(
           aspect-ratio: 9 / 16;
           border-radius: 28px;
           overflow: hidden;
-          border: 2.5px solid #E91E8C;
+          border: 2.5px solid transparent;
           background: #0a0512;
           box-sizing: border-box;
+        }
+        /* Borde exterior de la tarjeta: antes rosa solido, ahora el mismo
+           "anillo de flujo de colores" que ya se usaba en el avatar de
+           respaldo del hero (y que es el mismo lenguaje visual del anillo
+           animado del avatar en la pantalla "Prepárate para cantar",
+           DisplayCalled.jsx -- aca queda fijo, sin animar, porque esta
+           tarjeta se exporta como imagen estatica). Tecnica padding+mask:
+           el gradiente pinta un cuadrado completo, la mascara le quita el
+           centro y deja solo el aro del grosor del padding. */
+        .momento-outer::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          z-index: 6;
+          border-radius: 28px;
+          padding: 2.5px;
+          box-sizing: border-box;
+          background: linear-gradient(120deg, #E91E8C, #F4D03F, #8B5CF6, #7ED957, #E91E8C);
+          -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+          -webkit-mask-composite: xor;
+          mask-composite: exclude;
+          pointer-events: none;
         }
         .momento-inner {
           width: 100%;
@@ -327,15 +386,34 @@ const ShareResultCard = forwardRef(function ShareResultCard(
           right: 6%;
           bottom: 6%;
           display: flex;
+          flex-direction: row;
+          align-items: flex-end;
+          justify-content: space-between;
+          gap: 10px;
+        }
+        .momento-name-left {
+          display: flex;
+          flex-direction: row;
+          align-items: center;
+          gap: 10px;
+          min-width: 0;
+        }
+        .momento-name-text {
+          display: flex;
           flex-direction: column;
           align-items: flex-start;
           gap: 6px;
+          min-width: 0;
         }
         .momento-name {
           font-size: clamp(22px, 8vw, 34px);
           font-weight: 800;
           line-height: 1.08;
           text-shadow: 0 2px 14px rgba(0,0,0,0.75);
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          max-width: 100%;
         }
         .momento-level {
           font-size: 11px;
@@ -346,6 +424,80 @@ const ShareResultCard = forwardRef(function ShareResultCard(
           color: #F4D03F;
           background: rgba(10,6,15,0.55);
           letter-spacing: 0.03em;
+          white-space: nowrap;
+        }
+        /* Avatar chico junto al nombre -- perfil real del cantante (foto o
+           emoji), no la caratula del hero. Mismo anillo de flujo de
+           colores que el borde exterior de la tarjeta y que el avatar de
+           DisplayCalled.jsx, a esta escala mas chica. */
+        .momento-mini-avatar-wrap {
+          position: relative;
+          flex-shrink: 0;
+          width: 44px;
+          height: 44px;
+          border-radius: 9999px;
+        }
+        .momento-mini-avatar-ring {
+          position: absolute;
+          inset: 0;
+          border-radius: 9999px;
+          padding: 2.5px;
+          box-sizing: border-box;
+          background: linear-gradient(120deg, #E91E8C, #F4D03F, #8B5CF6, #7ED957, #E91E8C);
+          -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+          -webkit-mask-composite: xor;
+          mask-composite: exclude;
+        }
+        .momento-mini-avatar-inner {
+          position: absolute;
+          inset: 2.5px;
+          border-radius: 9999px;
+          overflow: hidden;
+          background: #150a20;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .momento-mini-avatar-img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+        .momento-mini-avatar-emoji {
+          font-size: 20px;
+          line-height: 1;
+        }
+        /* Puesto / seguidores / seguidos -- a la derecha del nombre, mismo
+           lenguaje visual que el perfil de Retroke (Profile.jsx): pill
+           amarilla para el puesto, texto chico para seguidores/seguidos.
+           Nunca se inventa un numero: si followCounts es null, este bloque
+           entero no se renderiza (ver hasProfileStats). */
+        .momento-stats-col {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-end;
+          gap: 4px;
+          flex-shrink: 0;
+        }
+        .momento-stat-rank {
+          font-size: 9.5px;
+          font-weight: 700;
+          color: #F4D03F;
+          background: rgba(244,208,63,0.16);
+          border: 1px solid rgba(244,208,63,0.45);
+          border-radius: 999px;
+          padding: 2px 9px;
+          white-space: nowrap;
+        }
+        .momento-stat-follow {
+          font-size: 10px;
+          color: rgba(255,255,255,0.65);
+          white-space: nowrap;
+          text-shadow: 0 1px 6px rgba(0,0,0,0.6);
+        }
+        .momento-stat-follow strong {
+          color: #fff;
+          font-weight: 800;
         }
 
         /* FICHA: mitad de abajo, panel de vidrio con la cancion y los
@@ -444,6 +596,13 @@ const ShareResultCard = forwardRef(function ShareResultCard(
           font-size: 19px;
           letter-spacing: 3px;
         }
+        .momento-result-count {
+          font-size: 15px;
+          font-weight: 800;
+          letter-spacing: 0;
+          color: rgba(255,255,255,0.78);
+          vertical-align: middle;
+        }
         .momento-confidence {
           margin-top: 6px;
           font-size: 9.5px;
@@ -525,8 +684,29 @@ const ShareResultCard = forwardRef(function ShareResultCard(
           <div className="momento-hero-fade" />
           <img src={LOGO_SRC} alt="Retroke" className="momento-logo" />
           <div className="momento-name-wrap">
-            <div className="momento-name">{singerName || 'Cantante Retroke'}</div>
-            {levelName && <div className="momento-level">🏅 {levelName}</div>}
+            <div className="momento-name-left">
+              <div className="momento-mini-avatar-wrap">
+                <div className="momento-mini-avatar-ring" />
+                <div className="momento-mini-avatar-inner">
+                  {photoUrl ? (
+                    <img src={photoUrl} alt="" className="momento-mini-avatar-img" />
+                  ) : (
+                    <span className="momento-mini-avatar-emoji">{avatar || '🎤'}</span>
+                  )}
+                </div>
+              </div>
+              <div className="momento-name-text">
+                <div className="momento-name">{singerName || 'Cantante Retroke'}</div>
+                {levelName && <div className="momento-level">🏅 {levelName}</div>}
+              </div>
+            </div>
+            {hasProfileStats && (
+              <div className="momento-stats-col">
+                {rank && <div className="momento-stat-rank">#{rank.rank} en Retroke</div>}
+                <div className="momento-stat-follow"><strong>{followCounts.followers}</strong> seguidores</div>
+                <div className="momento-stat-follow"><strong>{followCounts.following}</strong> seguidos</div>
+              </div>
+            )}
           </div>
         </div>
 

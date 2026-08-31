@@ -23,6 +23,8 @@ globalThis.__dirname = harfbuzzDir
 const { ImageResponse } = await import('@vercel/og')
 const { createClient } = await import('@supabase/supabase-js')
 const React = (await import('react')).default
+const { getGlobalXpRank } = await import('../src/lib/ranking.js')
+const { loadFollowCounts } = await import('../src/lib/follows.js')
 
 // Genera la tarjeta "Momento Retroke" como PNG 1080x1920 EN EL SERVIDOR, no
 // en el navegador de quien la comparte.
@@ -138,12 +140,39 @@ async function toDataUri(url, fallbackType) {
   }
 }
 
-function buildCardElement({ perf, levelName, modeMeta, placeName, dateTxt, topReactions, artworkDataUri, logoDataUri }) {
+// Pill redondeada reutilizada para el puesto/seguidores/seguidos (mismo
+// lenguaje visual que el chip de nivel y el chip de modo/lugar de mas
+// abajo) y para el numero de reacciones. Satori no soporta mezclar
+// tamaños/pesos distintos dentro de un mismo nodo de texto de forma
+// confiable, asi que cada pill es un div de flujo propio.
+function pill({ key, text, color, bg, border, fontSize }) {
+  return e(
+    'div',
+    {
+      key,
+      style: {
+        display: 'flex',
+        fontSize: fontSize || 26,
+        fontWeight: 700,
+        color: color || '#fff',
+        background: bg || 'rgba(255,255,255,0.08)',
+        border: '2px solid ' + (border || 'rgba(255,255,255,0.18)'),
+        borderRadius: 999,
+        padding: '10px 26px',
+        whiteSpace: 'nowrap'
+      }
+    },
+    text
+  )
+}
+
+function buildCardElement({ perf, levelName, modeMeta, placeName, dateTxt, topReactions, totalReactions, artworkDataUri, logoDataUri, avatarEmoji, avatarPhotoDataUri, rank, followCounts }) {
   const WIDTH = 1080
   const HEIGHT = 1920
   const notaTxt = perf.nota_final !== null && perf.nota_final !== undefined ? Number(perf.nota_final).toFixed(1) : '-'
   const hasVocalScore = perf.vocal_score !== null && perf.vocal_score !== undefined
   const hasReactions = topReactions.length > 0
+  const hasProfileStats = Boolean(followCounts)
 
   const heroChildren = []
   if (artworkDataUri) {
@@ -190,8 +219,75 @@ function buildCardElement({ perf, levelName, modeMeta, placeName, dateTxt, topRe
     )
   )
 
+  // Avatar chico junto al nombre -- foto real de perfil si existe, si no
+  // el emoji de perfil. Mismo anillo de "flujo de colores" que el borde
+  // exterior de la tarjeta (ver el wrapper que arma el handler mas abajo)
+  // y que el avatar de DisplayCalled.jsx ("Prepárate para cantar") --
+  // aca fijo, sin animar, porque Satori genera una imagen estatica.
+  // Satori no soporta mask-composite, asi que el anillo se logra con el
+  // truco de dos capas: el div de afuera pinta el degrade completo, el de
+  // adentro (mas chico, por el padding) tapa el centro con un color solido.
+  const AVATAR_SIZE = 148
+  const AVATAR_RING = 7
+  const avatarInner = avatarPhotoDataUri
+    ? e('img', {
+        src: avatarPhotoDataUri,
+        width: AVATAR_SIZE - AVATAR_RING * 2,
+        height: AVATAR_SIZE - AVATAR_RING * 2,
+        style: { objectFit: 'cover', borderRadius: 999 }
+      })
+    : e(
+        'div',
+        {
+          style: {
+            display: 'flex',
+            width: AVATAR_SIZE - AVATAR_RING * 2,
+            height: AVATAR_SIZE - AVATAR_RING * 2,
+            borderRadius: 999,
+            backgroundColor: '#150a20',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: 64
+          }
+        },
+        avatarEmoji || '🎤'
+      )
+  const avatarWrap = e(
+    'div',
+    {
+      key: 'avatar',
+      style: {
+        display: 'flex',
+        width: AVATAR_SIZE,
+        height: AVATAR_SIZE,
+        borderRadius: 999,
+        padding: AVATAR_RING,
+        boxSizing: 'border-box',
+        background: 'linear-gradient(120deg, #E91E8C, #F4D03F, #8B5CF6, #7ED957, #E91E8C)',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }
+    },
+    e(
+      'div',
+      {
+        style: {
+          display: 'flex',
+          width: '100%',
+          height: '100%',
+          borderRadius: 999,
+          backgroundColor: '#150a20',
+          overflow: 'hidden',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }
+      },
+      avatarInner
+    )
+  )
+
   const nameChildren = [
-    e('div', { key: 'name', style: { display: 'flex', fontSize: 76, fontWeight: 800, color: '#fff' } }, perf.singer_name || 'Cantante Retroke')
+    e('div', { key: 'name', style: { display: 'flex', fontSize: 60, fontWeight: 800, color: '#fff' } }, perf.singer_name || 'Cantante Retroke')
   ]
   if (levelName) {
     nameChildren.push(
@@ -201,13 +297,13 @@ function buildCardElement({ perf, levelName, modeMeta, placeName, dateTxt, topRe
           key: 'level',
           style: {
             display: 'flex',
-            marginTop: 18,
-            fontSize: 30,
+            marginTop: 14,
+            fontSize: 26,
             fontWeight: 600,
             color: '#F4D03F',
             border: '2px solid rgba(244,208,79,0.7)',
             borderRadius: 999,
-            padding: '10px 28px',
+            padding: '8px 24px',
             backgroundColor: 'rgba(10,6,15,0.55)'
           }
         },
@@ -215,11 +311,32 @@ function buildCardElement({ perf, levelName, modeMeta, placeName, dateTxt, topRe
       )
     )
   }
+
+  // Puesto en el ranking global + seguidores/seguidos, a la derecha del
+  // nombre -- mismos datos y mismo criterio de "nunca inventar" que el
+  // perfil real (Profile.jsx): si followCounts es null (sin
+  // participant_id, ej. presentacion muy vieja) este bloque no aparece.
+  const statsChildren = []
+  if (hasProfileStats) {
+    if (rank) statsChildren.push(pill({ key: 'rank', text: '🏆 #' + rank.rank + ' en Retroke', color: '#F4D03F', bg: 'rgba(244,208,63,0.16)', border: 'rgba(244,208,63,0.5)' }))
+    statsChildren.push(pill({ key: 'followers', text: '👥 ' + followCounts.followers + ' seguidores' }))
+    statsChildren.push(pill({ key: 'following', text: '➕ ' + followCounts.following + ' seguidos' }))
+  }
+
   heroChildren.push(
     e(
       'div',
-      { key: 'name-wrap', style: { position: 'absolute', left: 60, right: 60, bottom: 55, display: 'flex', flexDirection: 'column' } },
-      nameChildren
+      { key: 'name-wrap', style: { position: 'absolute', left: 60, right: 60, bottom: 55, display: 'flex', flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' } },
+      [
+        e(
+          'div',
+          { key: 'name-left', style: { display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 24 } },
+          [avatarWrap, e('div', { key: 'name-text', style: { display: 'flex', flexDirection: 'column' } }, nameChildren)]
+        ),
+        hasProfileStats
+          ? e('div', { key: 'stats', style: { display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 12 } }, statsChildren)
+          : null
+      ].filter(Boolean)
     )
   )
 
@@ -267,8 +384,13 @@ function buildCardElement({ perf, levelName, modeMeta, placeName, dateTxt, topRe
           e('div', { key: 'l', style: { display: 'flex', fontSize: 26, letterSpacing: 3, color: 'rgba(255,255,255,0.55)' } }, '🔥 REACCIONES'),
           e(
             'div',
-            { key: 'v', style: { display: 'flex', marginTop: 14, fontSize: 58, letterSpacing: 8 } },
-            topReactions.map((r) => r.emoji).join(' ')
+            { key: 'v', style: { display: 'flex', flexDirection: 'row', alignItems: 'center', marginTop: 14, gap: 16 } },
+            [
+              e('div', { key: 'emojis', style: { display: 'flex', fontSize: 58, letterSpacing: 8 } }, topReactions.map((r) => r.emoji).join(' ')),
+              totalReactions > 0
+                ? e('div', { key: 'count', style: { display: 'flex', fontSize: 42, fontWeight: 800, color: 'rgba(255,255,255,0.72)' } }, String(totalReactions))
+                : null
+            ].filter(Boolean)
           )
         ]
       )
@@ -361,6 +483,29 @@ function buildCardElement({ perf, levelName, modeMeta, placeName, dateTxt, topRe
     sheetChildren
   )
 
+  // Borde exterior: antes rosa solido de 7px, ahora el mismo "anillo de
+  // flujo de colores" que el avatar de arriba y que el avatar de
+  // DisplayCalled.jsx. Mismo truco de dos capas (Satori no soporta
+  // mask-composite): un wrapper exterior pinta el degrade completo con
+  // padding = grosor del borde, y el contenido real va en un div interior
+  // con fondo solido que tapa todo menos ese borde.
+  const cardInner = e(
+    'div',
+    {
+      style: {
+        width: '100%',
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        backgroundColor: '#0a0512',
+        borderRadius: 65,
+        boxSizing: 'border-box',
+        overflow: 'hidden'
+      }
+    },
+    [hero, sheet]
+  )
+
   return e(
     'div',
     {
@@ -368,16 +513,14 @@ function buildCardElement({ perf, levelName, modeMeta, placeName, dateTxt, topRe
         width: WIDTH,
         height: HEIGHT,
         display: 'flex',
-        flexDirection: 'column',
-        backgroundColor: '#0a0512',
-        border: '7px solid #E91E8C',
-        borderRadius: 72,
+        padding: 7,
         boxSizing: 'border-box',
-        overflow: 'hidden',
+        borderRadius: 72,
+        background: 'linear-gradient(120deg, #E91E8C, #F4D03F, #8B5CF6, #7ED957, #E91E8C)',
         fontFamily: 'Space Grotesk'
       }
     },
-    [hero, sheet]
+    cardInner
   )
 }
 
@@ -412,7 +555,7 @@ export default async function handler(req, res) {
   // real (DJ u HOME) vive en esa tabla.
   const lookups = await Promise.all([
     perf.participant_id
-      ? supabase.from('participant_stats').select('level_name').eq('participant_id', perf.participant_id).maybeSingle()
+      ? supabase.from('participant_stats').select('level_name, xp').eq('participant_id', perf.participant_id).maybeSingle()
       : Promise.resolve({ data: null }),
     perf.bar_id
       ? supabase.from('bars').select('name').eq('id', perf.bar_id).maybeSingle()
@@ -422,13 +565,19 @@ export default async function handler(req, res) {
       : Promise.resolve({ data: null }),
     perf.session_id && perf.queue_entry_id
       ? supabase.from('reactions').select('emoji').eq('session_id', perf.session_id).eq('queue_entry_id', perf.queue_entry_id)
-      : Promise.resolve({ data: [] })
+      : Promise.resolve({ data: [] }),
+    perf.participant_id
+      ? supabase.from('participants').select('avatar, photo_url').eq('id', perf.participant_id).maybeSingle()
+      : Promise.resolve({ data: null })
   ])
 
   const levelName = lookups[0].data ? lookups[0].data.level_name : null
+  const xp = lookups[0].data ? lookups[0].data.xp : 0
   const barName = lookups[1].data ? lookups[1].data.name : null
   const ws = lookups[2].data || null
   const reactionRows = lookups[3].data || []
+  const avatarEmoji = lookups[4].data ? lookups[4].data.avatar : null
+  const avatarPhotoUrl = lookups[4].data ? lookups[4].data.photo_url : null
 
   // Top 3 emojis mas usados, memes excluidos -- mismo tally que
   // reactionStats.top en DisplayResult.jsx (pantalla de resultado del TV).
@@ -441,6 +590,7 @@ export default async function handler(req, res) {
     .map((emoji) => ({ emoji, count: reactionCounts[emoji] }))
     .sort((a, b) => b.count - a.count)
     .slice(0, 3)
+  const totalReactions = reactionRows.filter((row) => !isMemeReaction(row.emoji)).length
 
   const mode = perf.bar_id ? 'BAR' : (ws ? ws.type : null)
   const placeName = mode === 'HOME' ? 'En casa' : (perf.bar_id ? barName : (ws ? ws.name : null))
@@ -449,16 +599,22 @@ export default async function handler(req, res) {
 
   const hiResArtwork = getHiResArtwork(perf.artwork_url)
 
-  const [fonts, artworkDataUri, logoDataUri] = await Promise.all([
+  // Puesto en el ranking global y seguidores/seguidos reales -- mismo
+  // criterio de "nunca inventar" que el resto de la app: si no hay
+  // participant_id, ambos quedan null y la tarjeta no muestra ese bloque.
+  const [fonts, artworkDataUri, logoDataUri, avatarPhotoDataUri, rank, followCounts] = await Promise.all([
     loadFonts(),
     toDataUri(hiResArtwork, 'image/jpeg'),
-    toDataUri(LOGO_URL, 'image/png')
+    toDataUri(LOGO_URL, 'image/png'),
+    toDataUri(avatarPhotoUrl, 'image/jpeg'),
+    perf.participant_id ? getGlobalXpRank(supabase, xp) : Promise.resolve(null),
+    perf.participant_id ? loadFollowCounts(supabase, perf.participant_id) : Promise.resolve(null)
   ])
 
   let image
   try {
     image = new ImageResponse(
-      buildCardElement({ perf, levelName, modeMeta, placeName, dateTxt, topReactions, artworkDataUri, logoDataUri }),
+      buildCardElement({ perf, levelName, modeMeta, placeName, dateTxt, topReactions, totalReactions, artworkDataUri, logoDataUri, avatarEmoji, avatarPhotoDataUri, rank, followCounts }),
       {
         width: 1080,
         height: 1920,
