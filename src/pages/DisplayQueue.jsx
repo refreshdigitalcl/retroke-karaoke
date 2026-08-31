@@ -300,11 +300,10 @@ export default function DisplayQueue(props) {
       <header className="flex items-center justify-center gap-2.5 relative z-10 pt-4 pb-1 shrink-0">
         {workspacePlan !== 'PRO' ? (
           <div
-            className="px-6 py-2.5 rounded-full flex items-center"
+            className="queue-neon-ring px-6 py-2.5 rounded-full flex items-center"
             style={{
               background: 'rgba(10,6,15,0.72)',
               backdropFilter: 'blur(6px)',
-              border: '1.5px solid rgba(244,208,63,0.55)',
               boxShadow: '0 0 28px 4px rgba(233,30,140,0.35), 0 0 0 1px rgba(255,255,255,0.04) inset'
             }}
           >
@@ -317,11 +316,10 @@ export default function DisplayQueue(props) {
           </div>
         ) : logoUrl ? (
           <div
-            className="px-6 py-2.5 rounded-full flex items-center"
+            className="queue-neon-ring px-6 py-2.5 rounded-full flex items-center"
             style={{
               background: 'rgba(10,6,15,0.72)',
               backdropFilter: 'blur(6px)',
-              border: '1.5px solid rgba(244,208,63,0.55)',
               boxShadow: '0 0 28px 4px rgba(233,30,140,0.35), 0 0 0 1px rgba(255,255,255,0.04) inset'
             }}
           >
@@ -336,7 +334,7 @@ export default function DisplayQueue(props) {
           <>
             <span className="text-xl">🎤</span>
             <div
-              className="px-5 py-2 rounded-full"
+              className="queue-neon-ring px-5 py-2 rounded-full"
               style={{ background: 'linear-gradient(90deg, #E91E8C, #8B5CF6)', boxShadow: '0 0 22px -4px rgba(233,30,140,0.7)' }}
             >
               <span className="text-sm md:text-base font-extrabold text-white tracking-wide">
@@ -377,7 +375,7 @@ export default function DisplayQueue(props) {
             Escanea el QR, anota tu nombre y canción, y sube al escenario.
           </p>
 
-          <div className="relative rounded-[1.75rem] px-6 py-4 flex flex-col items-center gap-2.5" style={{ background: 'rgba(12,8,20,0.9)', border: '2.5px solid #F4D03F', boxShadow: '0 0 24px -6px rgba(244,208,63,0.4)' }}>
+          <div className="queue-neon-ring relative rounded-[1.75rem] px-6 py-4 flex flex-col items-center gap-2.5" style={{ background: 'rgba(12,8,20,0.9)', boxShadow: '0 0 24px -6px rgba(244,208,63,0.4)' }}>
             <QRCode url={registerUrl} size={qrSize} />
             <p className="font-bold tracking-wide" style={{ color: '#FFFFFF', fontSize: 'clamp(13px, 1.7vh, 16px)' }}>
               {barName}
@@ -385,7 +383,7 @@ export default function DisplayQueue(props) {
           </div>
 
           {currentSung && (
-            <div className="w-full max-w-[360px] rounded-2xl px-5 py-2.5" style={{ background: 'rgba(15,10,20,0.8)', border: '1.5px solid rgba(139,92,246,0.5)' }}>
+            <div className="queue-neon-ring w-full max-w-[360px] rounded-2xl px-5 py-2.5" style={{ background: 'rgba(15,10,20,0.8)' }}>
               <p
                 className="tracking-widest uppercase font-bold mb-1 text-center"
                 style={{ color: '#8B5CF6', fontSize: 'clamp(9px, 1.2vh, 12px)' }}
@@ -447,6 +445,43 @@ export default function DisplayQueue(props) {
             @keyframes eyebrowEmojiFloat {
               0%, 100% { transform: translateY(0) rotate(-5deg); }
               50% { transform: translateY(-6px) rotate(5deg); }
+            }
+            /* Mismo "anillo de flujo de colores" animado que el avatar de
+               DisplayCalled.jsx (.called-neon-ring) -- pedido explicito
+               para reemplazar los bordes solidos (amarillo, morado) del QR,
+               "Ya cantaron esta noche" y el logo por este mismo lenguaje
+               visual. Tecnica padding+mask: el gradiente pinta un cuadrado
+               completo, la mascara le quita el centro y deja solo el aro
+               del grosor del padding. border-radius:inherit hace que el
+               mismo anillo sirva para el QR (esquinas muy redondeadas), la
+               caja de "ya cantaron" (esquinas normales) y el logo
+               (pastilla completa) sin repetir la regla tres veces. */
+            .queue-neon-ring {
+              position: relative;
+            }
+            .queue-neon-ring::before {
+              content: '';
+              position: absolute;
+              inset: 0;
+              z-index: 1;
+              border-radius: inherit;
+              padding: 2.5px;
+              box-sizing: border-box;
+              background: linear-gradient(120deg, #E91E8C, #F4D03F, #8B5CF6, #7ED957, #E91E8C);
+              background-size: 300% 300%;
+              -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+              -webkit-mask-composite: xor;
+              mask-composite: exclude;
+              pointer-events: none;
+              animation: queueRingShift 5s linear infinite, queueRingGlowPulse 2.4s ease-in-out infinite;
+            }
+            @keyframes queueRingShift {
+              0% { background-position: 0% 50%; }
+              100% { background-position: 300% 50%; }
+            }
+            @keyframes queueRingGlowPulse {
+              0%, 100% { filter: drop-shadow(0 0 8px rgba(233,30,140,0.4)) drop-shadow(0 0 14px rgba(139,92,246,0.28)); }
+              50% { filter: drop-shadow(0 0 14px rgba(233,30,140,0.65)) drop-shadow(0 0 22px rgba(139,92,246,0.48)); }
             }
           `}</style>
         </div>
