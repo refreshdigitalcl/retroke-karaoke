@@ -53,6 +53,20 @@
 //    "compartir a Stories". El fallback (cuando el navegador no soporta
 //    compartir archivos) ahora usa un blob URL (URL.createObjectURL) en
 //    vez de un data-URL gigante, mas liviano y mejor soportado.
+// 8. EL BUG DEL "TEXTO FANTASMA/DUPLICADO" (confirmado con capturas reales,
+//    tanto en Instagram como al descargar directo): la tipografia Space
+//    Grotesk se carga via <link> a Google Fonts con &display=swap (ver
+//    lib/fonts.js) -- eso hace que el navegador pinte el texto de
+//    INMEDIATO con la fuente de reserva y lo reemplace recien cuando la
+//    fuente real termina de bajar. waitForImages() nunca esperaba ese
+//    swap. Si la persona tocaba "compartir" apenas se abria la tarjeta
+//    (justo cuando recien se dispara la descarga de la fuente),
+//    html2canvas podia capturar en el momento exacto del cambio de
+//    fuente y dibujar el texto dos veces con metricas distintas
+//    superpuestas -- se notaba mucho en texto con letras variadas
+//    (titulo de cancion, chip de modo) y casi nada en numeros como la
+//    Nota. Fix: waitForFonts() espera primero el <link> de la fuente y
+//    despues document.fonts.ready antes de capturar (ver mas abajo).
 
 import { trackEvent } from './analytics'
 
@@ -109,6 +123,53 @@ function waitForImages(node) {
   return Promise.all(imgPromises.concat(bgPromises))
 }
 
+// EL BUG REAL detras del "texto fantasma/duplicado" que se veia en las
+// tarjetas exportadas (Instagram Stories y tambien al descargar directo,
+// segun se confirmo con capturas reales): la tipografia Space Grotesk se
+// carga con un <link> a Google Fonts con &display=swap (ver lib/fonts.js).
+// font-display:swap hace que el navegador dibuje el texto INMEDIATAMENTE
+// con la fuente de reserva (system-ui) y lo reemplace recien cuando la
+// fuente real termina de descargar -- y waitForImages() de arriba nunca
+// esperaba ese swap, solo <img>/[data-bg-src]. Si la persona tocaba
+// "compartir" apenas se abria la tarjeta (que es exactamente cuando
+// useRetrokeFont() recien dispara la descarga de la fuente), html2canvas
+// podia empezar a capturar el nodo justo en el momento del cambio de
+// fuente, y el resultado era texto dibujado dos veces con metricas
+// distintas (fuente de reserva + fuente real superpuestas) -- se notaba
+// mucho en texto con letras variadas (titulo de cancion, chip de modo) y
+// casi nada en numeros como la Nota, porque los digitos ocupan casi lo
+// mismo en ambas fuentes. La foto/caratula SI se veia perfecta porque las
+// imagenes ya se esperaban aparte -- por eso el archivo final se veia bien
+// en unos casos (fuente ya cargada a tiempo) y mal en otros (carrera
+// perdida contra la red), sin relacion con Instagram en si.
+// document.fonts.ready solo espera fuentes que el navegador YA empezo a
+// pedir -- si el <link> de Google Fonts (ver lib/fonts.js, marcado con
+// data-retroke-font) todavia no termina de descargarse/parsearse, el
+// @font-face de Space Grotesk ni siquiera existe todavia en document.fonts,
+// asi que .ready podria resolver de inmediato sin haber esperado nada.
+// Por eso primero se espera el <link> en si, y RECIEN despues
+// document.fonts.ready (que ahi si va a incluir el font-face real).
+function waitForFontLink() {
+  if (typeof document === 'undefined') return Promise.resolve()
+  const link = document.querySelector('link[data-retroke-font]')
+  if (!link || link.sheet) return Promise.resolve()
+  return new Promise(function (resolve) {
+    link.addEventListener('load', resolve, { once: true })
+    link.addEventListener('error', resolve, { once: true })
+    setTimeout(resolve, 3000)
+  })
+}
+
+function waitForFonts() {
+  if (typeof document === 'undefined') return Promise.resolve()
+  return waitForFontLink().then(function () {
+    if (!document.fonts) return
+    const ready = document.fonts.ready.catch(function () {})
+    const timeout = new Promise(function (resolve) { setTimeout(resolve, 3000) })
+    return Promise.race([ready, timeout])
+  })
+}
+
 // Fase H: registra en analytics_events que se comparti/descargo la
 // tarjeta. No requiere que quien llama pase contexto (participantId,
 // sessionId, barId, workspaceId) — si no se pasa, el evento igual se
@@ -139,7 +200,7 @@ const EXPORT_WIDTH = 1080
 
 export async function renderCardToBlob(node, options) {
   if (!node) return { canvas: null, blob: null }
-  await waitForImages(node)
+  await Promise.all([waitForImages(node), waitForFonts()])
   const html2canvas = await loadHtml2Canvas()
   if (!html2canvas) return { canvas: null, blob: null }
   const targetWidth = (options && options.targetWidth) || EXPORT_WIDTH
