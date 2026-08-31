@@ -1,6 +1,26 @@
 // Utilidades para compartir el resultado de una presentacion: como link
-// (texto) y como imagen real (tarjeta capturada con html2canvas), lista
-// para pegarse directo en una story de Instagram/WhatsApp/TikTok.
+// (texto) y como imagen real, lista para pegarse directo en una story de
+// Instagram/WhatsApp/TikTok.
+//
+// IMPORTANTE (fase de rediseño del mecanismo de exportacion): la tarjeta
+// "Momento Retroke" (ShareResultCard) YA NO SE CAPTURA EN EL NAVEGADOR DE
+// QUIEN COMPARTE. Ver api/momento-card.jsx para la razon completa -- en
+// pruebas reales, la MISMA pagina con los MISMOS datos a veces capturaba
+// perfecto con html2canvas y a veces devolvia un PNG en blanco, sin ningun
+// cambio de codigo entre intentos (condicion de carrera imposible de
+// eliminar de forma confiable desde el cliente). Ahora ese endpoint arma el
+// PNG 1080x1920 en el servidor de forma deterministica, y las funciones
+// nuevas de aca abajo (fetchServerCardBlob/downloadServerCard/
+// shareServerCard) solo lo piden y lo entregan.
+//
+// Las funciones VIEJAS basadas en html2canvas (downloadCardAsImageFromNode/
+// shareCardAsImageFromNode/renderCardToBlobFromNode) se MANTIENEN tal cual
+// para las otras tarjetas que ShareButton.jsx tambien maneja (ranking,
+// logro, desafio -- ShareRankCard.jsx, ShareAchievementCard.jsx,
+// ShareChallengeCard.jsx via Profile.jsx/Challenges.jsx), que no tienen un
+// "performanceId" ni datos en la tabla performances y por ahora siguen
+// necesitando capturar el DOM. Quedan documentadas las lecciones
+// aprendidas de esa via por si hace falta tocarlas de nuevo.
 //
 // LECCIONES APRENDIDAS sobre html2canvas (para no repetir bugs):
 // 1. -webkit-background-clip: text NO se soporta bien -> usar color solido.
@@ -251,7 +271,7 @@ function trackCardShared(method, ctx) {
 // EXPORT_WIDTH de ancho sin importar el viewport.
 const EXPORT_WIDTH = 1080
 
-export async function renderCardToBlob(node, options) {
+export async function renderCardToBlobFromNode(node, options) {
   if (!node) return { canvas: null, blob: null }
   await Promise.all([waitForImages(node), waitForFonts()])
   const html2canvas = await loadHtml2Canvas()
@@ -290,8 +310,62 @@ function downloadBlob(blob, filename) {
   setTimeout(() => URL.revokeObjectURL(url), 4000)
 }
 
-export async function downloadCardAsImage(node, filename, ctx) {
-  const { blob } = await renderCardToBlob(node)
+// --- Mecanismo NUEVO: la imagen viene ya armada del servidor -----------
+
+export function buildCardImageUrl(performanceId) {
+  if (!performanceId || typeof window === 'undefined') return null
+  return window.location.origin + '/api/momento-card?id=' + encodeURIComponent(performanceId)
+}
+
+async function fetchServerCardBlob(performanceId) {
+  const url = buildCardImageUrl(performanceId)
+  if (!url) return null
+  try {
+    const resp = await fetch(url)
+    if (!resp.ok) return null
+    return await resp.blob()
+  } catch (e) {
+    return null
+  }
+}
+
+export async function downloadServerCard(performanceId, filename, ctx) {
+  const blob = await fetchServerCardBlob(performanceId)
+  if (!blob) return { error: 'No se pudo generar la imagen' }
+  downloadBlob(blob, filename)
+  trackCardShared('download', ctx)
+  return { method: 'download' }
+}
+
+// Mismo mecanismo de guardar/compartir que la version anterior (Web Share
+// API con archivo real primero, descarga como fallback -- ver lección 7 en
+// el comentario grande de arriba), pero pidiendo el PNG ya armado al
+// servidor en vez de capturar el DOM.
+export async function shareServerCard(performanceId, { filename, title, text, ctx } = {}) {
+  if (!performanceId) return { error: 'No hay presentacion para compartir' }
+  const blob = await fetchServerCardBlob(performanceId)
+  if (!blob) return { error: 'No se pudo generar la imagen' }
+  const file = new File([blob], filename || 'retroke-resultado.png', { type: 'image/png' })
+
+  if (typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], title: title || 'Retroke', text: text || '' })
+      trackCardShared('share-image', ctx)
+      return { method: 'share-image' }
+    } catch (err) {
+      if (err && err.name === 'AbortError') return { method: 'cancelled' }
+    }
+  }
+
+  downloadBlob(blob, filename)
+  trackCardShared('download', ctx)
+  return { method: 'download' }
+}
+
+// --- Mecanismo VIEJO (html2canvas): solo para ranking/logro/desafio ----
+
+export async function downloadCardAsImageFromNode(node, filename, ctx) {
+  const { blob } = await renderCardToBlobFromNode(node)
   if (!blob) return { error: 'No se pudo generar la imagen' }
   downloadBlob(blob, filename)
   trackCardShared('download', ctx)
@@ -308,9 +382,9 @@ export async function downloadCardAsImage(node, filename, ctx) {
 // razon que no sea que el usuario lo cerro (AbortError), tambien cae a
 // descargar en vez de simplemente mostrar un error, para que la persona
 // siempre se lleve la imagen de una forma u otra.
-export async function shareCardAsImage(node, { filename, title, text, ctx } = {}) {
+export async function shareCardAsImageFromNode(node, { filename, title, text, ctx } = {}) {
   if (!node) return { error: 'No hay tarjeta para compartir' }
-  const { blob } = await renderCardToBlob(node)
+  const { blob } = await renderCardToBlobFromNode(node)
   if (!blob) return { error: 'No se pudo generar la imagen' }
   const file = new File([blob], filename || 'retroke-resultado.png', { type: 'image/png' })
 

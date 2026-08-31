@@ -145,6 +145,7 @@ function YourTurnScreen(props) {
   var entryId = props.entryId
   var workspaceType = props.workspaceType
   var placeName = props.placeName
+  var performanceId = props.performanceId
   var setMicReady = useKaraokeSession().setMicReady
   // El bar/workspace activo viaja en el query string -- lo propagamos al
   // link de "Ver mi perfil" para que, al volver, no se pierda el contexto
@@ -377,6 +378,7 @@ function YourTurnScreen(props) {
         <div className="w-full max-w-sm flex flex-col gap-3 relative z-10">
           <ShareButton
             mode="image"
+            performanceId={performanceId}
             cardRef={shareCardRef}
             filename={'retroke-' + (name || 'resultado') + '.png'}
             title="Mi resultado en Retroke"
@@ -799,6 +801,7 @@ function PerformanceShareScreen(props) {
       <div className="w-full max-w-sm flex flex-col gap-3 relative z-10">
         <ShareButton
           mode="image"
+          performanceId={performanceId}
           cardRef={shareCardRef}
           filename={'retroke-' + (fallbackName || 'resultado') + '.png'}
           title="Mi resultado en Retroke"

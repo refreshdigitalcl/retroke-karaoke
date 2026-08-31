@@ -216,6 +216,7 @@ export default function SharePerformance() {
             solo a descargar el PNG. */}
         <ShareButton
           mode="image"
+          performanceId={performanceId}
           cardRef={cardRef}
           filename={'retroke-' + (d.singerName || 'resultado') + '.png'}
           title="Mi Momento Retroke"
