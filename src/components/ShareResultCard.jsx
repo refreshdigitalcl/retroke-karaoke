@@ -10,25 +10,34 @@ import { useRetrokeFont } from '../lib/fonts'
 // SEGUNDA VUELTA (feedback real sobre la primera version): "todo
 // descuadrado, el diseño es muy basico, el logo se ve mal cortado, no es
 // responsive, tiene que ser 9:16 obligatorio, la foto en pesima calidad,
-// ubica los elementos de forma mas creativa". Tres problemas de fondo, no
-// solo de gusto:
-//
-// 1. "No es 9:16 obligatorio" / recorte raro: la v1 armaba el 9:16 con
-//    `aspect-ratio: 9/16` + contenido centrado con flex dentro de una caja
-//    de alto fijo. Si el contenido (avatar + nombre + cancion + resultados
-//    + chip + logros) superaba el alto disponible en un telefono angosto,
-//    el `overflow:hidden` recortaba parejo arriba Y abajo -- asi se
-//    cortaba el logo de arriba. Ademas `aspect-ratio` es una propiedad
-//    relativamente nueva; heredar el layout entero de ella (en vez de una
-//    tecnica mas universal) es fragil. Solucion: la vieja tecnica del
-//    "padding-top: 177.78%" (16/9 * 100) sobre un contenedor con
-//    `height:0`, que fuerza la proporcion 9:16 usando SOLO el ancho
-//    (soportado desde CSS2, nada que ver con aspect-ratio) + un hijo
-//    absoluto que llena ese espacio exacto. El contenido interno ahora usa
-//    proporciones relativas (flex-basis en %) en vez de alturas fijas en
-//    px, asi que jamas puede "sobrar" ni recortarse: crece y se acomoda
-//    proporcional al alto real de la caja, sea cual sea el ancho del
-//    telefono.
+// ubica los elementos de forma mas creativa". Se rediseño la composicion
+// (ver "Diseño muy basico" mas abajo) y se cambio el mecanismo de 9:16 a
+// la tecnica "padding-top: 177.78%" + un hijo con position:absolute que
+// llena ese espacio -- PERO esa combinacion causo una regresion peor: con
+// TODO el contenido interno en position:absolute, el contenedor
+// (`.momento-outer`) quedaba sin ningun contenido de flujo normal del cual
+// derivar un ancho, y como esta tarjeta vive dentro de un contenedor
+// `flex flex-col items-center` (RegisterForm.jsx/SharePerformance.jsx),
+// `align-items:center` hace que el wrapper NO se estire al ancho
+// disponible -- se ajusta al contenido. Sin contenido de flujo normal que
+// medir, el navegador no tenia de donde sacar un ancho, y "width:100%" de
+// un ancho indefinido se resuelve como 0 -> tarjeta colapsada a practicamente
+// nada (lo que se vio: un cuadrito rosa solido al compartir, y case nada
+// visible en la pagina). Fix DEFINITIVO (dos capas, no una sola):
+//   1. Se vuelve a `aspect-ratio: 9/16` (que SI funcionaba para dar tamaño
+//      en la v1 -- el problema de la v1 nunca fue el mecanismo de 9:16,
+//      fue que el CONTENIDO se pasaba del alto disponible) + `.momento-inner`
+//      ahora es un hijo de FLUJO NORMAL (no position:absolute), asi la
+//      tarjeta siempre tiene un ancho intrinseco que ofrecer aunque un
+//      ancestro futuro vuelva a shrink-to-fit.
+//   2. Los 3 lugares que renderizan esta tarjeta (RegisterForm.jsx x2,
+//      SharePerformance.jsx) ahora envuelven `<ShareResultCard>` en un div
+//      con `w-full max-w-sm` explicito, para que nunca dependa de que el
+//      contenedor padre decida estirarse o no.
+// El contenido de la v2 (mas compacto que la v1: sin subpuntajes ni
+// logros, ver "Diseño muy basico") de todos modos entra comodo dentro del
+// 9:16 fijo, asi que volver a aspect-ratio no reintroduce el recorte
+// original.
 //
 // 2. "Diseño muy basico" / "mas creativa": la v1 era una columna de cajas
 //    redondeadas apiladas (logo, avatar chico, nombre, caja de resultados,
@@ -124,17 +133,18 @@ const ShareResultCard = forwardRef(function ShareResultCard(
   return (
     <div ref={ref} className="momento-outer">
       <style>{`
-        /* 9:16 forzado con la tecnica de padding-top (soportada desde
-           siempre, sin depender de la propiedad "aspect-ratio"). El % de
-           un padding vertical se calcula sobre el ANCHO del contenedor,
-           nunca sobre su alto -- por eso 16/9*100 = 177.78% da una caja
-           exactamente 9:16 sin importar el ancho real. */
+        /* 9:16 fijo con aspect-ratio (min-width evita el colapso a 0 si
+           algun ancestro futuro vuelve a shrink-to-fit el contenedor -- ver
+           nota larga arriba). .momento-inner es un hijo de FLUJO NORMAL
+           (no position:absolute) para que la tarjeta siempre tenga un
+           ancho intrinseco que ofrecer, no solo "100% de lo que sea que
+           el padre decida". */
         .momento-outer {
           position: relative;
           width: 100%;
+          min-width: 260px;
           max-width: 400px;
-          height: 0;
-          padding-top: 177.7778%;
+          aspect-ratio: 9 / 16;
           border-radius: 28px;
           overflow: hidden;
           border: 2.5px solid #E91E8C;
@@ -142,12 +152,13 @@ const ShareResultCard = forwardRef(function ShareResultCard(
           box-sizing: border-box;
         }
         .momento-inner {
-          position: absolute;
-          inset: 0;
+          width: 100%;
+          height: 100%;
           display: flex;
           flex-direction: column;
           font-family: 'Space Grotesk', system-ui, sans-serif;
           color: #fff;
+          box-sizing: border-box;
         }
         .momento-in {
           animation: momentoIn 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;

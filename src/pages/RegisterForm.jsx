@@ -337,7 +337,7 @@ function YourTurnScreen(props) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center px-6 py-10 gap-5 relative" style={{ background: 'var(--rk-bg-gradient, #05030a)' }}>
         <RetroNeonBg />
-        <div className="relative z-10">
+        <div className="relative z-10 w-full max-w-sm">
           <ShareResultCard
             ref={shareCardRef}
             singerName={name}
@@ -764,7 +764,7 @@ function PerformanceShareScreen(props) {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-6 py-10 gap-5 relative" style={{ background: 'var(--rk-bg-gradient, #05030a)' }}>
       <RetroNeonBg />
-      <div className="relative z-10">
+      <div className="relative z-10 w-full max-w-sm">
         <ShareResultCard
           ref={shareCardRef}
           singerName={fallbackName}
