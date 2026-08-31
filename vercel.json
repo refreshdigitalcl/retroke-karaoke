@@ -7,5 +7,10 @@
       "path": "/api/check-expirations",
       "schedule": "0 9 * * *"
     }
-  ]
+  ],
+  "functions": {
+    "api/momento-card.js": {
+      "includeFiles": "node_modules/harfbuzzjs/**"
+    }
+  }
 }
