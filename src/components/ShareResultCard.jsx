@@ -1,24 +1,54 @@
 import { forwardRef } from 'react'
 import { useRetrokeFont } from '../lib/fonts'
 
-// Tarjeta visual del resultado, retro-neon, pensada para verse bien tanto
-// en la pagina publica /r/:id como convertida a imagen para compartir, y
-// tambien incrustada en vivo en la pantalla de resultado del celular apenas
-// termina de cantar. Reutiliza la misma paleta ya establecida en
-// SessionHub.jsx y DisplayCalled.jsx.
+// Tarjeta "Momento Retroke": la pieza que se ve al terminar de cantar,
+// pensada primero para Instagram Stories/TikTok/WhatsApp (formato 9:16),
+// no para leerse como un panel de estadisticas. Reutilizada en vivo en
+// RegisterForm.jsx (YourTurnScreen y PerformanceShareScreen) y en la
+// pagina publica /r/:id (SharePerformance.jsx).
 //
-// REDISEÑO "MOMENTO RETROKE" (brief /design-taste-frontend): la tarjeta dejo
-// de ser una tarjeta de estadisticas (nota + subpuntajes) para ser una
-// pieza pensada para Instagram Stories/TikTok/WhatsApp: jerarquia
-// RETROKE -> MOMENTO -> ARTISTA -> CANCION -> PORTADA -> RESULTADOS ->
-// MODO/LUGAR -> IDENTIDAD. El anillo de degrade en movimiento que ya se usa
-// en DisplayCalled.jsx (avatar y "ahora suena") se reutiliza aca en el
-// avatar Y en la portada del album para que la tarjeta se sienta parte de
-// la misma familia visual, no una pieza aislada -- con una diferencia
-// importante: aca el degrade queda FIJO (sin @keyframes), nunca animado,
-// porque esta tarjeta se puede capturar como imagen en cualquier instante
-// (ver lib/shareCard.js) y un anillo a mitad de una animacion infinita se
-// veria distinto cada vez que alguien la descarga.
+// SEGUNDA VUELTA (feedback real sobre la primera version): "todo
+// descuadrado, el diseño es muy basico, el logo se ve mal cortado, no es
+// responsive, tiene que ser 9:16 obligatorio, la foto en pesima calidad,
+// ubica los elementos de forma mas creativa". Tres problemas de fondo, no
+// solo de gusto:
+//
+// 1. "No es 9:16 obligatorio" / recorte raro: la v1 armaba el 9:16 con
+//    `aspect-ratio: 9/16` + contenido centrado con flex dentro de una caja
+//    de alto fijo. Si el contenido (avatar + nombre + cancion + resultados
+//    + chip + logros) superaba el alto disponible en un telefono angosto,
+//    el `overflow:hidden` recortaba parejo arriba Y abajo -- asi se
+//    cortaba el logo de arriba. Ademas `aspect-ratio` es una propiedad
+//    relativamente nueva; heredar el layout entero de ella (en vez de una
+//    tecnica mas universal) es fragil. Solucion: la vieja tecnica del
+//    "padding-top: 177.78%" (16/9 * 100) sobre un contenedor con
+//    `height:0`, que fuerza la proporcion 9:16 usando SOLO el ancho
+//    (soportado desde CSS2, nada que ver con aspect-ratio) + un hijo
+//    absoluto que llena ese espacio exacto. El contenido interno ahora usa
+//    proporciones relativas (flex-basis en %) en vez de alturas fijas en
+//    px, asi que jamas puede "sobrar" ni recortarse: crece y se acomoda
+//    proporcional al alto real de la caja, sea cual sea el ancho del
+//    telefono.
+//
+// 2. "Diseño muy basico" / "mas creativa": la v1 era una columna de cajas
+//    redondeadas apiladas (logo, avatar chico, nombre, caja de resultados,
+//    fila de cancion) -- se leia como una pantalla de app, no como una
+//    pieza para compartir. Ahora la composicion es "HERO + FICHA": la
+//    FOTO del cantante ocupa la mitad de arriba a pantalla completa (como
+//    una story real), con su nombre superpuesto abajo con degrade oscuro
+//    (misma tecnica de fade que el hero de World.jsx), y una "ficha" de
+//    vidrio abajo con cancion + resultados + lugar + marca. Si no hay foto
+//    (avatar emoji), el hero cae a un fondo con glow y el emoji grande con
+//    el mismo anillo de degrade que ya se uso en el avatar/portada.
+//
+// 3. "Foto en pesima calidad": la foto del cantante se guarda a 240x240
+//    (ver resizeToSquareJpeg en RegisterForm.jsx) pensada para un avatar
+//    chico de ~90px. Al mostrarla ahora a pantalla completa en el hero
+//    (varias veces mas grande) se notaba el escalado. Se subio la
+//    resolucion de guardado a 480x480 (RegisterForm.jsx) y aca se agrega
+//    una textura de scanlines muy sutil sobre la foto (mismo lenguaje
+//    visual que el resto de la app) que disimula el escalado en vez de
+//    pelear contra el.
 //
 // LECCIONES DE HTML2CANVAS QUE NO HAY QUE ROMPER:
 // 1. El numero de la nota va en color solido + text-shadow, nunca con la
@@ -27,62 +57,16 @@ import { useRetrokeFont } from '../lib/fonts'
 // 2. Los <img> tienen que estar cargados antes de capturar (ver
 //    waitForImages en shareCard.js).
 // 3. Ningun elemento visible usa animation infinita que dependa del
-//    momento exacto de captura (ver nota del anillo, arriba) — la unica
-//    animacion es la entrada (.share-card-in), que es finita y termina
-//    mucho antes de que alguien alcance a tocar "Descargar".
+//    momento exacto de captura -- los anillos de degrade quedan con
+//    `background-position` fijo, nunca animados.
 //
-// ARQUITECTURA "FRAME + TARJETA" (importante, no volver a la version vieja):
-// Antes ".share-card" era un solo div con aspect-ratio 9:16 fijo Y
-// overflow:hidden Y todo el contenido adentro. El problema: el contenido es
-// de largo VARIABLE (nombres de cancion largos que ocupan 2 lineas,
-// subpuntajes que aparecen o no, insignia de nivel opcional, etc). Cuando el
-// contenido superaba el alto fijo disponible, "overflow:hidden" simplemente
-// BORRABA lo que sobraba de la imagen final -- así fue como el pie de foto
-// "retroke.cl" desaparecio por completo al compartir a Instagram con una
-// cancion de titulo largo, aunque en la vista previa en vivo (antes de
-// capturar) se viera perfecto.
-//
-// La solucion: separar en DOS capas.
-//   .share-card-frame  -> el que se captura (la "ref"). Tiene el
-//                          aspect-ratio 9:16 fijo, el fondo, el borde, y
-//                          overflow:hidden SOLO para las decoraciones
-//                          (scanlines/glow). Centra su contenido con flex.
-//   .share-card         -> la tarjeta real, de ALTO AUTOMATICO (sin
-//                          aspect-ratio ni overflow:hidden). Si el
-//                          contenido es corto, queda centrada con espacio
-//                          de sobra arriba/abajo (se ve bien, como
-//                          respiro). Si por algun titulo larguisimo el
-//                          contenido creciera mas de la cuenta, el recorte
-//                          del frame quita un poco parejo arriba Y abajo
-//                          (por el centrado), nunca borra el pie de foto
-//                          completo como pasaba antes.
-//
-// SAFE ZONE para Instagram/TikTok/WhatsApp stories: Instagram y TikTok
-// SIEMPRE dibujan su propia interfaz (usuario/hora arriba, caja de
-// respuesta/reacciones abajo) ENCIMA de la imagen que se comparte, sin
-// importar que haya dibujado ahi. El padding del frame (mas grande abajo
-// que arriba) es justamente ese colchon para que esa interfaz nunca tape
-// texto real de la tarjeta.
-//
-// QUE VERSION SE MUESTRA (Bar / DJ / Home) -- NO es un branching explicito
-// por "mode": los tres bloques de resultado (Nota, Reacciones, Retroke
-// Score) se muestran cada uno segun si SU DATO llego o no (mismo patron ya
-// probado que usaba hasVocalScore). Nota final siempre existe si hubo algun
-// dato real. Reacciones se muestra si reactionsCount es un numero (0 real
-// incluido -- no se oculta un 0 real). Retroke Score solo existe cuando
-// hubo analisis de voz por microfono, que solo pasa en Home -- por eso ese
-// bloque aparece solo ahi, sin necesitar un "if (mode === 'HOME')" aparte.
-// "mode" y "placeName" solo se usan para el chip de lugar (RETROKE BAR /
-// DJ / HOME), que es puramente informativo.
+// QUE VERSION SE MUESTRA (Bar / DJ / Home): igual que antes, NO es un
+// branching explicito por "mode". Nota Final siempre existe si hubo algun
+// dato real, Reacciones se muestra si reactionsCount es un numero (0 real
+// incluido), Retroke Score solo aparece si hubo analisis de voz (exclusivo
+// de Home). "mode" y "placeName" solo alimentan el chip de lugar.
 
 const LOGO_SRC = '/landing/retroke-logo-oficial-neon.png'
-
-const SUBSCORE_LABELS = [
-  { key: 'pitchScore', label: 'Afinación' },
-  { key: 'rhythmScore', label: 'Ritmo' },
-  { key: 'stabilityScore', label: 'Estabilidad' },
-  { key: 'energyScore', label: 'Energía' }
-]
 
 const MODE_META = {
   BAR: { icon: '📍', label: 'Retroke Bar' },
@@ -111,10 +95,8 @@ const ShareResultCard = forwardRef(function ShareResultCard(
     artworkUrl,
     notaFinal,
     vocalScore,
-    subScores,
-    levelName,
-    achievementIcons,
     confidence,
+    levelName,
     mode,
     placeName,
     reactionsCount,
@@ -127,12 +109,9 @@ const ShareResultCard = forwardRef(function ShareResultCard(
   const notaTxt = notaFinal !== null && notaFinal !== undefined ? Number(notaFinal).toFixed(1) : '-'
   const hasVocalScore = vocalScore !== null && vocalScore !== undefined
   const hasReactions = reactionsCount !== null && reactionsCount !== undefined
-  const activeSubScores = subScores
-    ? SUBSCORE_LABELS.filter((s) => subScores[s.key] !== null && subScores[s.key] !== undefined)
-    : []
 
   const resultColumns = [
-    { key: 'nota', icon: '⭐', label: 'Nota Final', value: notaTxt, color: '#F4D03F', big: true },
+    { key: 'nota', icon: '⭐', label: 'Nota', value: notaTxt, color: '#F4D03F', big: true },
     hasReactions && { key: 'reactions', icon: '🔥', label: 'Reacciones', value: String(reactionsCount), color: '#8B5CF6' },
     hasVocalScore && { key: 'retroke', icon: '🎤', label: 'Retroke Score', value: vocalScore + '/100', color: '#E91E8C' }
   ].filter(Boolean)
@@ -143,105 +122,86 @@ const ShareResultCard = forwardRef(function ShareResultCard(
   const hasModeChip = Boolean(modeMeta)
 
   return (
-    <div ref={ref} className="share-card-frame">
+    <div ref={ref} className="momento-outer">
       <style>{`
-        .share-card-frame {
-          width: 100%;
-          max-width: 440px;
-          aspect-ratio: 9 / 16;
-          border-radius: 30px;
+        /* 9:16 forzado con la tecnica de padding-top (soportada desde
+           siempre, sin depender de la propiedad "aspect-ratio"). El % de
+           un padding vertical se calcula sobre el ANCHO del contenedor,
+           nunca sobre su alto -- por eso 16/9*100 = 177.78% da una caja
+           exactamente 9:16 sin importar el ancho real. */
+        .momento-outer {
           position: relative;
+          width: 100%;
+          max-width: 400px;
+          height: 0;
+          padding-top: 177.7778%;
+          border-radius: 28px;
           overflow: hidden;
-          background: radial-gradient(circle at 50% 0%, #33174d 0%, #14081f 55%, #05030a 100%);
           border: 2.5px solid #E91E8C;
+          background: #0a0512;
           box-sizing: border-box;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 52px 22px 84px;
         }
-        .share-card-frame::before {
-          content: '';
+        .momento-inner {
           position: absolute;
           inset: 0;
-          background: repeating-linear-gradient(0deg, rgba(255,255,255,0.035) 0px, rgba(255,255,255,0.035) 1px, transparent 1px, transparent 3px);
-          pointer-events: none;
-        }
-        .share-card-frame::after {
-          content: '';
-          position: absolute;
-          top: -40%;
-          left: -20%;
-          width: 140%;
-          height: 55%;
-          background: radial-gradient(ellipse at center, rgba(233,30,140,0.22) 0%, transparent 70%);
-          pointer-events: none;
-        }
-        .share-card {
-          position: relative;
-          z-index: 1;
-          width: 100%;
+          display: flex;
+          flex-direction: column;
           font-family: 'Space Grotesk', system-ui, sans-serif;
           color: #fff;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 14px;
         }
-        .share-card-in {
-          animation: shareCardIn 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+        .momento-in {
+          animation: momentoIn 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
         }
-        @keyframes shareCardIn {
-          0% { opacity: 0; transform: translateY(10px) scale(0.97); }
-          100% { opacity: 1; transform: translateY(0) scale(1); }
+        @keyframes momentoIn {
+          0% { opacity: 0; transform: scale(0.98); }
+          100% { opacity: 1; transform: scale(1); }
         }
 
-        /* Cabecera: logo + kicker "Momento Retroke". El kicker es texto
-           real (no decoracion), es el paso 2 de la jerarquia del brief
-           (RETROKE -> MOMENTO/RESULTADO -> ...). */
-        .share-card-header {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 8px;
-          flex-shrink: 0;
-        }
-        .share-card-logo {
-          height: 30px;
-          width: auto;
-          object-fit: contain;
-          flex-shrink: 0;
-        }
-        .share-card-kicker {
-          font-size: 10.5px;
-          font-weight: 700;
-          letter-spacing: 0.24em;
-          text-transform: uppercase;
-          color: rgba(244,208,79,0.85);
-        }
-
-        /* Identidad: avatar con el mismo anillo de degrade que el resto de
-           la app, fijo (sin animacion) por la razon explicada arriba. */
-        .share-card-avatar-wrap {
+        /* HERO: mitad de arriba, foto real a pantalla completa (o fallback
+           con emoji + halo si no hay foto). El nombre se superpone abajo
+           con degrade, como una story real -- no una tarjeta de datos. */
+        .momento-hero {
           position: relative;
-          width: 88px;
-          height: 88px;
+          flex: 0 0 50%;
+          overflow: hidden;
+          background: radial-gradient(circle at 50% 38%, #3a1a4a 0%, #150a20 72%);
+        }
+        .momento-hero-photo {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          background-size: cover;
+          background-position: 50% 22%;
+          background-repeat: no-repeat;
+          filter: saturate(1.08) contrast(1.06);
+        }
+        .momento-hero-fallback {
+          position: absolute;
+          inset: 0;
           display: flex;
           align-items: center;
           justify-content: center;
-          flex-shrink: 0;
         }
-        .share-card-avatar-glow {
+        .momento-hero-avatar-wrap {
+          position: relative;
+          width: 42%;
+          aspect-ratio: 1 / 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .momento-hero-avatar-glow {
+          position: absolute;
+          inset: -18%;
+          border-radius: 9999px;
+          background: radial-gradient(circle, rgba(233,30,140,0.35) 0%, rgba(139,92,246,0.2) 55%, transparent 78%);
+        }
+        .momento-hero-avatar-ring {
           position: absolute;
           inset: 0;
           border-radius: 9999px;
-          background: radial-gradient(circle, rgba(233,30,140,0.4) 0%, rgba(139,92,246,0.25) 55%, transparent 78%);
-        }
-        .share-card-avatar-ring {
-          position: absolute;
-          inset: 3px;
-          border-radius: 9999px;
-          padding: 3px;
+          padding: 4px;
           box-sizing: border-box;
           background: linear-gradient(120deg, #E91E8C, #F4D03F, #8B5CF6, #7ED957, #E91E8C);
           background-position: 32% 50%;
@@ -249,68 +209,115 @@ const ShareResultCard = forwardRef(function ShareResultCard(
           -webkit-mask-composite: xor;
           mask-composite: exclude;
         }
-        .share-card-avatar {
+        .momento-hero-avatar-emoji {
           position: relative;
-          font-size: 44px;
+          font-size: 15vw;
           line-height: 1;
-          filter: drop-shadow(0 0 14px rgba(233, 30, 140, 0.7));
+          filter: drop-shadow(0 0 18px rgba(233, 30, 140, 0.7));
         }
-        .share-card-avatar-photo {
-          position: relative;
-          width: 76px;
-          height: 76px;
-          border-radius: 9999px;
-          object-fit: cover;
-          display: block;
-        }
-        .share-card-name {
-          font-size: 21px;
-          font-weight: 700;
-          text-align: center;
-          line-height: 1.2;
-          flex-shrink: 0;
-        }
-        .share-card-level {
-          font-size: 11px;
-          font-weight: 600;
-          padding: 4px 14px;
-          border-radius: 999px;
-          border: 1px solid rgba(244, 208, 79, 0.65);
-          color: #F4D03F;
-          background: rgba(244, 208, 79, 0.1);
-          letter-spacing: 0.03em;
-          flex-shrink: 0;
-        }
-
-        /* Cancion + portada: la pieza que antes era una fila chica (46px)
-           ahora es el segundo protagonista de la tarjeta, con el mismo
-           anillo de degrade que el avatar (esquina redondeada en vez de
-           circulo, igual tecnica que .called-track-art-ring en
-           DisplayCalled.jsx). */
-        .share-card-song-card {
-          width: 100%;
-          display: flex;
-          align-items: center;
-          gap: 14px;
-          padding: 12px;
-          border-radius: 20px;
-          background: rgba(255,255,255,0.05);
-          border: 1px solid rgba(255,255,255,0.12);
-          text-align: left;
-          box-sizing: border-box;
-          flex-shrink: 0;
-        }
-        .share-card-artwork-wrap {
-          position: relative;
-          width: 84px;
-          height: 84px;
-          flex-shrink: 0;
-        }
-        .share-card-artwork-ring {
+        /* Textura muy sutil sobre la foto -- mismo lenguaje visual que el
+           resto de la app (scanlines de DisplayCalled.jsx), y de paso
+           disimula el escalado si la foto original es chica. */
+        .momento-hero-grain {
           position: absolute;
           inset: 0;
-          border-radius: 18px;
-          padding: 3px;
+          background: repeating-linear-gradient(0deg, rgba(255,255,255,0.05) 0px, rgba(255,255,255,0.05) 1px, transparent 1px, transparent 3px);
+          mix-blend-mode: overlay;
+          pointer-events: none;
+        }
+        .momento-hero-fade {
+          position: absolute;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          height: 65%;
+          background: linear-gradient(to bottom, transparent 0%, rgba(10,5,18,0.55) 45%, #0a0512 100%);
+          pointer-events: none;
+        }
+        .momento-logo {
+          position: absolute;
+          top: 5%;
+          left: 5%;
+          height: 8%;
+          max-height: 26px;
+          width: auto;
+          display: block;
+          filter: drop-shadow(0 2px 6px rgba(0,0,0,0.7));
+        }
+        .momento-kicker {
+          position: absolute;
+          top: 5.5%;
+          right: 5%;
+          font-size: 9px;
+          font-weight: 700;
+          letter-spacing: 0.18em;
+          text-transform: uppercase;
+          color: #F4D03F;
+          background: rgba(10,6,15,0.55);
+          border: 1px solid rgba(244,208,79,0.5);
+          border-radius: 999px;
+          padding: 4px 10px;
+          text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+        }
+        .momento-name-wrap {
+          position: absolute;
+          left: 6%;
+          right: 6%;
+          bottom: 6%;
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 6px;
+        }
+        .momento-name {
+          font-size: clamp(22px, 8vw, 34px);
+          font-weight: 800;
+          line-height: 1.08;
+          text-shadow: 0 2px 14px rgba(0,0,0,0.75);
+        }
+        .momento-level {
+          font-size: 11px;
+          font-weight: 600;
+          padding: 3px 12px;
+          border-radius: 999px;
+          border: 1px solid rgba(244, 208, 79, 0.7);
+          color: #F4D03F;
+          background: rgba(10,6,15,0.55);
+          letter-spacing: 0.03em;
+        }
+
+        /* FICHA: mitad de abajo, panel de vidrio con la cancion y los
+           resultados. margin-top:auto en el pie asegura que siempre quede
+           pegado abajo, sin importar cuanto contenido real haya arriba. */
+        .momento-sheet {
+          position: relative;
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          padding: 4% 6% 5%;
+          background: #0a0512;
+          min-height: 0;
+          overflow: hidden;
+        }
+        .momento-song {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          flex-shrink: 0;
+        }
+        .momento-artwork-wrap {
+          position: relative;
+          width: 15vw;
+          max-width: 58px;
+          min-width: 42px;
+          aspect-ratio: 1 / 1;
+          flex-shrink: 0;
+        }
+        .momento-artwork-ring {
+          position: absolute;
+          inset: 0;
+          border-radius: 16px;
+          padding: 2.5px;
           box-sizing: border-box;
           background: linear-gradient(120deg, #E91E8C, #F4D03F, #8B5CF6, #7ED957, #E91E8C);
           background-position: 68% 50%;
@@ -318,32 +325,33 @@ const ShareResultCard = forwardRef(function ShareResultCard(
           -webkit-mask-composite: xor;
           mask-composite: exclude;
         }
-        .share-card-artwork {
+        .momento-artwork {
           position: absolute;
-          inset: 3px;
-          width: calc(100% - 6px);
-          height: calc(100% - 6px);
-          border-radius: 15px;
-          object-fit: cover;
-          display: block;
+          inset: 2.5px;
+          width: calc(100% - 5px);
+          height: calc(100% - 5px);
+          border-radius: 13px;
+          background-size: cover;
+          background-position: center;
+          background-repeat: no-repeat;
         }
-        .share-card-artwork-fallback {
+        .momento-artwork-fallback {
           position: absolute;
-          inset: 3px;
-          width: calc(100% - 6px);
-          height: calc(100% - 6px);
-          border-radius: 15px;
+          inset: 2.5px;
+          width: calc(100% - 5px);
+          height: calc(100% - 5px);
+          border-radius: 13px;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 26px;
-          background: linear-gradient(135deg, rgba(139,92,246,0.35), rgba(233,30,140,0.35));
+          font-size: 18px;
+          background: linear-gradient(135deg, rgba(139,92,246,0.4), rgba(233,30,140,0.4));
         }
-        .share-card-song-text {
+        .momento-song-text {
           min-width: 0;
         }
-        .share-card-song {
-          font-size: 16.5px;
+        .momento-song-title {
+          font-size: 14.5px;
           font-weight: 700;
           line-height: 1.25;
           display: -webkit-box;
@@ -351,9 +359,9 @@ const ShareResultCard = forwardRef(function ShareResultCard(
           -webkit-line-clamp: 2;
           overflow: hidden;
         }
-        .share-card-artist {
-          margin-top: 4px;
-          font-size: 12.5px;
+        .momento-song-artist {
+          margin-top: 2px;
+          font-size: 11.5px;
           font-weight: 600;
           color: rgba(255,255,255,0.6);
           overflow: hidden;
@@ -361,195 +369,169 @@ const ShareResultCard = forwardRef(function ShareResultCard(
           white-space: nowrap;
         }
 
-        /* Resultados: columnas dinamicas (Nota siempre, Reacciones si hay
-           dato, Retroke Score si hubo analisis de voz). La Nota es siempre
-           la mas grande -- es EL resultado, lo demas es secundario. */
-        .share-card-score-box {
-          width: 100%;
+        .momento-results {
+          margin-top: 4%;
           display: flex;
-          flex-direction: column;
           align-items: center;
-          padding: 16px 14px 13px;
-          border-radius: 22px;
+          justify-content: center;
+          padding: 3.5% 3%;
+          border-radius: 18px;
           background: linear-gradient(135deg, rgba(58,20,60,0.9), rgba(40,16,58,0.9));
           border: 1.5px solid rgba(244,208,79,0.5);
           box-sizing: border-box;
           flex-shrink: 0;
         }
-        .share-card-results-row {
-          width: 100%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-        .share-card-result-col {
+        .momento-result-col {
           flex: 1;
           min-width: 0;
           display: flex;
           flex-direction: column;
           align-items: center;
         }
-        .share-card-result-divider {
+        .momento-result-col.is-big {
+          flex: 1.15;
+        }
+        .momento-result-divider {
           width: 1px;
           align-self: stretch;
-          margin: 0 4px;
+          margin: 0 3px;
           background: rgba(255,255,255,0.16);
         }
-        .share-card-result-label {
-          font-size: 9.5px;
-          letter-spacing: 0.14em;
+        .momento-result-label {
+          font-size: 8.5px;
+          letter-spacing: 0.1em;
           text-transform: uppercase;
           color: rgba(255,255,255,0.55);
-          margin-bottom: 3px;
+          margin-bottom: 2px;
           white-space: nowrap;
         }
-        .share-card-result-value {
+        .momento-result-value {
           font-weight: 700;
           line-height: 1.05;
         }
-        .share-card-result-value.is-big {
-          font-size: 46px;
+        .momento-result-value.is-big {
+          font-size: clamp(28px, 9vw, 38px);
         }
-        .share-card-result-value.is-small {
-          font-size: 22px;
+        .momento-result-value.is-small {
+          font-size: clamp(15px, 4.6vw, 19px);
         }
-        .share-card-confidence {
-          margin-top: 8px;
-          font-size: 10.5px;
+        .momento-confidence {
+          margin-top: 6px;
+          font-size: 9.5px;
           color: rgba(255,255,255,0.5);
-        }
-        .share-card-subscores {
-          width: 100%;
-          display: flex;
-          gap: 6px;
-          margin-top: 12px;
-          padding-top: 12px;
-          border-top: 1px solid rgba(255,255,255,0.14);
-        }
-        .share-card-subscore {
-          flex: 1;
-          min-width: 0;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          padding: 5px 2px;
-          border-radius: 10px;
-          background: rgba(255,255,255,0.05);
-        }
-        .share-card-subscore-label {
-          font-size: 8.5px;
-          letter-spacing: 0.01em;
-          color: rgba(255,255,255,0.6);
-          white-space: nowrap;
-        }
-        .share-card-subscore-value {
-          margin-top: 2px;
-          font-size: 15px;
-          font-weight: 700;
-          color: #F4D03F;
+          text-align: center;
         }
 
-        /* Chip de modo/lugar + fecha. Puramente informativo, nunca decide
-           que resultados mostrar (ver nota arriba). */
-        .share-card-mode-chip {
+        .momento-mode-chip {
+          margin-top: 4%;
           display: flex;
           align-items: center;
-          gap: 8px;
-          padding: 7px 16px;
+          justify-content: center;
+          gap: 6px;
+          padding: 2% 4%;
           border-radius: 999px;
           background: rgba(255,255,255,0.05);
           border: 1px solid rgba(255,255,255,0.14);
           flex-shrink: 0;
         }
-        .share-card-mode-label {
-          font-size: 11px;
+        .momento-mode-label {
+          font-size: 10.5px;
           font-weight: 700;
-          letter-spacing: 0.05em;
+          letter-spacing: 0.04em;
           color: rgba(255,255,255,0.85);
           white-space: nowrap;
         }
-        .share-card-mode-sep {
+        .momento-mode-sep {
           width: 3px;
           height: 3px;
           border-radius: 999px;
           background: rgba(255,255,255,0.35);
           flex-shrink: 0;
         }
-        .share-card-mode-sub {
-          font-size: 11px;
+        .momento-mode-sub {
+          font-size: 10.5px;
           color: rgba(255,255,255,0.55);
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
         }
 
-        .share-card-achievements {
-          display: flex;
-          gap: 10px;
-          flex-shrink: 0;
-        }
-        .share-card-achievement-icon {
-          font-size: 19px;
-          filter: drop-shadow(0 0 6px rgba(244, 208, 79, 0.5));
-        }
-        .share-card-footer {
-          font-size: 12px;
+        .momento-footer {
+          margin-top: auto;
+          padding-top: 4%;
+          font-size: 11px;
           font-weight: 600;
-          color: rgba(255,255,255,0.8);
+          color: rgba(255,255,255,0.75);
           text-align: center;
           flex-shrink: 0;
         }
-        .share-card-footer-sub {
+        .momento-footer-sub {
           margin-top: 2px;
-          font-size: 10px;
-          color: rgba(255,255,255,0.45);
+          font-size: 9.5px;
+          color: rgba(255,255,255,0.42);
         }
       `}</style>
 
-      <div className="share-card share-card-in">
-        <div className="share-card-header">
-          <img src={LOGO_SRC} alt="Retroke" className="share-card-logo" />
-          <span className="share-card-kicker">Momento Retroke</span>
-        </div>
-
-        <div className="share-card-avatar-wrap">
-          <div className="share-card-avatar-glow" />
+      <div className="momento-inner momento-in">
+        <div className="momento-hero">
           {photoUrl ? (
-            <img src={photoUrl} alt={singerName || ''} className="share-card-avatar-photo" />
+            <div
+              className="momento-hero-photo"
+              role="img"
+              aria-label={singerName || ''}
+              data-bg-src={photoUrl}
+              style={{ backgroundImage: 'url(' + photoUrl + ')' }}
+            />
           ) : (
-            <div className="share-card-avatar">{avatar || '🎤'}</div>
+            <div className="momento-hero-fallback">
+              <div className="momento-hero-avatar-wrap">
+                <div className="momento-hero-avatar-glow" />
+                <div className="momento-hero-avatar-emoji">{avatar || '🎤'}</div>
+                <div className="momento-hero-avatar-ring" />
+              </div>
+            </div>
           )}
-          <div className="share-card-avatar-ring" />
-        </div>
-
-        <div className="share-card-name">{singerName || 'Cantante Retroke'}</div>
-        {levelName && <div className="share-card-level">🏅 {levelName}</div>}
-
-        <div className="share-card-song-card">
-          <div className="share-card-artwork-wrap">
-            {artworkUrl ? (
-              <img src={artworkUrl} alt="" className="share-card-artwork" />
-            ) : (
-              <div className="share-card-artwork-fallback">🎵</div>
-            )}
-            <div className="share-card-artwork-ring" />
-          </div>
-          <div className="share-card-song-text">
-            <div className="share-card-song">{song || 'Canción'}</div>
-            {artistName && <div className="share-card-artist">{artistName}</div>}
+          <div className="momento-hero-grain" />
+          <div className="momento-hero-fade" />
+          <img src={LOGO_SRC} alt="Retroke" className="momento-logo" />
+          <span className="momento-kicker">Momento Retroke</span>
+          <div className="momento-name-wrap">
+            <div className="momento-name">{singerName || 'Cantante Retroke'}</div>
+            {levelName && <div className="momento-level">🏅 {levelName}</div>}
           </div>
         </div>
 
-        <div className="share-card-score-box">
-          <div className="share-card-results-row">
+        <div className="momento-sheet">
+          <div className="momento-song">
+            <div className="momento-artwork-wrap">
+              {artworkUrl ? (
+                <div
+                  className="momento-artwork"
+                  role="img"
+                  aria-label=""
+                  data-bg-src={artworkUrl}
+                  style={{ backgroundImage: 'url(' + artworkUrl + ')' }}
+                />
+              ) : (
+                <div className="momento-artwork-fallback">🎵</div>
+              )}
+              <div className="momento-artwork-ring" />
+            </div>
+            <div className="momento-song-text">
+              <div className="momento-song-title">{song || 'Canción'}</div>
+              {artistName && <div className="momento-song-artist">{artistName}</div>}
+            </div>
+          </div>
+
+          <div className="momento-results">
             {resultColumns.map((col, i) => (
-              <div key={col.key} style={{ display: 'flex', alignItems: 'center', flex: col.big ? 1.15 : 1 }}>
-                {i > 0 && <div className="share-card-result-divider" />}
-                <div className="share-card-result-col">
-                  <div className="share-card-result-label">{col.icon} {col.label}</div>
+              <div key={col.key} className={'momento-result-col' + (col.big ? ' is-big' : '')} style={{ display: 'flex', flexDirection: 'row', alignItems: 'stretch', flex: col.big ? 1.15 : 1 }}>
+                {i > 0 && <div className="momento-result-divider" />}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, minWidth: 0 }}>
+                  <div className="momento-result-label">{col.icon} {col.label}</div>
                   <div
-                    className={'share-card-result-value ' + (col.big ? 'is-big' : 'is-small')}
-                    style={{ color: col.color, textShadow: '0 0 18px ' + col.color + '80' }}
+                    className={'momento-result-value ' + (col.big ? 'is-big' : 'is-small')}
+                    style={{ color: col.color, textShadow: '0 0 16px ' + col.color + '80' }}
                   >
                     {col.value}
                   </div>
@@ -558,49 +540,31 @@ const ShareResultCard = forwardRef(function ShareResultCard(
             ))}
           </div>
           {confidence === 'baja' && (
-            <div className="share-card-confidence">medición con señal limitada</div>
+            <div className="momento-confidence">medición con señal limitada</div>
           )}
-          {activeSubScores.length > 0 && (
-            <div className="share-card-subscores">
-              {activeSubScores.map((s) => (
-                <div key={s.key} className="share-card-subscore">
-                  <span className="share-card-subscore-label">{s.label}</span>
-                  <span className="share-card-subscore-value">{subScores[s.key]}</span>
-                </div>
-              ))}
+
+          {hasModeChip && (
+            <div className="momento-mode-chip">
+              <span className="momento-mode-label">{modeMeta.icon} {modeMeta.label}</span>
+              {placeTxt && (
+                <>
+                  <span className="momento-mode-sep" />
+                  <span className="momento-mode-sub">{placeTxt}</span>
+                </>
+              )}
+              {dateTxt && (
+                <>
+                  <span className="momento-mode-sep" />
+                  <span className="momento-mode-sub">{dateTxt}</span>
+                </>
+              )}
             </div>
           )}
-        </div>
 
-        {hasModeChip && (
-          <div className="share-card-mode-chip">
-            <span className="share-card-mode-label">{modeMeta.icon} {modeMeta.label}</span>
-            {placeTxt && (
-              <>
-                <span className="share-card-mode-sep" />
-                <span className="share-card-mode-sub">{placeTxt}</span>
-              </>
-            )}
-            {dateTxt && (
-              <>
-                <span className="share-card-mode-sep" />
-                <span className="share-card-mode-sub">{dateTxt}</span>
-              </>
-            )}
+          <div className="momento-footer">
+            El karaoke cambió para siempre.
+            <div className="momento-footer-sub">retroke.cl</div>
           </div>
-        )}
-
-        {achievementIcons && achievementIcons.length > 0 && (
-          <div className="share-card-achievements">
-            {achievementIcons.map((icon, i) => (
-              <span key={i} className="share-card-achievement-icon">{icon}</span>
-            ))}
-          </div>
-        )}
-
-        <div className="share-card-footer">
-          El karaoke cambió para siempre.
-          <div className="share-card-footer-sub">retroke.cl</div>
         </div>
       </div>
     </div>

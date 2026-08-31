@@ -39,7 +39,7 @@ function resizeToSquareJpeg(file) {
     reader.onload = function (e) {
       var img = new Image()
       img.onload = function () {
-        var size = 240
+        var size = 480
         var canvas = document.createElement('canvas')
         canvas.width = size
         canvas.height = size

@@ -16,6 +16,15 @@
 // 4. box-shadow (sobre todo "inset") y bordes multiples se rasterizan mal
 //    en algunos casos -> preferir bordes solidos simples en lo que se vaya
 //    a capturar (ver ShareResultCard.jsx).
+// 5. object-fit (cover/contain) en <img> NO se respeta de forma confiable
+//    en html2canvas -- la imagen puede salir estirada/deformada en vez de
+//    recortada, aunque en el navegador se vea perfecta antes de capturar.
+//    Por eso ShareResultCard.jsx arma sus fotos "de recorte" (foto del
+//    cantante en el hero, portada del album) como un <div> con
+//    background-image + background-size:cover en vez de un <img>, que
+//    html2canvas si rasteriza bien. waitForImages() de abajo tiene que
+//    esperar esos divs tambien (marcados con data-bg-src), no solo los
+//    <img> reales -- si no, la captura puede salir sin esas fotos.
 
 import { trackEvent } from './analytics'
 
@@ -38,18 +47,38 @@ function loadHtml2Canvas() {
 function waitForImages(node) {
   if (!node) return Promise.resolve()
   const imgs = Array.from(node.querySelectorAll('img'))
-  return Promise.all(
-    imgs.map((img) => {
-      if (img.complete && img.naturalWidth > 0) return Promise.resolve()
-      return new Promise((resolve) => {
-        img.addEventListener('load', resolve, { once: true })
-        img.addEventListener('error', resolve, { once: true })
-        // Timeout de seguridad: si una imagen nunca carga (ej. sin
-        // internet), igual dejamos que se comparta el resto de la tarjeta.
-        setTimeout(resolve, 4000)
-      })
+  const bgEls = Array.from(node.querySelectorAll('[data-bg-src]'))
+
+  const imgPromises = imgs.map((img) => {
+    if (img.complete && img.naturalWidth > 0) return Promise.resolve()
+    return new Promise((resolve) => {
+      img.addEventListener('load', resolve, { once: true })
+      img.addEventListener('error', resolve, { once: true })
+      // Timeout de seguridad: si una imagen nunca carga (ej. sin
+      // internet), igual dejamos que se comparta el resto de la tarjeta.
+      setTimeout(resolve, 4000)
     })
-  )
+  })
+
+  // Fotos "de recorte" (background-image, ver nota mas arriba): el
+  // navegador ya las esta pintando via CSS, pero necesitamos saber cuando
+  // el archivo termino de descargar para no capturar antes de tiempo --
+  // se precarga la misma URL con un Image() nuevo solo para esperar su
+  // evento load/error.
+  const bgPromises = bgEls.map((el) => {
+    const src = el.getAttribute('data-bg-src')
+    if (!src) return Promise.resolve()
+    return new Promise((resolve) => {
+      const probe = new Image()
+      probe.addEventListener('load', resolve, { once: true })
+      probe.addEventListener('error', resolve, { once: true })
+      probe.src = src
+      if (probe.complete && probe.naturalWidth > 0) resolve()
+      setTimeout(resolve, 4000)
+    })
+  })
+
+  return Promise.all(imgPromises.concat(bgPromises))
 }
 
 // Fase H: registra en analytics_events que se comparti/descargo la
