@@ -71,11 +71,56 @@ import { useRetrokeFont } from '../lib/fonts'
 //
 // QUE VERSION SE MUESTRA (Bar / DJ / Home): igual que antes, NO es un
 // branching explicito por "mode". Nota Final siempre existe si hubo algun
-// dato real, Reacciones se muestra si reactionsCount es un numero (0 real
-// incluido), Retroke Score solo aparece si hubo analisis de voz (exclusivo
-// de Home). "mode" y "placeName" solo alimentan el chip de lugar.
+// dato real, Reacciones se muestra si hubo al menos una reaccion real,
+// Retroke Score solo aparece si hubo analisis de voz (exclusivo de Home).
+// "mode" y "placeName" solo alimentan el chip de lugar.
+//
+// TERCERA VUELTA (feedback sobre la v2, ya con el bug de colapso arreglado
+// y confirmado en produccion -- ver hilo largo mas abajo, esto es sobre lo
+// que vino DESPUES de eso):
+// 1. "se descuadra todo al guardar y compartir por Instagram": la tarjeta en
+//    si SIEMPRE capturaba bien (dimensiones y contenido correctos, sin
+//    errores) -- el problema real estaba en COMO se entregaba el archivo
+//    despues de capturarlo, no en este componente. Ver la lección 7 nueva
+//    en shareCard.js: el boton de la pagina publica (/r/:id) usaba
+//    <a download> con un data-URL, que Safari/iOS y los navegadores
+//    embebidos de Instagram/WhatsApp ignoran o rompen. Se cambio a
+//    Web Share API con archivo real (navigator.share({files:[...]})) como
+//    metodo principal en todos los botones de guardar/compartir.
+// 2. "la imagen del avatar es ultra rara / prefiero la caratula del artista
+//    en full calidad": se saco la foto del cantante del hero. Ahora el hero
+//    es la CARATULA DEL ALBUM (artworkUrl), pedida en alta resolucion (ver
+//    getHiResArtwork) en vez del thumbnail chico que devuelve la busqueda
+//    de iTunes -- esa caratula es siempre un asset oficial de alta calidad,
+//    a diferencia de una foto de celular escalada. El nombre del cantante
+//    se mantiene superpuesto abajo del hero (sigue siendo "su" momento).
+// 3. "que el logo de Retroke salga en vez del titulo": se saco el texto
+//    "Momento Retroke" (pill) y el isotipo de Retroke (ya existia, chico
+//    arriba a la izquierda) ahora es la marca principal del hero: mas
+//    grande, centrado arriba.
+// 4. "las reacciones, que salgan los 3 emojis mas usados": la columna de
+//    Reacciones ya no muestra un numero -- muestra los 3 emojis con mas
+//    reacciones reales (mismo tally que reactionStats.top en
+//    DisplayResult.jsx, memes excluidos). Si no hubo ninguna reaccion, la
+//    columna simplemente no aparece (nunca se inventa ni se muestra vacia).
+// 5. La fila de cancion (arriba de la nota) ya no repite un thumbnail chico
+//    de la caratula (redundante ahora que la caratula ocupa todo el hero) --
+//    queda solo titulo + artista en texto, una sola linea con elipsis en
+//    vez de "line-clamp" multilinea (mas simple y mas predecible al
+//    rasterizar con html2canvas).
 
 const LOGO_SRC = '/landing/retroke-logo-oficial-neon.png'
+
+// La busqueda de iTunes (songLookup.js) devuelve un thumbnail chico
+// (.../60x60bb.jpg) pensado para una lista de resultados, no para ocupar
+// todo el hero de la tarjeta. Apple sirve el mismo asset en resoluciones
+// mas grandes cambiando ese segmento de la URL -- es el mismo truco que ya
+// usa el resto de la industria (nunca un recorte/escalado propio, siempre
+// el archivo oficial en mejor calidad).
+function getHiResArtwork(url) {
+  if (!url) return url
+  return url.replace(/\/\d+x\d+(bb)?\.(jpg|jpeg|png)(\?.*)?$/i, '/1200x1200bb.$2')
+}
 
 const MODE_META = {
   BAR: { icon: '📍', label: 'Retroke Bar' },
@@ -108,7 +153,7 @@ const ShareResultCard = forwardRef(function ShareResultCard(
     levelName,
     mode,
     placeName,
-    reactionsCount,
+    topReactions,
     createdAt
   },
   ref
@@ -117,11 +162,13 @@ const ShareResultCard = forwardRef(function ShareResultCard(
 
   const notaTxt = notaFinal !== null && notaFinal !== undefined ? Number(notaFinal).toFixed(1) : '-'
   const hasVocalScore = vocalScore !== null && vocalScore !== undefined
-  const hasReactions = reactionsCount !== null && reactionsCount !== undefined
+  const topReactionsList = Array.isArray(topReactions) ? topReactions : []
+  const hasReactions = topReactionsList.length > 0
+  const hiResArtwork = getHiResArtwork(artworkUrl)
 
   const resultColumns = [
     { key: 'nota', icon: '⭐', label: 'Nota', value: notaTxt, color: '#F4D03F', big: true },
-    hasReactions && { key: 'reactions', icon: '🔥', label: 'Reacciones', value: String(reactionsCount), color: '#8B5CF6' },
+    hasReactions && { key: 'reactions', icon: '🔥', label: 'Reacciones', value: topReactionsList.map((r) => r.emoji).join(' '), color: '#8B5CF6', emoji: true },
     hasVocalScore && { key: 'retroke', icon: '🎤', label: 'Retroke Score', value: vocalScore + '/100', color: '#E91E8C' }
   ].filter(Boolean)
 
@@ -168,12 +215,16 @@ const ShareResultCard = forwardRef(function ShareResultCard(
           100% { opacity: 1; transform: scale(1); }
         }
 
-        /* HERO: mitad de arriba, foto real a pantalla completa (o fallback
-           con emoji + halo si no hay foto). El nombre se superpone abajo
-           con degrade, como una story real -- no una tarjeta de datos. */
+        /* HERO: mitad de arriba, la caratula del album a pantalla completa
+           en alta calidad (o fallback con nota musical + halo si la
+           cancion no tiene caratula). El nombre del cantante se superpone
+           abajo con degrade, como una story real -- no una tarjeta de
+           datos. El scrim oscuro (.momento-hero-scrim) garantiza que el
+           logo y el nombre se lean bien sin importar que tan clara o
+           saturada sea la caratula de turno. */
         .momento-hero {
           position: relative;
-          flex: 0 0 50%;
+          flex: 0 0 48%;
           overflow: hidden;
           background: radial-gradient(circle at 50% 38%, #3a1a4a 0%, #150a20 72%);
         }
@@ -183,9 +234,15 @@ const ShareResultCard = forwardRef(function ShareResultCard(
           width: 100%;
           height: 100%;
           background-size: cover;
-          background-position: 50% 22%;
+          background-position: 50% 50%;
           background-repeat: no-repeat;
-          filter: saturate(1.08) contrast(1.06);
+          filter: saturate(1.05) contrast(1.03);
+        }
+        .momento-hero-scrim {
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(180deg, rgba(10,5,18,0.6) 0%, rgba(10,5,18,0.1) 26%, rgba(10,5,18,0.12) 58%, rgba(10,5,18,0.4) 100%);
+          pointer-events: none;
         }
         .momento-hero-fallback {
           position: absolute;
@@ -245,30 +302,20 @@ const ShareResultCard = forwardRef(function ShareResultCard(
           background: linear-gradient(to bottom, transparent 0%, rgba(10,5,18,0.55) 45%, #0a0512 100%);
           pointer-events: none;
         }
+        /* El isotipo de Retroke ahora es la marca principal del hero (antes
+           iba chico arriba a la izquierda, junto a un pill de texto
+           "Momento Retroke" que se saco por pedido explicito) -- centrado
+           arriba, mas grande. */
         .momento-logo {
           position: absolute;
-          top: 5%;
-          left: 5%;
-          height: 8%;
-          max-height: 26px;
+          top: 6%;
+          left: 50%;
+          transform: translateX(-50%);
+          height: 11%;
+          max-height: 34px;
           width: auto;
           display: block;
-          filter: drop-shadow(0 2px 6px rgba(0,0,0,0.7));
-        }
-        .momento-kicker {
-          position: absolute;
-          top: 5.5%;
-          right: 5%;
-          font-size: 9px;
-          font-weight: 700;
-          letter-spacing: 0.18em;
-          text-transform: uppercase;
-          color: #F4D03F;
-          background: rgba(10,6,15,0.55);
-          border: 1px solid rgba(244,208,79,0.5);
-          border-radius: 999px;
-          padding: 4px 10px;
-          text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+          filter: drop-shadow(0 2px 8px rgba(0,0,0,0.85));
         }
         .momento-name-wrap {
           position: absolute;
@@ -310,71 +357,30 @@ const ShareResultCard = forwardRef(function ShareResultCard(
           min-height: 0;
           overflow: hidden;
         }
+        /* Fila de cancion: ya no lleva un thumbnail chico de la caratula
+           (redundante -- la caratula en alta calidad ya ocupa todo el
+           hero arriba). Solo texto, centrado, una linea con elipsis --
+           mas simple y mas predecible al rasterizar con html2canvas que
+           el "line-clamp" multilinea que se usaba antes. */
         .momento-song {
-          display: flex;
-          align-items: center;
-          gap: 10px;
           flex-shrink: 0;
-        }
-        .momento-artwork-wrap {
-          position: relative;
-          width: 15vw;
-          max-width: 58px;
-          min-width: 42px;
-          aspect-ratio: 1 / 1;
-          flex-shrink: 0;
-        }
-        .momento-artwork-ring {
-          position: absolute;
-          inset: 0;
-          border-radius: 16px;
-          padding: 2.5px;
-          box-sizing: border-box;
-          background: linear-gradient(120deg, #E91E8C, #F4D03F, #8B5CF6, #7ED957, #E91E8C);
-          background-position: 68% 50%;
-          -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-          -webkit-mask-composite: xor;
-          mask-composite: exclude;
-        }
-        .momento-artwork {
-          position: absolute;
-          inset: 2.5px;
-          width: calc(100% - 5px);
-          height: calc(100% - 5px);
-          border-radius: 13px;
-          background-size: cover;
-          background-position: center;
-          background-repeat: no-repeat;
-        }
-        .momento-artwork-fallback {
-          position: absolute;
-          inset: 2.5px;
-          width: calc(100% - 5px);
-          height: calc(100% - 5px);
-          border-radius: 13px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 18px;
-          background: linear-gradient(135deg, rgba(139,92,246,0.4), rgba(233,30,140,0.4));
-        }
-        .momento-song-text {
+          text-align: center;
           min-width: 0;
         }
         .momento-song-title {
-          font-size: 14.5px;
-          font-weight: 700;
+          font-size: 16px;
+          font-weight: 800;
           line-height: 1.25;
-          display: -webkit-box;
-          -webkit-box-orient: vertical;
-          -webkit-line-clamp: 2;
+          color: #fff;
           overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
         .momento-song-artist {
-          margin-top: 2px;
-          font-size: 11.5px;
+          margin-top: 3px;
+          font-size: 12.5px;
           font-weight: 600;
-          color: rgba(255,255,255,0.6);
+          color: rgba(255,255,255,0.68);
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
@@ -425,6 +431,14 @@ const ShareResultCard = forwardRef(function ShareResultCard(
         }
         .momento-result-value.is-small {
           font-size: clamp(15px, 4.6vw, 19px);
+        }
+        /* Reacciones: los 3 emojis mas usados, no un numero -- los emoji ya
+           traen su propio color (el navegador los dibuja como glifos a
+           color sin importar el "color" CSS), asi que aca solo se ajusta
+           el tamaño, sin heredar el color/text-shadow de la columna. */
+        .momento-result-value.is-emoji {
+          font-size: 19px;
+          letter-spacing: 3px;
         }
         .momento-confidence {
           margin-top: 6px;
@@ -485,27 +499,27 @@ const ShareResultCard = forwardRef(function ShareResultCard(
 
       <div className="momento-inner momento-in">
         <div className="momento-hero">
-          {photoUrl ? (
+          {hiResArtwork ? (
             <div
               className="momento-hero-photo"
               role="img"
-              aria-label={singerName || ''}
-              data-bg-src={photoUrl}
-              style={{ backgroundImage: 'url(' + photoUrl + ')' }}
+              aria-label={song || ''}
+              data-bg-src={hiResArtwork}
+              style={{ backgroundImage: 'url(' + hiResArtwork + ')' }}
             />
           ) : (
             <div className="momento-hero-fallback">
               <div className="momento-hero-avatar-wrap">
                 <div className="momento-hero-avatar-glow" />
-                <div className="momento-hero-avatar-emoji">{avatar || '🎤'}</div>
+                <div className="momento-hero-avatar-emoji">🎵</div>
                 <div className="momento-hero-avatar-ring" />
               </div>
             </div>
           )}
+          <div className="momento-hero-scrim" />
           <div className="momento-hero-grain" />
           <div className="momento-hero-fade" />
           <img src={LOGO_SRC} alt="Retroke" className="momento-logo" />
-          <span className="momento-kicker">Momento Retroke</span>
           <div className="momento-name-wrap">
             <div className="momento-name">{singerName || 'Cantante Retroke'}</div>
             {levelName && <div className="momento-level">🏅 {levelName}</div>}
@@ -514,24 +528,8 @@ const ShareResultCard = forwardRef(function ShareResultCard(
 
         <div className="momento-sheet">
           <div className="momento-song">
-            <div className="momento-artwork-wrap">
-              {artworkUrl ? (
-                <div
-                  className="momento-artwork"
-                  role="img"
-                  aria-label=""
-                  data-bg-src={artworkUrl}
-                  style={{ backgroundImage: 'url(' + artworkUrl + ')' }}
-                />
-              ) : (
-                <div className="momento-artwork-fallback">🎵</div>
-              )}
-              <div className="momento-artwork-ring" />
-            </div>
-            <div className="momento-song-text">
-              <div className="momento-song-title">{song || 'Canción'}</div>
-              {artistName && <div className="momento-song-artist">{artistName}</div>}
-            </div>
+            <div className="momento-song-title">{song || 'Canción'}</div>
+            {artistName && <div className="momento-song-artist">{artistName}</div>}
           </div>
 
           <div className="momento-results">
@@ -541,8 +539,8 @@ const ShareResultCard = forwardRef(function ShareResultCard(
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, minWidth: 0 }}>
                   <div className="momento-result-label">{col.icon} {col.label}</div>
                   <div
-                    className={'momento-result-value ' + (col.big ? 'is-big' : 'is-small')}
-                    style={{ color: col.color, textShadow: '0 0 16px ' + col.color + '80' }}
+                    className={'momento-result-value ' + (col.emoji ? 'is-emoji' : col.big ? 'is-big' : 'is-small')}
+                    style={col.emoji ? undefined : { color: col.color, textShadow: '0 0 16px ' + col.color + '80' }}
                   >
                     {col.value}
                   </div>

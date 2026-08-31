@@ -25,6 +25,34 @@
 //    html2canvas si rasteriza bien. waitForImages() de abajo tiene que
 //    esperar esos divs tambien (marcados con data-bg-src), no solo los
 //    <img> reales -- si no, la captura puede salir sin esas fotos.
+// 6. backgroundColor: null (transparente) hace que las 4 esquinas de la
+//    tarjeta (que tiene border-radius) salgan con alpha=0 en vez de negro
+//    solido. La mayoria de apps lo manejan bien, pero componer un PNG con
+//    transparencia real sobre otra superficie (p.ej. el editor de Stories
+//    de Instagram) es una variable de mas sin ningun beneficio real acá --
+//    la tarjeta nunca se ve sobre otro fondo. Se cambio a un color solido
+//    (el mismo fondo de la tarjeta) para eliminar esa fuente de diferencias
+//    entre lo que se ve en pantalla y lo que compone cada app al recibir el
+//    archivo.
+// 7. EL BUG MAS IMPORTANTE, causante de "se descuadra/no funciona al
+//    guardar y compartir por Instagram": no era la captura en si (el
+//    canvas siempre salia bien, dimensiones correctas, sin errores) sino
+//    COMO se entregaba el archivo despues. downloadCardAsImage() usaba un
+//    <a download="..." href="data:image/png;base64,..."> -- ese patron NO
+//    funciona en Safari/iOS ni en la enorme mayoria de "in-app browsers"
+//    (el navegador embebido que abre Instagram/WhatsApp/TikTok cuando el
+//    link se toca desde ahi dentro): el atributo "download" se ignora
+//    silenciosamente y el navegador simplemente navega al data-URL en vez
+//    de guardar nada, y con un PNG de 1080x1920 ese data-URL pesa varios MB
+//    en texto base64, lo que en varios WebViews de iOS directamente falla
+//    o queda en blanco. La forma robusta -- y la que ahora se usa siempre
+//    que esta disponible -- es navigator.share({ files: [...] }) (Web
+//    Share API con archivo real, no data-URL): eso abre la hoja de
+//    compartir NATIVA del sistema operativo, con Instagram como una opcion
+//    directa ahi, y es el mismo mecanismo que usan las apps nativas para
+//    "compartir a Stories". El fallback (cuando el navegador no soporta
+//    compartir archivos) ahora usa un blob URL (URL.createObjectURL) en
+//    vez de un data-URL gigante, mas liviano y mejor soportado.
 
 import { trackEvent } from './analytics'
 
@@ -118,7 +146,9 @@ export async function renderCardToBlob(node, options) {
   const renderedWidth = node.offsetWidth || 440
   const scale = targetWidth / renderedWidth
   const canvas = await html2canvas(node, {
-    backgroundColor: null,
+    // Solido, no null -- ver lección 6 arriba. Mismo tono que el fondo real
+    // de la tarjeta (.momento-outer / .momento-sheet en ShareResultCard).
+    backgroundColor: '#0a0512',
     scale: scale,
     useCORS: true,
     allowTaint: false,
@@ -128,43 +158,63 @@ export async function renderCardToBlob(node, options) {
   return { canvas, blob }
 }
 
-export async function downloadCardAsImage(node, filename, ctx) {
-  const { canvas } = await renderCardToBlob(node)
-  if (!canvas) return { error: 'No se pudo generar la imagen' }
+// Descarga el PNG via blob URL (no data-URL, ver lección 7 arriba). Sigue
+// siendo el fallback cuando el navegador no soporta compartir archivos, y
+// el metodo directo en escritorio (donde no hay "hoja de compartir" del
+// sistema operativo y descargar a la carpeta de Descargas es lo esperado).
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
-  link.href = canvas.toDataURL('image/png')
+  link.href = url
   link.download = filename || 'retroke-resultado.png'
   document.body.appendChild(link)
   link.click()
   document.body.removeChild(link)
+  // Revocar despues de un tick, no inmediato -- algunos navegadores todavia
+  // estan procesando la descarga cuando click() retorna.
+  setTimeout(() => URL.revokeObjectURL(url), 4000)
+}
+
+export async function downloadCardAsImage(node, filename, ctx) {
+  const { blob } = await renderCardToBlob(node)
+  if (!blob) return { error: 'No se pudo generar la imagen' }
+  downloadBlob(blob, filename)
   trackCardShared('download', ctx)
   return { method: 'download' }
 }
 
+// Comparte la tarjeta como imagen real (archivo, no link). En celular esto
+// es lo que hace que "guardar y compartir por Instagram" funcione: abre la
+// hoja de compartir nativa del sistema con el archivo PNG, e Instagram
+// aparece ahi como una opcion que va directo a Stories con la imagen ya
+// puesta. Si el navegador no soporta compartir archivos (algunos
+// navegadores de escritorio, o alguna version vieja), cae a descargar el
+// PNG normal -- y si el share nativo se cancela o falla por cualquier otra
+// razon que no sea que el usuario lo cerro (AbortError), tambien cae a
+// descargar en vez de simplemente mostrar un error, para que la persona
+// siempre se lleve la imagen de una forma u otra.
 export async function shareCardAsImage(node, { filename, title, text, ctx } = {}) {
   if (!node) return { error: 'No hay tarjeta para compartir' }
-  try {
-    const { canvas, blob } = await renderCardToBlob(node)
-    if (!blob) return { error: 'No se pudo generar la imagen' }
-    const file = new File([blob], filename || 'retroke-resultado.png', { type: 'image/png' })
-    if (typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [file] })) {
+  const { blob } = await renderCardToBlob(node)
+  if (!blob) return { error: 'No se pudo generar la imagen' }
+  const file = new File([blob], filename || 'retroke-resultado.png', { type: 'image/png' })
+
+  if (typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
       await navigator.share({ files: [file], title: title || 'Retroke', text: text || '' })
       trackCardShared('share-image', ctx)
       return { method: 'share-image' }
+    } catch (err) {
+      if (err && err.name === 'AbortError') return { method: 'cancelled' }
+      // Cualquier otro error del share nativo (poco frecuente, pero pasa
+      // en algunos WebViews de Android): no dejamos a la persona sin nada,
+      // caemos a descarga normal en vez de devolver error.
     }
-    const dataUrl = canvas.toDataURL('image/png')
-    const link = document.createElement('a')
-    link.href = dataUrl
-    link.download = filename || 'retroke-resultado.png'
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    trackCardShared('download', ctx)
-    return { method: 'download' }
-  } catch (err) {
-    if (err && err.name === 'AbortError') return { method: 'cancelled' }
-    return { error: err.message || 'No se pudo compartir la imagen' }
   }
+
+  downloadBlob(blob, filename)
+  trackCardShared('download', ctx)
+  return { method: 'download' }
 }
 
 export function buildShareUrl(performanceId) {

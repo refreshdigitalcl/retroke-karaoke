@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { isMemeReaction } from '../lib/memeReactions'
+import { buildShareText } from '../lib/shareCard'
 import ShareResultCard from '../components/ShareResultCard'
 import ShareButton from '../components/share/ShareButton'
 import RetroNeonBg from '../components/RetroNeonBg'
@@ -76,13 +78,14 @@ export default function SharePerformance() {
           ? supabase.from('workspaces').select('name, type').eq('id', perf.workspace_id).maybeSingle()
           : Promise.resolve({ data: null }),
         // Reacciones reales de esta presentacion puntual -- mismo criterio
-        // (session_id + queue_entry_id) que ya usa DisplayResult.jsx en la
-        // pantalla de resultado del TV. Un conteo real, nunca inventado; si
-        // la presentacion no tiene session_id/queue_entry_id (dato viejo,
-        // corrupto o borrado), simplemente no se muestra ese bloque.
+        // (session_id + queue_entry_id) y misma logica (top 3 emojis mas
+        // usados, memes excluidos) que ya usa DisplayResult.jsx en la
+        // pantalla de resultado del TV. Nunca inventado; si la presentacion
+        // no tiene session_id/queue_entry_id (dato viejo, corrupto o
+        // borrado), simplemente no se muestra ese bloque.
         perf.session_id && perf.queue_entry_id
-          ? supabase.from('reactions').select('id', { count: 'exact', head: true }).eq('session_id', perf.session_id).eq('queue_entry_id', perf.queue_entry_id)
-          : Promise.resolve({ count: null })
+          ? supabase.from('reactions').select('emoji').eq('session_id', perf.session_id).eq('queue_entry_id', perf.queue_entry_id)
+          : Promise.resolve({ data: [] })
       ])
 
       if (cancelled) return
@@ -97,7 +100,16 @@ export default function SharePerformance() {
       const barSlug = lookups[5].data ? lookups[5].data.slug : null
       const barPlaceName = lookups[5].data ? lookups[5].data.name : null
       const ws = lookups[6].data || null
-      const reactionsCount = typeof lookups[7].count === 'number' ? lookups[7].count : null
+      const reactionRows = lookups[7].data || []
+      const reactionCounts = {}
+      reactionRows.forEach((row) => {
+        if (isMemeReaction(row.emoji)) return
+        reactionCounts[row.emoji] = (reactionCounts[row.emoji] || 0) + 1
+      })
+      const topReactions = Object.keys(reactionCounts)
+        .map((emoji) => ({ emoji, count: reactionCounts[emoji] }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 3)
 
       const mode = perf.bar_id ? 'BAR' : (ws ? ws.type : null)
       const placeName = perf.bar_id ? barPlaceName : (ws ? ws.name : null)
@@ -133,7 +145,7 @@ export default function SharePerformance() {
           registerHref,
           mode,
           placeName,
-          reactionsCount,
+          topReactions,
           createdAt: perf.created_at || null
         }
       })
@@ -189,16 +201,26 @@ export default function SharePerformance() {
           achievementIcons={d.achievementIcons}
           mode={d.mode}
           placeName={d.placeName}
-          reactionsCount={d.reactionsCount}
+          topReactions={d.topReactions}
           createdAt={d.createdAt}
         />
       </div>
       <div className="w-full max-w-sm flex flex-col gap-3 relative z-10">
+        {/* mode="image" (no "download"): intenta primero el share sheet
+            nativo con el archivo de la imagen (navigator.share), que es la
+            forma confiable de mandar la tarjeta directo a Instagram Stories
+            en el celular -- ver nota larga en shareCard.js sobre por que
+            <a download> con un data-URL (lo que usaba "download" antes) no
+            sirve en Safari/iOS ni dentro del navegador embebido de
+            Instagram. Si el navegador no soporta compartir archivos, cae
+            solo a descargar el PNG. */}
         <ShareButton
-          mode="download"
+          mode="image"
           cardRef={cardRef}
           filename={'retroke-' + (d.singerName || 'resultado') + '.png'}
-          label="Descargar tarjeta"
+          title="Mi Momento Retroke"
+          text={buildShareText({ song: d.song, artistName: d.artistName, notaFinal: d.notaFinal })}
+          label="Guardar / compartir tarjeta"
         />
         <ShareButton
           mode="link"

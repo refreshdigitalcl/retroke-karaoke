@@ -8,6 +8,7 @@ import { searchSongMatches } from '../lib/songLookup'
 import { getOrCreateParticipant, touchParticipantProfile, signInWithGoogle, signOutParticipant } from '../lib/participant'
 import { buildShareText } from '../lib/shareCard'
 import { computeNotaFinal, LEVELS } from '../lib/gamification'
+import { isMemeReaction } from '../lib/memeReactions'
 import ShareResultCard from '../components/ShareResultCard'
 import ShareButton from '../components/share/ShareButton'
 import RetroNeonBg from '../components/RetroNeonBg'
@@ -16,21 +17,32 @@ const AVATARS = ['🔥', '🦄', '👽', '🐸', '🎤', '🐙', '⭐', '👑', 
 
 // Reacciones reales de una presentacion puntual, para la tarjeta "Momento
 // Retroke" (ShareResultCard) -- mismo criterio (session_id + queue_entry_id)
-// que ya usa DisplayResult.jsx en la pantalla de resultado del TV. Se
-// centraliza aca porque YourTurnScreen y PerformanceShareScreen la
-// necesitan por separado. Nunca inventa un numero: si falta algun id,
-// devuelve null (la tarjeta simplemente no muestra ese bloque).
-function fetchReactionsCount(sessionId, queueEntryId) {
-  if (!sessionId || !queueEntryId) return Promise.resolve(null)
+// y misma logica de conteo (top 3 emojis mas usados, memes excluidos) que ya
+// usa DisplayResult.jsx en la pantalla de resultado del TV (reactionStats).
+// Se centraliza aca porque YourTurnScreen y PerformanceShareScreen la
+// necesitan por separado. Nunca inventa nada: si falta algun id o no hubo
+// reacciones, devuelve top:[] y la tarjeta simplemente no muestra ese bloque.
+function fetchTopReactions(sessionId, queueEntryId) {
+  if (!sessionId || !queueEntryId) return Promise.resolve({ total: null, top: [] })
   return supabase
     .from('reactions')
-    .select('id', { count: 'exact', head: true })
+    .select('emoji')
     .eq('session_id', sessionId)
     .eq('queue_entry_id', queueEntryId)
     .then(function (result) {
-      return typeof result.count === 'number' ? result.count : null
+      var rows = result.data || []
+      var counts = {}
+      rows.forEach(function (r) {
+        if (isMemeReaction(r.emoji)) return
+        counts[r.emoji] = (counts[r.emoji] || 0) + 1
+      })
+      var top = Object.keys(counts)
+        .map(function (emoji) { return { emoji: emoji, count: counts[emoji] } })
+        .sort(function (a, b) { return b.count - a.count })
+        .slice(0, 3)
+      return { total: rows.length, top: top }
     })
-    .catch(function () { return null })
+    .catch(function () { return { total: null, top: [] } })
 }
 
 function resizeToSquareJpeg(file) {
@@ -186,15 +198,15 @@ function YourTurnScreen(props) {
 
   // Reacciones reales para la tarjeta "Momento Retroke" -- se piden apenas
   // hay resultado (mismo momento en que se muestra la tarjeta), no antes.
-  var reactionsCountStateHook = useState(null)
-  var reactionsCount = reactionsCountStateHook[0]
-  var setReactionsCount = reactionsCountStateHook[1]
+  var topReactionsStateHook = useState([])
+  var topReactions = topReactionsStateHook[0]
+  var setTopReactions = topReactionsStateHook[1]
 
   useEffect(function () {
     if (!results) return
     var cancelled = false
-    fetchReactionsCount(sessionId, entryId).then(function (count) {
-      if (!cancelled) setReactionsCount(count)
+    fetchTopReactions(sessionId, entryId).then(function (r) {
+      if (!cancelled) setTopReactions(r.top)
     })
     return function () { cancelled = true }
   }, [results, sessionId, entryId])
@@ -358,7 +370,7 @@ function YourTurnScreen(props) {
             levelName={levelName}
             mode={workspaceType}
             placeName={placeName}
-            reactionsCount={reactionsCount}
+            topReactions={topReactions}
             createdAt={new Date().toISOString()}
           />
         </div>
@@ -687,7 +699,7 @@ function PerformanceShareScreen(props) {
         if (cancelled || !result.data) return
         var perf = result.data
 
-        function finish(subScores, reactionsCount) {
+        function finish(subScores, topReactions) {
           if (cancelled) return
           setData({
             notaFinal: perf.nota_final,
@@ -696,15 +708,15 @@ function PerformanceShareScreen(props) {
             artistName: perf.artist_name || '',
             artworkUrl: perf.artwork_url || '',
             subScores: subScores || null,
-            reactionsCount: typeof reactionsCount === 'number' ? reactionsCount : null,
+            topReactions: topReactions || [],
             createdAt: perf.created_at || null
           })
         }
 
-        var reactionsPromise = fetchReactionsCount(perf.session_id, perf.queue_entry_id)
+        var reactionsPromise = fetchTopReactions(perf.session_id, perf.queue_entry_id)
 
         if (!perf.queue_entry_id) {
-          reactionsPromise.then(function (count) { finish(null, count) })
+          reactionsPromise.then(function (r) { finish(null, r.top) })
           return
         }
 
@@ -720,7 +732,7 @@ function PerformanceShareScreen(props) {
         ])
           .then(function (results) {
             var vr = results[0]
-            var reactionsCount = results[1]
+            var topReactions = results[1].top
             var subScores = vr.data
               ? {
                   pitchScore: vr.data.pitch_score,
@@ -729,9 +741,9 @@ function PerformanceShareScreen(props) {
                   energyScore: vr.data.energy_score
                 }
               : null
-            finish(subScores, reactionsCount)
+            finish(subScores, topReactions)
           })
-          .catch(function () { finish(null, null) })
+          .catch(function () { finish(null, []) })
       })
       .catch(function () {})
     return function () { cancelled = true }
@@ -780,7 +792,7 @@ function PerformanceShareScreen(props) {
           levelName={levelName}
           mode={workspaceType}
           placeName={placeName}
-          reactionsCount={data.reactionsCount}
+          topReactions={data.topReactions}
           createdAt={data.createdAt}
         />
       </div>
