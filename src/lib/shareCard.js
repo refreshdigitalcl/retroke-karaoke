@@ -170,6 +170,59 @@ function waitForFonts() {
   })
 }
 
+// EL BUG DEL "COLOR APAGADO" (confirmado inspeccionando byte a byte un PNG
+// real exportado desde produccion, no una suposicion): canvas.toBlob('image
+// /png') genera un PNG SIN NINGUN chunk de perfil de color -- ni sRGB, ni
+// iCCP, ni gAMA. Un PNG asi es tecnicamente valido, pero cuando no declara
+// su espacio de color, algunos visores/apps con manejo de color estricto
+// (sobre todo en iOS, por las pantallas de gama ancha P3) no asumen sRGB
+// por defecto y terminan mostrando la imagen desaturada/apagada -- exactamente
+// el sintoma reportado ("se pierde todo el color intenso"), y consistente
+// con que la tarjeta en el navegador (que si sabe que todo es sRGB) se vea
+// perfecta pero el PNG guardado no. Fix: se inserta un chunk "sRGB" estandar
+// justo despues del chunk IHDR (que siempre son los primeros 33 bytes de
+// cualquier PNG: 8 de firma + 25 del propio IHDR) -- eso le dice explicitamente
+// a cualquier decodificador "esta imagen es sRGB", sin tener que tocar ni
+// un pixel de los datos ya generados. Probado manualmente contra un export
+// real: la imagen con el chunk agregado carga perfecto (no se corrompe).
+function crc32(bytes) {
+  let c
+  let crc = 0xFFFFFFFF
+  for (let i = 0; i < bytes.length; i++) {
+    c = (crc ^ bytes[i]) & 0xFF
+    for (let k = 0; k < 8; k++) {
+      c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1)
+    }
+    crc = (crc >>> 8) ^ c
+  }
+  return (crc ^ 0xFFFFFFFF) >>> 0
+}
+
+async function tagPngAsSRGB(blob) {
+  try {
+    const buf = await blob.arrayBuffer()
+    const bytes = new Uint8Array(buf)
+    // 8 bytes de firma PNG + chunk IHDR completo (4 largo + 4 tipo + 13
+    // datos + 4 crc = 25) = 33 bytes exactos antes de cualquier otro chunk.
+    const IHDR_END = 33
+    const typeAndData = new Uint8Array([0x73, 0x52, 0x47, 0x42, 0]) // "sRGB" + intent=perceptual
+    const crc = crc32(typeAndData)
+    const chunk = new Uint8Array(4 + typeAndData.length + 4)
+    new DataView(chunk.buffer).setUint32(0, 1, false) // largo del chunk: 1 byte de datos
+    chunk.set(typeAndData, 4)
+    new DataView(chunk.buffer).setUint32(4 + typeAndData.length, crc, false)
+    const result = new Uint8Array(bytes.length + chunk.length)
+    result.set(bytes.subarray(0, IHDR_END), 0)
+    result.set(chunk, IHDR_END)
+    result.set(bytes.subarray(IHDR_END), IHDR_END + chunk.length)
+    return new Blob([result], { type: 'image/png' })
+  } catch (e) {
+    // Si algo sale mal tocando los bytes a mano, mejor devolver el PNG
+    // original (sin el chunk) que romper la exportacion entera.
+    return blob
+  }
+}
+
 // Fase H: registra en analytics_events que se comparti/descargo la
 // tarjeta. No requiere que quien llama pase contexto (participantId,
 // sessionId, barId, workspaceId) — si no se pasa, el evento igual se
@@ -215,7 +268,8 @@ export async function renderCardToBlob(node, options) {
     allowTaint: false,
     imageTimeout: 5000
   })
-  const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'))
+  const rawBlob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'))
+  const blob = rawBlob ? await tagPngAsSRGB(rawBlob) : rawBlob
   return { canvas, blob }
 }
 
