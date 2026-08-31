@@ -36,7 +36,7 @@ export default function FullscreenButton() {
     <button
       onClick={toggleFullscreen}
       aria-label="Pantalla completa"
-      className="w-11 h-11 rounded-full flex items-center justify-center border-2 border-yellow-400 bg-neutral-900/85 hover:bg-neutral-800 transition-colors fullscreen-neon-btn"
+      className="w-11 h-11 rounded-full flex items-center justify-center border-2 border-yellow-400 bg-neutral-900/85 hover:bg-neutral-800 transition-colors fullscreen-neon-btn active:scale-95"
     >
       {!isFull && (
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F4D03F" strokeWidth="2">

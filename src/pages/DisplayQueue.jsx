@@ -267,31 +267,53 @@ export default function DisplayQueue(props) {
         {musicEnabled && (
           <button
             onClick={toggleMute}
-            className="w-11 h-11 rounded-full flex items-center justify-center border-2 transition-colors sound-neon-btn"
+            className="w-11 h-11 rounded-full flex items-center justify-center border-2 transition-colors sound-neon-btn active:scale-95"
             style={{ borderColor: '#F4D03F', background: 'rgba(15,10,20,0.85)' }}
             title={muted ? 'Activar musica de fondo' : 'Silenciar musica de fondo'}
+            aria-label={muted ? 'Activar musica de fondo' : 'Silenciar musica de fondo'}
           >
-            <span className="text-lg">{muted ? '🔇' : '🔊'}</span>
+            {muted ? (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F4D03F" strokeWidth="2">
+                <path d="M4 9v6h4l5 4V5L8 9H4z" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M16 9l5 6M21 9l-5 6" strokeLinecap="round" />
+              </svg>
+            ) : (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F4D03F" strokeWidth="2">
+                <path d="M4 9v6h4l5 4V5L8 9H4z" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M16.5 8.5a5 5 0 0 1 0 7" strokeLinecap="round" />
+                <path d="M19.2 6a9 9 0 0 1 0 12" strokeLinecap="round" />
+              </svg>
+            )}
           </button>
         )}
         <button
           onClick={function () { setSpeedTestOpen(true) }}
-          className="w-11 h-11 rounded-full flex items-center justify-center border-2 transition-colors sound-neon-btn"
+          className="w-11 h-11 rounded-full flex items-center justify-center border-2 transition-colors sound-neon-btn active:scale-95"
           style={{ borderColor: '#F4D03F', background: 'rgba(15,10,20,0.85)' }}
           title="Test de velocidad de internet"
+          aria-label="Test de velocidad de internet"
         >
-          <span className="text-lg">📶</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F4D03F" strokeWidth="2">
+            <path d="M2 8.5C7 3.5 17 3.5 22 8.5" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M5.5 12C9 8.5 15 8.5 18.5 12" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M9 15.5C10.5 14 13.5 14 15 15.5" strokeLinecap="round" strokeLinejoin="round" />
+            <circle cx="12" cy="19" r="1.1" fill="#F4D03F" stroke="none" />
+          </svg>
         </button>
         <button
           onClick={function () {
             try { localStorage.removeItem('retroke_last_room') } catch (e) {}
             window.location.href = '/'
           }}
-          className="w-11 h-11 rounded-full flex items-center justify-center border-2 transition-colors sound-neon-btn"
+          className="w-11 h-11 rounded-full flex items-center justify-center border-2 transition-colors sound-neon-btn active:scale-95"
           style={{ borderColor: '#F4D03F', background: 'rgba(15,10,20,0.85)' }}
           title="Cambiar sala"
+          aria-label="Cambiar sala"
         >
-          <span className="text-lg">🏠</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F4D03F" strokeWidth="2">
+            <path d="M4 11L12 4l8 7" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M6 10v9a1 1 0 0 0 1 1h3v-5h4v5h3a1 1 0 0 0 1-1v-9" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
         </button>
       </div>
 
