@@ -14,6 +14,25 @@ import RetroNeonBg from '../components/RetroNeonBg'
 
 const AVATARS = ['🔥', '🦄', '👽', '🐸', '🎤', '🐙', '⭐', '👑', '🍄', '🌊', '🎸', '🦋']
 
+// Reacciones reales de una presentacion puntual, para la tarjeta "Momento
+// Retroke" (ShareResultCard) -- mismo criterio (session_id + queue_entry_id)
+// que ya usa DisplayResult.jsx en la pantalla de resultado del TV. Se
+// centraliza aca porque YourTurnScreen y PerformanceShareScreen la
+// necesitan por separado. Nunca inventa un numero: si falta algun id,
+// devuelve null (la tarjeta simplemente no muestra ese bloque).
+function fetchReactionsCount(sessionId, queueEntryId) {
+  if (!sessionId || !queueEntryId) return Promise.resolve(null)
+  return supabase
+    .from('reactions')
+    .select('id', { count: 'exact', head: true })
+    .eq('session_id', sessionId)
+    .eq('queue_entry_id', queueEntryId)
+    .then(function (result) {
+      return typeof result.count === 'number' ? result.count : null
+    })
+    .catch(function () { return null })
+}
+
 function resizeToSquareJpeg(file) {
   return new Promise(function (resolve, reject) {
     var reader = new FileReader()
@@ -112,6 +131,8 @@ function YourTurnScreen(props) {
   var song = props.song
   var sessionId = props.sessionId
   var entryId = props.entryId
+  var workspaceType = props.workspaceType
+  var placeName = props.placeName
   var setMicReady = useKaraokeSession().setMicReady
   // El bar/workspace activo viaja en el query string -- lo propagamos al
   // link de "Ver mi perfil" para que, al volver, no se pierda el contexto
@@ -162,6 +183,21 @@ function YourTurnScreen(props) {
   var levelNameStateHook = useState('')
   var levelName = levelNameStateHook[0]
   var setLevelName = levelNameStateHook[1]
+
+  // Reacciones reales para la tarjeta "Momento Retroke" -- se piden apenas
+  // hay resultado (mismo momento en que se muestra la tarjeta), no antes.
+  var reactionsCountStateHook = useState(null)
+  var reactionsCount = reactionsCountStateHook[0]
+  var setReactionsCount = reactionsCountStateHook[1]
+
+  useEffect(function () {
+    if (!results) return
+    var cancelled = false
+    fetchReactionsCount(sessionId, entryId).then(function (count) {
+      if (!cancelled) setReactionsCount(count)
+    })
+    return function () { cancelled = true }
+  }, [results, sessionId, entryId])
 
   useEffect(function () {
     if (!props.participantId) return
@@ -320,6 +356,10 @@ function YourTurnScreen(props) {
             }}
             confidence={results.scores.confidence}
             levelName={levelName}
+            mode={workspaceType}
+            placeName={placeName}
+            reactionsCount={reactionsCount}
+            createdAt={new Date().toISOString()}
           />
         </div>
         <div className="w-full max-w-sm flex flex-col gap-3 relative z-10">
@@ -621,6 +661,8 @@ function PerformanceShareScreen(props) {
   var fallbackAvatar = props.avatar
   var fallbackPhoto = props.photo
   var fallbackSong = props.song
+  var workspaceType = props.workspaceType
+  var placeName = props.placeName
   var onBack = props.onBack
   var onRestart = props.onRestart
 
@@ -638,14 +680,14 @@ function PerformanceShareScreen(props) {
     var cancelled = false
     supabase
       .from('performances')
-      .select('nota_final, vocal_score, vocal_confidence, artist_name, artwork_url, queue_entry_id')
+      .select('nota_final, vocal_score, vocal_confidence, artist_name, artwork_url, queue_entry_id, session_id, created_at')
       .eq('id', performanceId)
       .maybeSingle()
       .then(function (result) {
         if (cancelled || !result.data) return
         var perf = result.data
 
-        function finish(subScores) {
+        function finish(subScores, reactionsCount) {
           if (cancelled) return
           setData({
             notaFinal: perf.nota_final,
@@ -653,23 +695,32 @@ function PerformanceShareScreen(props) {
             confidence: perf.vocal_confidence,
             artistName: perf.artist_name || '',
             artworkUrl: perf.artwork_url || '',
-            subScores: subScores || null
+            subScores: subScores || null,
+            reactionsCount: typeof reactionsCount === 'number' ? reactionsCount : null,
+            createdAt: perf.created_at || null
           })
         }
 
+        var reactionsPromise = fetchReactionsCount(perf.session_id, perf.queue_entry_id)
+
         if (!perf.queue_entry_id) {
-          finish(null)
+          reactionsPromise.then(function (count) { finish(null, count) })
           return
         }
 
-        supabase
-          .from('vocal_results')
-          .select('pitch_score, rhythm_score, stability_score, energy_score')
-          .eq('queue_entry_id', perf.queue_entry_id)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle()
-          .then(function (vr) {
+        Promise.all([
+          supabase
+            .from('vocal_results')
+            .select('pitch_score, rhythm_score, stability_score, energy_score')
+            .eq('queue_entry_id', perf.queue_entry_id)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle(),
+          reactionsPromise
+        ])
+          .then(function (results) {
+            var vr = results[0]
+            var reactionsCount = results[1]
             var subScores = vr.data
               ? {
                   pitchScore: vr.data.pitch_score,
@@ -678,9 +729,9 @@ function PerformanceShareScreen(props) {
                   energyScore: vr.data.energy_score
                 }
               : null
-            finish(subScores)
+            finish(subScores, reactionsCount)
           })
-          .catch(function () { finish(null) })
+          .catch(function () { finish(null, null) })
       })
       .catch(function () {})
     return function () { cancelled = true }
@@ -727,6 +778,10 @@ function PerformanceShareScreen(props) {
           subScores={data.subScores}
           confidence={data.confidence}
           levelName={levelName}
+          mode={workspaceType}
+          placeName={placeName}
+          reactionsCount={data.reactionsCount}
+          createdAt={data.createdAt}
         />
       </div>
       <div className="w-full max-w-sm flex flex-col gap-3 relative z-10">
@@ -1473,6 +1528,8 @@ export default function RegisterForm() {
         sessionId={session.sessionId}
         currentSinger={currentSinger}
         screenMode={session.screenMode}
+        workspaceType={session.workspaceType}
+        placeName={barName}
         onDone={function () {
           markEntryFinished(myEntryId)
           setShowPerformance(false)
@@ -1491,6 +1548,8 @@ export default function RegisterForm() {
         photo={photo}
         song={song}
         participantId={participant ? participant.id : null}
+        workspaceType={session.workspaceType}
+        placeName={barName}
         onBack={function () { setShowShareCardScreen(false) }}
         onRestart={handleRestart}
       />

@@ -66,8 +66,23 @@ export default function SharePerformance() {
               .maybeSingle()
           : Promise.resolve({ data: null }),
         perf.bar_id
-          ? supabase.from('bars').select('slug').eq('id', perf.bar_id).maybeSingle()
-          : Promise.resolve({ data: null })
+          ? supabase.from('bars').select('slug, name').eq('id', perf.bar_id).maybeSingle()
+          : Promise.resolve({ data: null }),
+        // "modo" del local: si hay bar_id es siempre BAR (cada bar fisico
+        // tiene su propio workspace, pero el tipo real de ese workspace no
+        // hace falta consultarlo aparte -- ver lib/venue.js). Si no hay
+        // bar_id pero si workspace_id, el tipo (DJ/HOME) vive en esa fila.
+        !perf.bar_id && perf.workspace_id
+          ? supabase.from('workspaces').select('name, type').eq('id', perf.workspace_id).maybeSingle()
+          : Promise.resolve({ data: null }),
+        // Reacciones reales de esta presentacion puntual -- mismo criterio
+        // (session_id + queue_entry_id) que ya usa DisplayResult.jsx en la
+        // pantalla de resultado del TV. Un conteo real, nunca inventado; si
+        // la presentacion no tiene session_id/queue_entry_id (dato viejo,
+        // corrupto o borrado), simplemente no se muestra ese bloque.
+        perf.session_id && perf.queue_entry_id
+          ? supabase.from('reactions').select('id', { count: 'exact', head: true }).eq('session_id', perf.session_id).eq('queue_entry_id', perf.queue_entry_id)
+          : Promise.resolve({ count: null })
       ])
 
       if (cancelled) return
@@ -80,6 +95,12 @@ export default function SharePerformance() {
       photoUrl = lookups[3].data ? lookups[3].data.photo : null
       subScores = lookups[4].data || null
       const barSlug = lookups[5].data ? lookups[5].data.slug : null
+      const barPlaceName = lookups[5].data ? lookups[5].data.name : null
+      const ws = lookups[6].data || null
+      const reactionsCount = typeof lookups[7].count === 'number' ? lookups[7].count : null
+
+      const mode = perf.bar_id ? 'BAR' : (ws ? ws.type : null)
+      const placeName = perf.bar_id ? barPlaceName : (ws ? ws.name : null)
 
       // Mismo esquema de deep-link que usa el resto de la app (ver
       // spaceParam en KaraokeSessionContext): con workspace_id vamos directo
@@ -109,7 +130,11 @@ export default function SharePerformance() {
           levelName,
           achievementIcons,
           subScores,
-          registerHref
+          registerHref,
+          mode,
+          placeName,
+          reactionsCount,
+          createdAt: perf.created_at || null
         }
       })
     }
@@ -162,6 +187,10 @@ export default function SharePerformance() {
           confidence={d.confidence}
           levelName={d.levelName}
           achievementIcons={d.achievementIcons}
+          mode={d.mode}
+          placeName={d.placeName}
+          reactionsCount={d.reactionsCount}
+          createdAt={d.createdAt}
         />
       </div>
       <div className="w-full max-w-sm flex flex-col gap-3 relative z-10">

@@ -67,14 +67,30 @@ function trackCardShared(method, ctx) {
   })
 }
 
-export async function renderCardToBlob(node) {
+// Ancho de exportacion fijo para la tarjeta "Momento Retroke"
+// (ShareResultCard): 1080px, que combinado con su aspect-ratio 9:16 fijo
+// (.share-card-frame) da siempre 1080x1920 exacto -- el tamaño que pide
+// Instagram/TikTok/WhatsApp Stories. Antes se usaba un "scale: 3" fijo, que
+// dependia del ancho RESPONSIVE en el que estuviera renderizada la tarjeta
+// en ese momento (celular chico vs. celular grande vs. el preview de
+// escritorio en /r/:id, que tiene max-width:440px pero puede ser mas
+// angosto en pantallas chicas) -- eso daba un PNG de tamaño distinto cada
+// vez. Ahora el escalado se calcula segun el ancho REAL ya renderizado del
+// nodo (node.offsetWidth), para que el resultado sea siempre exactamente
+// EXPORT_WIDTH de ancho sin importar el viewport.
+const EXPORT_WIDTH = 1080
+
+export async function renderCardToBlob(node, options) {
   if (!node) return { canvas: null, blob: null }
   await waitForImages(node)
   const html2canvas = await loadHtml2Canvas()
   if (!html2canvas) return { canvas: null, blob: null }
+  const targetWidth = (options && options.targetWidth) || EXPORT_WIDTH
+  const renderedWidth = node.offsetWidth || 440
+  const scale = targetWidth / renderedWidth
   const canvas = await html2canvas(node, {
     backgroundColor: null,
-    scale: 3,
+    scale: scale,
     useCORS: true,
     allowTaint: false,
     imageTimeout: 5000
