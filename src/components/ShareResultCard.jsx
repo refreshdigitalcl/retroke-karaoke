@@ -386,10 +386,8 @@ const ShareResultCard = forwardRef(function ShareResultCard(
           right: 6%;
           bottom: 6%;
           display: flex;
-          flex-direction: row;
-          align-items: flex-end;
-          justify-content: space-between;
-          gap: 10px;
+          flex-direction: column;
+          gap: 8px;
         }
         .momento-name-left {
           display: flex;
@@ -397,6 +395,30 @@ const ShareResultCard = forwardRef(function ShareResultCard(
           align-items: center;
           gap: 10px;
           min-width: 0;
+        }
+        /* Fila del medio: la categoria (nivel) a la izquierda y seguidores/
+           seguidos a la derecha, a la MISMA altura -- y debajo, el puesto
+           en el ranking. Ambas filas se indentan lo mismo que ocupa el
+           avatar+gap para quedar alineadas bajo el nombre, no bajo el
+           avatar. */
+        .momento-meta-row {
+          display: flex;
+          flex-direction: row;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
+          margin-left: 54px;
+          min-width: 0;
+        }
+        .momento-rank-row {
+          display: flex;
+          margin-left: 54px;
+        }
+        .momento-follow-group {
+          display: flex;
+          flex-direction: row;
+          gap: 6px;
+          flex-shrink: 0;
         }
         .momento-name-text {
           display: flex;
@@ -467,18 +489,12 @@ const ShareResultCard = forwardRef(function ShareResultCard(
           font-size: 20px;
           line-height: 1;
         }
-        /* Puesto / seguidores / seguidos -- a la derecha del nombre, mismo
-           lenguaje visual que el perfil de Retroke (Profile.jsx): pill
-           amarilla para el puesto, texto chico para seguidores/seguidos.
-           Nunca se inventa un numero: si followCounts es null, este bloque
-           entero no se renderiza (ver hasProfileStats). */
-        .momento-stats-col {
-          display: flex;
-          flex-direction: column;
-          align-items: flex-end;
-          gap: 4px;
-          flex-shrink: 0;
-        }
+        /* Puesto / seguidores / seguidos -- mismos datos que el perfil real
+           de Retroke (Profile.jsx). Nunca se inventa un numero: si
+           followCounts es null, este bloque entero no se renderiza (ver
+           hasProfileStats). Pedido: seguidores/seguidos a la altura de la
+           categoria (nivel), el puesto debajo -- ver .momento-meta-row /
+           .momento-rank-row mas arriba. */
         .momento-stat-rank {
           font-size: 9.5px;
           font-weight: 700;
@@ -490,14 +506,14 @@ const ShareResultCard = forwardRef(function ShareResultCard(
           white-space: nowrap;
         }
         .momento-stat-follow {
-          font-size: 10px;
-          color: rgba(255,255,255,0.65);
-          white-space: nowrap;
-          text-shadow: 0 1px 6px rgba(0,0,0,0.6);
-        }
-        .momento-stat-follow strong {
+          font-size: 9px;
+          font-weight: 700;
           color: #fff;
-          font-weight: 800;
+          background: rgba(255,255,255,0.08);
+          border: 1px solid rgba(255,255,255,0.18);
+          border-radius: 999px;
+          padding: 2px 9px;
+          white-space: nowrap;
         }
 
         /* FICHA: mitad de abajo, panel de vidrio con la cancion y los
@@ -695,16 +711,22 @@ const ShareResultCard = forwardRef(function ShareResultCard(
                   )}
                 </div>
               </div>
-              <div className="momento-name-text">
-                <div className="momento-name">{singerName || 'Cantante Retroke'}</div>
-                {levelName && <div className="momento-level">🏅 {levelName}</div>}
-              </div>
+              <div className="momento-name">{singerName || 'Cantante Retroke'}</div>
             </div>
-            {hasProfileStats && (
-              <div className="momento-stats-col">
-                {rank && <div className="momento-stat-rank">#{rank.rank} en Retroke</div>}
-                <div className="momento-stat-follow"><strong>{followCounts.followers}</strong> seguidores</div>
-                <div className="momento-stat-follow"><strong>{followCounts.following}</strong> seguidos</div>
+            {(levelName || hasProfileStats) && (
+              <div className="momento-meta-row">
+                {levelName ? <div className="momento-level">🏅 {levelName}</div> : <span />}
+                {hasProfileStats && (
+                  <div className="momento-follow-group">
+                    <div className="momento-stat-follow">{followCounts.followers} seguidores</div>
+                    <div className="momento-stat-follow">{followCounts.following} seguidos</div>
+                  </div>
+                )}
+              </div>
+            )}
+            {rank && (
+              <div className="momento-rank-row">
+                <div className="momento-stat-rank">🏆 #{rank.rank} en Retroke</div>
               </div>
             )}
           </div>

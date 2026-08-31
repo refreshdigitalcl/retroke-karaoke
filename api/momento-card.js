@@ -96,12 +96,22 @@ function formatCardDate(createdAt) {
 // de @vercel/og) es pedir el CSS con un User-Agent de navegador viejo --
 // asi Google responde con TTF en vez de WOFF2. Se cachea en memoria del
 // modulo para no volver a pedirlo en cada invocacion "tibia" de la funcion.
+//
+// FIX: antes solo se pedian los pesos 700/800 -- todo el texto que usa
+// fontWeight 400 (los labels chicos "NOTA"/"REACCIONES"/"RETROKE SCORE",
+// sin peso explicito) o 600 (nivel, artista, pie de pagina, seguidores/
+// seguidos) no tenia ninguna variante cargada para Satori, asi que caia a
+// la tipografia generica de respaldo -- eso era el "cambia la fuente y se
+// ve mas simple" que se notaba en la tarjeta exportada vs. el preview del
+// navegador (donde el navegador SI puede sintetizar/aproximar el peso de
+// un webfont ya cargado). Se piden los 4 pesos que realmente usa la
+// tarjeta para que cada texto tenga su variante real.
 let fontsPromise = null
 function loadFonts() {
   if (fontsPromise) return fontsPromise
   fontsPromise = (async () => {
     try {
-      const cssUrl = 'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700;800&display=swap'
+      const cssUrl = 'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700;800&display=swap'
       const css = await fetch(cssUrl, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36'
@@ -197,6 +207,14 @@ function buildCardElement({ perf, levelName, modeMeta, placeName, dateTxt, topRe
       )
     )
   }
+  // Dos capas de degrade superpuestas (no una sola) -- mismo truco que el
+  // preview del navegador (.momento-hero-scrim + .momento-hero-fade en
+  // ShareResultCard.jsx), que se habia perdido en la primera version de
+  // este archivo: una capa pareja para que el logo/nombre se lean bien
+  // sobre cualquier caratula, y una segunda capa concentrada en el 65%
+  // inferior que SI llega a #0a0512 solido justo en el borde del hero --
+  // asi la foto se "funde" con la ficha de abajo sin ningun corte visible
+  // (el difuminado que se notaba en vivo pero no en la tarjeta exportada).
   heroChildren.push(
     e('div', {
       key: 'scrim',
@@ -207,7 +225,22 @@ function buildCardElement({ perf, levelName, modeMeta, placeName, dateTxt, topRe
         width: '100%',
         height: '100%',
         display: 'flex',
-        background: 'linear-gradient(180deg, rgba(10,5,18,0.62) 0%, rgba(10,5,18,0.08) 28%, rgba(10,5,18,0.16) 58%, rgba(10,5,18,0.88) 100%)'
+        background: 'linear-gradient(180deg, rgba(10,5,18,0.6) 0%, rgba(10,5,18,0.1) 26%, rgba(10,5,18,0.12) 58%, rgba(10,5,18,0.4) 100%)'
+      }
+    })
+  )
+  heroChildren.push(
+    e('div', {
+      key: 'fade',
+      style: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        bottom: 0,
+        width: '100%',
+        height: '65%',
+        display: 'flex',
+        background: 'linear-gradient(180deg, rgba(10,5,18,0) 0%, rgba(10,5,18,0.55) 45%, #0a0512 100%)'
       }
     })
   )
@@ -286,18 +319,13 @@ function buildCardElement({ perf, levelName, modeMeta, placeName, dateTxt, topRe
     )
   )
 
-  const nameChildren = [
-    e('div', { key: 'name', style: { display: 'flex', fontSize: 60, fontWeight: 800, color: '#fff' } }, perf.singer_name || 'Cantante Retroke')
-  ]
-  if (levelName) {
-    nameChildren.push(
-      e(
+  const levelPill = levelName
+    ? e(
         'div',
         {
           key: 'level',
           style: {
             display: 'flex',
-            marginTop: 14,
             fontSize: 26,
             fontWeight: 600,
             color: '#F4D03F',
@@ -309,34 +337,60 @@ function buildCardElement({ perf, levelName, modeMeta, placeName, dateTxt, topRe
         },
         '🏅 ' + levelName
       )
+    : null
+
+  // Puesto en el ranking global + seguidores/seguidos -- mismos datos y
+  // mismo criterio de "nunca inventar" que el perfil real (Profile.jsx):
+  // si followCounts es null (sin participant_id, ej. presentacion muy
+  // vieja) este bloque no aparece. Distribucion pedida: seguidores/
+  // seguidos a la misma altura que la categoria (nivel), y el puesto
+  // debajo de la categoria.
+  const rankPill = rank
+    ? pill({ key: 'rank', text: '🏆 #' + rank.rank + ' en Retroke', color: '#F4D03F', bg: 'rgba(244,208,63,0.16)', border: 'rgba(244,208,63,0.5)', fontSize: 24 })
+    : null
+  const followPills = hasProfileStats
+    ? [
+        pill({ key: 'followers', text: '👥 ' + followCounts.followers + ' seguidores', fontSize: 24 }),
+        pill({ key: 'following', text: '➕ ' + followCounts.following + ' seguidos', fontSize: 24 })
+      ]
+    : null
+
+  const NAME_COL_INDENT = AVATAR_SIZE + 24
+  const metaRows = []
+  if (levelPill || followPills) {
+    metaRows.push(
+      e(
+        'div',
+        { key: 'meta-row', style: { display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 16, marginLeft: NAME_COL_INDENT } },
+        [
+          levelPill || e('div', { key: 'spacer' }),
+          followPills ? e('div', { key: 'follows', style: { display: 'flex', flexDirection: 'row', gap: 12 } }, followPills) : null
+        ].filter(Boolean)
+      )
     )
   }
-
-  // Puesto en el ranking global + seguidores/seguidos, a la derecha del
-  // nombre -- mismos datos y mismo criterio de "nunca inventar" que el
-  // perfil real (Profile.jsx): si followCounts es null (sin
-  // participant_id, ej. presentacion muy vieja) este bloque no aparece.
-  const statsChildren = []
-  if (hasProfileStats) {
-    if (rank) statsChildren.push(pill({ key: 'rank', text: '🏆 #' + rank.rank + ' en Retroke', color: '#F4D03F', bg: 'rgba(244,208,63,0.16)', border: 'rgba(244,208,63,0.5)' }))
-    statsChildren.push(pill({ key: 'followers', text: '👥 ' + followCounts.followers + ' seguidores' }))
-    statsChildren.push(pill({ key: 'following', text: '➕ ' + followCounts.following + ' seguidos' }))
+  if (rankPill) {
+    metaRows.push(
+      e(
+        'div',
+        { key: 'rank-row', style: { display: 'flex', marginTop: 12, marginLeft: NAME_COL_INDENT } },
+        rankPill
+      )
+    )
   }
 
   heroChildren.push(
     e(
       'div',
-      { key: 'name-wrap', style: { position: 'absolute', left: 60, right: 60, bottom: 55, display: 'flex', flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' } },
+      { key: 'name-wrap', style: { position: 'absolute', left: 60, right: 60, bottom: 55, display: 'flex', flexDirection: 'column' } },
       [
         e(
           'div',
-          { key: 'name-left', style: { display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 24 } },
-          [avatarWrap, e('div', { key: 'name-text', style: { display: 'flex', flexDirection: 'column' } }, nameChildren)]
+          { key: 'name-top', style: { display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 24 } },
+          [avatarWrap, e('div', { key: 'name', style: { display: 'flex', fontSize: 60, fontWeight: 800, color: '#fff' } }, perf.singer_name || 'Cantante Retroke')]
         ),
-        hasProfileStats
-          ? e('div', { key: 'stats', style: { display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 12 } }, statsChildren)
-          : null
-      ].filter(Boolean)
+        ...metaRows
+      ]
     )
   )
 
@@ -369,7 +423,7 @@ function buildCardElement({ perf, levelName, modeMeta, placeName, dateTxt, topRe
       'div',
       { key: 'nota-col', style: { display: 'flex', flexDirection: 'column', alignItems: 'center', flex: hasReactions || hasVocalScore ? 1.15 : 1 } },
       [
-        e('div', { key: 'l', style: { display: 'flex', fontSize: 26, letterSpacing: 3, color: 'rgba(255,255,255,0.55)' } }, '⭐ NOTA'),
+        e('div', { key: 'l', style: { display: 'flex', fontSize: 26, fontWeight: 400, letterSpacing: 3, color: 'rgba(255,255,255,0.55)' } }, '⭐ NOTA'),
         e('div', { key: 'v', style: { display: 'flex', marginTop: 8, fontSize: 108, fontWeight: 700, color: '#F4D03F' } }, notaTxt)
       ]
     )
@@ -381,7 +435,7 @@ function buildCardElement({ perf, levelName, modeMeta, placeName, dateTxt, topRe
         'div',
         { key: 'reactions-col', style: { display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 } },
         [
-          e('div', { key: 'l', style: { display: 'flex', fontSize: 26, letterSpacing: 3, color: 'rgba(255,255,255,0.55)' } }, '🔥 REACCIONES'),
+          e('div', { key: 'l', style: { display: 'flex', fontSize: 26, fontWeight: 400, letterSpacing: 3, color: 'rgba(255,255,255,0.55)' } }, '🔥 REACCIONES'),
           e(
             'div',
             { key: 'v', style: { display: 'flex', flexDirection: 'row', alignItems: 'center', marginTop: 14, gap: 16 } },
@@ -402,7 +456,7 @@ function buildCardElement({ perf, levelName, modeMeta, placeName, dateTxt, topRe
         'div',
         { key: 'retroke-col', style: { display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 } },
         [
-          e('div', { key: 'l', style: { display: 'flex', fontSize: 24, letterSpacing: 2, color: 'rgba(255,255,255,0.55)' } }, '🎤 RETROKE SCORE'),
+          e('div', { key: 'l', style: { display: 'flex', fontSize: 24, fontWeight: 400, letterSpacing: 2, color: 'rgba(255,255,255,0.55)' } }, '🎤 RETROKE SCORE'),
           e('div', { key: 'v', style: { display: 'flex', marginTop: 8, fontSize: 54, fontWeight: 700, color: '#E91E8C' } }, perf.vocal_score + '/100')
         ]
       )
@@ -438,11 +492,11 @@ function buildCardElement({ perf, levelName, modeMeta, placeName, dateTxt, topRe
     ]
     if (placeName) {
       chipChildren.push(e('div', { key: 'sep1', style: { display: 'flex', width: 8, height: 8, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.35)' } }))
-      chipChildren.push(e('div', { key: 'place', style: { display: 'flex', fontSize: 32, color: 'rgba(255,255,255,0.55)' } }, placeName))
+      chipChildren.push(e('div', { key: 'place', style: { display: 'flex', fontSize: 32, fontWeight: 400, color: 'rgba(255,255,255,0.55)' } }, placeName))
     }
     if (dateTxt) {
       chipChildren.push(e('div', { key: 'sep2', style: { display: 'flex', width: 8, height: 8, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.35)' } }))
-      chipChildren.push(e('div', { key: 'date', style: { display: 'flex', fontSize: 32, color: 'rgba(255,255,255,0.55)' } }, dateTxt))
+      chipChildren.push(e('div', { key: 'date', style: { display: 'flex', fontSize: 32, fontWeight: 400, color: 'rgba(255,255,255,0.55)' } }, dateTxt))
     }
     sheetChildren.push(
       e(
@@ -472,7 +526,7 @@ function buildCardElement({ perf, levelName, modeMeta, placeName, dateTxt, topRe
       { key: 'footer', style: { display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 'auto', paddingTop: 55 } },
       [
         e('div', { key: 'f1', style: { display: 'flex', fontSize: 34, fontWeight: 600, color: 'rgba(255,255,255,0.75)' } }, 'El karaoke cambió para siempre.'),
-        e('div', { key: 'f2', style: { display: 'flex', marginTop: 6, fontSize: 28, color: 'rgba(255,255,255,0.42)' } }, 'retroke.cl')
+        e('div', { key: 'f2', style: { display: 'flex', marginTop: 6, fontSize: 28, fontWeight: 400, color: 'rgba(255,255,255,0.42)' } }, 'retroke.cl')
       ]
     )
   )
