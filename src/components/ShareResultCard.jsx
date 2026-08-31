@@ -305,10 +305,14 @@ const ShareResultCard = forwardRef(function ShareResultCard(
         /* El isotipo de Retroke ahora es la marca principal del hero (antes
            iba chico arriba a la izquierda, junto a un pill de texto
            "Momento Retroke" que se saco por pedido explicito) -- centrado
-           arriba, mas grande. */
+           arriba, mas grande. top:10% (no 6%) a proposito: en el editor de
+           Stories de Instagram, la franja de arriba de la pantalla suele
+           quedar tapada por chrome propio de la app (chip de "Audio
+           sugerido", boton de cerrar) -- ese margen extra reduce el choque
+           con esa UI que no controlamos. */
         .momento-logo {
           position: absolute;
-          top: 6%;
+          top: 10%;
           left: 50%;
           transform: translateX(-50%);
           height: 11%;
