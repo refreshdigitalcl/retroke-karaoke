@@ -1,6 +1,28 @@
-import { ImageResponse } from '@vercel/og'
-import { createClient } from '@supabase/supabase-js'
-import React from 'react'
+import { createRequire } from 'node:module'
+import path from 'node:path'
+
+// FIX CRITICO (causaba el 500 "Dynamic require of fs is not supported" /
+// luego "__dirname is not defined" en produccion, confirmado con los logs
+// reales de Vercel): @vercel/og trae empaquetada una version vieja de
+// harfbuzzjs (usada por Satori para dar forma al texto) que asume que se
+// ejecuta en CommonJS -- usa "require", "__filename" y "__dirname" como si
+// fueran globals ambiente. Este proyecto usa ESM real ("type":"module" en
+// package.json), donde esos tres NO existen, asi que @vercel/og se caia
+// apenas se importaba (antes de que se llegue a pedir ninguna tarjeta).
+// La solucion estandar de Node para consumir un paquete asi desde ESM es
+// "poliyenar" esos tres globals ANTES de importar el paquete. __dirname se
+// apunta a la carpeta real de harfbuzzjs (ahi vive hb.wasm, que el paquete
+// intenta leer con esa ruta) resuelta dinamicamente con require.resolve
+// para que funcione sin importar donde Vercel copie node_modules.
+const require = createRequire(import.meta.url)
+const harfbuzzDir = path.dirname(require.resolve('harfbuzzjs/package.json'))
+globalThis.require = require
+globalThis.__filename = path.join(harfbuzzDir, 'hb.js')
+globalThis.__dirname = harfbuzzDir
+
+const { ImageResponse } = await import('@vercel/og')
+const { createClient } = await import('@supabase/supabase-js')
+const React = (await import('react')).default
 
 // Genera la tarjeta "Momento Retroke" como PNG 1080x1920 EN EL SERVIDOR, no
 // en el navegador de quien la comparte.
