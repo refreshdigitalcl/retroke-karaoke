@@ -124,6 +124,26 @@ import { useRetrokeFont } from '../lib/fonts'
 // fijo (sin animar, porque esto se exporta como imagen estatica). "las
 // reacciones deben mostrar tambien el numero, no solo los emojis": se
 // agrega el total real (excluyendo memes) junto a los 3 emojis.
+//
+// QUINTA VUELTA: "me encantaba esta distribucion de la informacion para
+// la tarjeta de retroke home" -- referencia a una version bastante mas
+// vieja de la tarjeta (screenshot de un preview de Instagram Stories) con
+// Nota Final + Retroke Score arriba lado a lado (separados por un
+// divisor), y debajo un desglose de 4 columnas: Afinacion / Ritmo /
+// Estabilidad / Energia. Ese desglose ya se calculaba (ver
+// lib/vocalAnalysis.js: pitchScore/rhythmScore/stabilityScore/
+// energyScore) y ya se guardaba en la tabla `vocal_results`, y las 3
+// pantallas que usan esta tarjeta YA le pasaban un prop `subScores` con
+// esos 4 numeros -- pero este componente nunca lo destructuraba ni lo
+// dibujaba. Se recupera esa distribucion (ver .momento-score-box) SOLO
+// dentro de la caja de resultados, y SOLO cuando hay vocalScore (Retroke
+// Home, el unico modo con analisis de voz) -- el resto de la tarjeta
+// (caratula en el hero, avatar+puesto+seguidores/seguidos arriba, ficha
+// de cancion/marca abajo) sigue exactamente igual. Bar/DJ (sin
+// vocalScore) siguen con la caja de una fila de antes. Las reacciones,
+// que antes competian por espacio en esa misma fila, ahora salen como su
+// propia pildora aparte cuando hay vocalScore (no se pierden, solo se
+// reubican).
 const LOGO_SRC = '/landing/retroke-logo-oficial-neon.png'
 
 // La busqueda de iTunes (songLookup.js) devuelve un thumbnail chico
@@ -164,6 +184,7 @@ const ShareResultCard = forwardRef(function ShareResultCard(
     artworkUrl,
     notaFinal,
     vocalScore,
+    subScores,
     confidence,
     levelName,
     rank,
@@ -183,12 +204,23 @@ const ShareResultCard = forwardRef(function ShareResultCard(
   const topReactionsList = Array.isArray(topReactions) ? topReactions : []
   const hasReactions = topReactionsList.length > 0
   const hiResArtwork = getHiResArtwork(artworkUrl)
+  // Desglose (afinacion/ritmo/estabilidad/energia) solo existe cuando hubo
+  // analisis de voz real (Retroke Home) Y se guardo en vocal_results -- ver
+  // "QUINTA VUELTA" mas abajo. Nunca se inventa un desglose a partir de
+  // datos parciales.
+  const hasSubScores = hasVocalScore && subScores &&
+    [subScores.pitchScore, subScores.rhythmScore, subScores.stabilityScore, subScores.energyScore]
+      .every((v) => typeof v === 'number')
   // Perfil (avatar chico + puesto/seguidores/seguidos) solo se arma si hay
   // datos reales de seguidores -- si followCounts es null (sin
   // participant_id, ej. presentacion muy vieja/anonima), nunca se inventa
   // "0 seguidores" como si fuera un dato real.
   const hasProfileStats = Boolean(followCounts)
 
+  // Solo se usa cuando NO hay vocalScore (Bar/DJ): la caja "clasica" de una
+  // fila (Nota + Reacciones). Con vocalScore (Home), la caja de resultados
+  // es la nueva de dos pisos (ver momento-score-box mas abajo) y las
+  // reacciones salen como su propia pildora aparte.
   const resultColumns = [
     { key: 'nota', icon: '⭐', label: 'Nota', value: notaTxt, color: '#F4D03F', big: true },
     hasReactions && {
@@ -205,8 +237,7 @@ const ShareResultCard = forwardRef(function ShareResultCard(
           )}
         </>
       )
-    },
-    hasVocalScore && { key: 'retroke', icon: '🎤', label: 'Retroke Score', value: vocalScore + '/100', color: '#E91E8C' }
+    }
   ].filter(Boolean)
 
   const modeMeta = mode ? MODE_META[mode] : null
@@ -626,6 +657,101 @@ const ShareResultCard = forwardRef(function ShareResultCard(
           text-align: center;
         }
 
+        /* QUINTA VUELTA: "me encantaba esta distribucion" -- referencia a
+           una version anterior de la tarjeta (Nota Final + Retroke Score
+           lado a lado arriba, separados por un divisor, y el desglose
+           Afinacion/Ritmo/Estabilidad/Energia debajo). Se recupera esa
+           distribucion PERO solo dentro de esta misma caja de resultados
+           (.momento-results) -- el resto de la tarjeta (hero con la
+           caratula, avatar+puesto+seguidores arriba, ficha de
+           cancion/marca) no cambia. Solo aplica cuando hay vocalScore
+           (Retroke Home, unico modo con analisis de voz) -- Bar/DJ siguen
+           con la caja clasica de una fila (ver resultColumns). Las
+           reacciones, que antes competian por espacio en esta misma fila,
+           pasan a ser su propia pildora aparte (.momento-reactions-pill)
+           para no perder la nueva distribucion de dos pisos. */
+        .momento-score-box {
+          flex-direction: column;
+          align-items: stretch;
+        }
+        .momento-score-top {
+          display: flex;
+          flex-direction: row;
+          align-items: stretch;
+        }
+        .momento-score-cell {
+          flex: 1;
+          min-width: 0;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+        .momento-score-value {
+          margin-top: 4px;
+          font-weight: 700;
+          line-height: 1.05;
+          font-size: clamp(26px, 8.6vw, 36px);
+        }
+        .momento-score-suffix {
+          font-size: 0.4em;
+          font-weight: 700;
+          opacity: 0.85;
+          margin-left: 2px;
+        }
+        .momento-score-hr {
+          height: 1px;
+          margin: 12px 0 10px;
+          background: rgba(255,255,255,0.16);
+        }
+        .momento-score-sub-row {
+          display: flex;
+          flex-direction: row;
+          gap: 6px;
+        }
+        .momento-score-sub-cell {
+          flex: 1;
+          min-width: 0;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 3px;
+          padding: 6px 2px;
+          border-radius: 10px;
+          background: rgba(255,255,255,0.045);
+        }
+        .momento-score-sub-label {
+          font-size: 7.5px;
+          font-weight: 600;
+          letter-spacing: 0.02em;
+          color: rgba(255,255,255,0.55);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          max-width: 100%;
+        }
+        .momento-score-sub-value {
+          font-size: clamp(13px, 4vw, 16px);
+          font-weight: 700;
+          color: #F4D03F;
+          text-shadow: 0 0 10px rgba(244,208,63,0.4);
+        }
+        /* Pildora de reacciones: mismo lenguaje visual que .momento-level /
+           .momento-stat-follow, ya que dejo de ser una columna de
+           .momento-results (ver comentario mas arriba). */
+        .momento-reactions-pill {
+          margin-top: 10px;
+          align-self: center;
+          display: flex;
+          align-items: center;
+          gap: 2px;
+          padding: 5px 16px;
+          border-radius: 999px;
+          background: rgba(139,92,246,0.12);
+          border: 1px solid rgba(139,92,246,0.35);
+          font-size: 15px;
+          letter-spacing: 2px;
+        }
+
         .momento-mode-chip {
           margin-top: 4%;
           display: flex;
@@ -738,24 +864,75 @@ const ShareResultCard = forwardRef(function ShareResultCard(
             {artistName && <div className="momento-song-artist">{artistName}</div>}
           </div>
 
-          <div className="momento-results">
-            {resultColumns.map((col, i) => (
-              <div key={col.key} className={'momento-result-col' + (col.big ? ' is-big' : '')} style={{ display: 'flex', flexDirection: 'row', alignItems: 'stretch', flex: col.big ? 1.15 : 1 }}>
-                {i > 0 && <div className="momento-result-divider" />}
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, minWidth: 0 }}>
-                  <div className="momento-result-label">{col.icon} {col.label}</div>
-                  <div
-                    className={'momento-result-value ' + (col.emoji ? 'is-emoji' : col.big ? 'is-big' : 'is-small')}
-                    style={col.emoji ? undefined : { color: col.color, textShadow: '0 0 16px ' + col.color + '80' }}
-                  >
-                    {col.value}
+          {hasVocalScore ? (
+            <div className="momento-results momento-score-box">
+              <div className="momento-score-top">
+                <div className="momento-score-cell">
+                  <div className="momento-result-label">⭐ Nota Final</div>
+                  <div className="momento-score-value" style={{ color: '#F4D03F', textShadow: '0 0 16px #F4D03F80' }}>
+                    {notaTxt}
+                  </div>
+                </div>
+                <div className="momento-result-divider" />
+                <div className="momento-score-cell">
+                  <div className="momento-result-label">Retroke Score</div>
+                  <div className="momento-score-value" style={{ color: '#E91E8C', textShadow: '0 0 16px #E91E8C80' }}>
+                    {vocalScore}<span className="momento-score-suffix">/100</span>
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
+              {hasSubScores && (
+                <>
+                  <div className="momento-score-hr" />
+                  <div className="momento-score-sub-row">
+                    <div className="momento-score-sub-cell">
+                      <div className="momento-score-sub-label">Afinación</div>
+                      <div className="momento-score-sub-value">{subScores.pitchScore}</div>
+                    </div>
+                    <div className="momento-score-sub-cell">
+                      <div className="momento-score-sub-label">Ritmo</div>
+                      <div className="momento-score-sub-value">{subScores.rhythmScore}</div>
+                    </div>
+                    <div className="momento-score-sub-cell">
+                      <div className="momento-score-sub-label">Estabilidad</div>
+                      <div className="momento-score-sub-value">{subScores.stabilityScore}</div>
+                    </div>
+                    <div className="momento-score-sub-cell">
+                      <div className="momento-score-sub-label">Energía</div>
+                      <div className="momento-score-sub-value">{subScores.energyScore}</div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          ) : (
+            <div className="momento-results">
+              {resultColumns.map((col, i) => (
+                <div key={col.key} className={'momento-result-col' + (col.big ? ' is-big' : '')} style={{ display: 'flex', flexDirection: 'row', alignItems: 'stretch', flex: col.big ? 1.15 : 1 }}>
+                  {i > 0 && <div className="momento-result-divider" />}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, minWidth: 0 }}>
+                    <div className="momento-result-label">{col.icon} {col.label}</div>
+                    <div
+                      className={'momento-result-value ' + (col.emoji ? 'is-emoji' : col.big ? 'is-big' : 'is-small')}
+                      style={col.emoji ? undefined : { color: col.color, textShadow: '0 0 16px ' + col.color + '80' }}
+                    >
+                      {col.value}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
           {confidence === 'baja' && (
             <div className="momento-confidence">medición con señal limitada</div>
+          )}
+          {hasVocalScore && hasReactions && (
+            <div className="momento-reactions-pill">
+              <span>{topReactionsList.map((r) => r.emoji).join(' ')}</span>
+              {typeof totalReactions === 'number' && totalReactions > 0 && (
+                <span className="momento-result-count"> {totalReactions}</span>
+              )}
+            </div>
           )}
 
           {hasModeChip && (

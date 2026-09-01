@@ -176,13 +176,16 @@ function pill({ key, text, color, bg, border, fontSize }) {
   )
 }
 
-function buildCardElement({ perf, levelName, modeMeta, placeName, dateTxt, topReactions, totalReactions, artworkDataUri, logoDataUri, avatarEmoji, avatarPhotoDataUri, rank, followCounts }) {
+function buildCardElement({ perf, levelName, modeMeta, placeName, dateTxt, topReactions, totalReactions, artworkDataUri, logoDataUri, avatarEmoji, avatarPhotoDataUri, rank, followCounts, subScores }) {
   const WIDTH = 1080
   const HEIGHT = 1920
   const notaTxt = perf.nota_final !== null && perf.nota_final !== undefined ? Number(perf.nota_final).toFixed(1) : '-'
   const hasVocalScore = perf.vocal_score !== null && perf.vocal_score !== undefined
   const hasReactions = topReactions.length > 0
   const hasProfileStats = Boolean(followCounts)
+  const hasSubScores = hasVocalScore && subScores &&
+    [subScores.pitchScore, subScores.rhythmScore, subScores.stabilityScore, subScores.energyScore]
+      .every((v) => typeof v === 'number')
 
   const heroChildren = []
   if (artworkDataUri) {
@@ -418,69 +421,174 @@ function buildCardElement({ perf, levelName, modeMeta, placeName, dateTxt, topRe
     )
   }
 
-  const resultsChildren = [
-    e(
-      'div',
-      { key: 'nota-col', style: { display: 'flex', flexDirection: 'column', alignItems: 'center', flex: hasReactions || hasVocalScore ? 1.15 : 1 } },
-      [
-        e('div', { key: 'l', style: { display: 'flex', fontSize: 26, fontWeight: 400, letterSpacing: 3, color: 'rgba(255,255,255,0.55)' } }, '⭐ NOTA'),
-        e('div', { key: 'v', style: { display: 'flex', marginTop: 8, fontSize: 108, fontWeight: 700, color: '#F4D03F' } }, notaTxt)
-      ]
-    )
-  ]
-  if (hasReactions) {
-    resultsChildren.push(e('div', { key: 'div1', style: { display: 'flex', width: 3, backgroundColor: 'rgba(255,255,255,0.16)' } }))
-    resultsChildren.push(
+  // QUINTA VUELTA: mismo cambio que ShareResultCard.jsx (ver comentario
+  // largo alli) -- con vocalScore (Retroke Home) la caja pasa a ser de dos
+  // pisos (Nota Final + Retroke Score arriba, desglose de 4 columnas
+  // abajo si hay subScores) y las reacciones salen a su propia pildora
+  // aparte. Sin vocalScore (Bar/DJ) se mantiene la caja de una fila de
+  // siempre (Nota + Reacciones).
+  let resultsChildren
+  let resultsStyle
+  if (hasVocalScore) {
+    resultsChildren = [
       e(
         'div',
-        { key: 'reactions-col', style: { display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 } },
+        { key: 'top', style: { display: 'flex', flexDirection: 'row', alignItems: 'stretch', width: '100%' } },
         [
-          e('div', { key: 'l', style: { display: 'flex', fontSize: 26, fontWeight: 400, letterSpacing: 3, color: 'rgba(255,255,255,0.55)' } }, '🔥 REACCIONES'),
           e(
             'div',
-            { key: 'v', style: { display: 'flex', flexDirection: 'row', alignItems: 'center', marginTop: 14, gap: 16 } },
+            { key: 'nota-col', style: { display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 } },
             [
-              e('div', { key: 'emojis', style: { display: 'flex', fontSize: 58, letterSpacing: 8 } }, topReactions.map((r) => r.emoji).join(' ')),
-              totalReactions > 0
-                ? e('div', { key: 'count', style: { display: 'flex', fontSize: 42, fontWeight: 800, color: 'rgba(255,255,255,0.72)' } }, String(totalReactions))
-                : null
-            ].filter(Boolean)
+              e('div', { key: 'l', style: { display: 'flex', fontSize: 26, fontWeight: 400, letterSpacing: 3, color: 'rgba(255,255,255,0.55)' } }, '⭐ NOTA FINAL'),
+              e('div', { key: 'v', style: { display: 'flex', marginTop: 8, fontSize: 92, fontWeight: 700, color: '#F4D03F' } }, notaTxt)
+            ]
+          ),
+          e('div', { key: 'div1', style: { display: 'flex', width: 3, backgroundColor: 'rgba(255,255,255,0.16)' } }),
+          e(
+            'div',
+            { key: 'score-col', style: { display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 } },
+            [
+              e('div', { key: 'l', style: { display: 'flex', fontSize: 26, fontWeight: 400, letterSpacing: 3, color: 'rgba(255,255,255,0.55)' } }, 'RETROKE SCORE'),
+              e(
+                'div',
+                { key: 'v', style: { display: 'flex', flexDirection: 'row', alignItems: 'baseline', marginTop: 8 } },
+                [
+                  e('div', { key: 'num', style: { display: 'flex', fontSize: 92, fontWeight: 700, color: '#E91E8C' } }, String(perf.vocal_score)),
+                  e('div', { key: 'suf', style: { display: 'flex', fontSize: 38, fontWeight: 700, color: '#E91E8C', opacity: 0.85, marginLeft: 4 } }, '/100')
+                ]
+              )
+            ]
           )
         ]
       )
-    )
-  } else if (hasVocalScore) {
-    resultsChildren.push(e('div', { key: 'div1', style: { display: 'flex', width: 3, backgroundColor: 'rgba(255,255,255,0.16)' } }))
-    resultsChildren.push(
+    ]
+    if (hasSubScores) {
+      resultsChildren.push(
+        e('div', { key: 'hr', style: { display: 'flex', height: 2, marginTop: 34, marginBottom: 26, width: '100%', backgroundColor: 'rgba(255,255,255,0.16)' } })
+      )
+      const subDefs = [
+        ['Afinación', subScores.pitchScore],
+        ['Ritmo', subScores.rhythmScore],
+        ['Estabilidad', subScores.stabilityScore],
+        ['Energía', subScores.energyScore]
+      ]
+      resultsChildren.push(
+        e(
+          'div',
+          { key: 'sub-row', style: { display: 'flex', flexDirection: 'row', width: '100%', gap: 10 } },
+          subDefs.map(([label, value], i) =>
+            e(
+              'div',
+              {
+                key: 'sub-' + i,
+                style: {
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  flex: 1,
+                  borderRadius: 18,
+                  background: 'rgba(255,255,255,0.045)',
+                  padding: '14px 4px'
+                }
+              },
+              [
+                e('div', { key: 'l', style: { display: 'flex', fontSize: 18, fontWeight: 600, color: 'rgba(255,255,255,0.55)' } }, label),
+                e('div', { key: 'v', style: { display: 'flex', marginTop: 4, fontSize: 34, fontWeight: 700, color: '#F4D03F' } }, String(value))
+              ]
+            )
+          )
+        )
+      )
+    }
+    resultsStyle = { flexDirection: 'column', alignItems: 'stretch' }
+  } else {
+    resultsChildren = [
       e(
         'div',
-        { key: 'retroke-col', style: { display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 } },
+        { key: 'nota-col', style: { display: 'flex', flexDirection: 'column', alignItems: 'center', flex: hasReactions ? 1.15 : 1 } },
         [
-          e('div', { key: 'l', style: { display: 'flex', fontSize: 24, fontWeight: 400, letterSpacing: 2, color: 'rgba(255,255,255,0.55)' } }, '🎤 RETROKE SCORE'),
-          e('div', { key: 'v', style: { display: 'flex', marginTop: 8, fontSize: 54, fontWeight: 700, color: '#E91E8C' } }, perf.vocal_score + '/100')
+          e('div', { key: 'l', style: { display: 'flex', fontSize: 26, fontWeight: 400, letterSpacing: 3, color: 'rgba(255,255,255,0.55)' } }, '⭐ NOTA'),
+          e('div', { key: 'v', style: { display: 'flex', marginTop: 8, fontSize: 108, fontWeight: 700, color: '#F4D03F' } }, notaTxt)
         ]
       )
-    )
+    ]
+    if (hasReactions) {
+      resultsChildren.push(e('div', { key: 'div1', style: { display: 'flex', width: 3, backgroundColor: 'rgba(255,255,255,0.16)' } }))
+      resultsChildren.push(
+        e(
+          'div',
+          { key: 'reactions-col', style: { display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 } },
+          [
+            e('div', { key: 'l', style: { display: 'flex', fontSize: 26, fontWeight: 400, letterSpacing: 3, color: 'rgba(255,255,255,0.55)' } }, '🔥 REACCIONES'),
+            e(
+              'div',
+              { key: 'v', style: { display: 'flex', flexDirection: 'row', alignItems: 'center', marginTop: 14, gap: 16 } },
+              [
+                e('div', { key: 'emojis', style: { display: 'flex', fontSize: 58, letterSpacing: 8 } }, topReactions.map((r) => r.emoji).join(' ')),
+                totalReactions > 0
+                  ? e('div', { key: 'count', style: { display: 'flex', fontSize: 42, fontWeight: 800, color: 'rgba(255,255,255,0.72)' } }, String(totalReactions))
+                  : null
+              ].filter(Boolean)
+            )
+          ]
+        )
+      )
+    }
+    resultsStyle = { flexDirection: 'row', alignItems: 'stretch', justifyContent: 'center' }
   }
   sheetChildren.push(
     e(
       'div',
       {
         key: 'results',
-        style: {
-          display: 'flex',
-          marginTop: 55,
-          borderRadius: 46,
-          border: '4px solid rgba(244,208,79,0.5)',
-          background: 'linear-gradient(135deg, rgba(58,20,60,0.95), rgba(40,16,58,0.95))',
-          padding: '50px 30px',
-          alignItems: 'stretch',
-          justifyContent: 'center'
-        }
+        style: Object.assign(
+          {
+            display: 'flex',
+            marginTop: 55,
+            borderRadius: 46,
+            border: '4px solid rgba(244,208,79,0.5)',
+            background: 'linear-gradient(135deg, rgba(58,20,60,0.95), rgba(40,16,58,0.95))',
+            padding: '50px 30px'
+          },
+          resultsStyle
+        )
       },
       resultsChildren
     )
   )
+
+  // Reacciones aparte cuando ya hubo analisis de voz -- antes competian
+  // con el Retroke Score por la misma fila (con ambos datos reales solo
+  // se llegaba a mostrar uno de los dos). Mismo criterio de siempre: solo
+  // aparece si hubo al menos una reaccion real.
+  if (hasVocalScore && hasReactions) {
+    sheetChildren.push(
+      e(
+        'div',
+        {
+          key: 'reactions-pill',
+          style: {
+            display: 'flex',
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 6,
+            marginTop: 34,
+            alignSelf: 'center',
+            padding: '14px 40px',
+            borderRadius: 999,
+            background: 'rgba(139,92,246,0.12)',
+            border: '3px solid rgba(139,92,246,0.35)'
+          }
+        },
+        [
+          e('div', { key: 'emojis', style: { display: 'flex', fontSize: 40, letterSpacing: 6 } }, topReactions.map((r) => r.emoji).join(' ')),
+          totalReactions > 0
+            ? e('div', { key: 'count', style: { display: 'flex', fontSize: 32, fontWeight: 800, color: 'rgba(255,255,255,0.78)', marginLeft: 6 } }, String(totalReactions))
+            : null
+        ].filter(Boolean)
+      )
+    )
+  }
 
   if (modeMeta) {
     const chipChildren = [
@@ -622,6 +730,12 @@ export default async function handler(req, res) {
       : Promise.resolve({ data: [] }),
     perf.participant_id
       ? supabase.from('participants').select('avatar, photo_url').eq('id', perf.participant_id).maybeSingle()
+      : Promise.resolve({ data: null }),
+    // Desglose de voz (Afinacion/Ritmo/Estabilidad/Energia) -- mismo query
+    // que el cliente (ver RegisterForm.jsx/SharePerformance.jsx), solo
+    // existe cuando hubo analisis de voz real (Retroke Home).
+    perf.queue_entry_id
+      ? supabase.from('vocal_results').select('pitch_score, rhythm_score, stability_score, energy_score').eq('queue_entry_id', perf.queue_entry_id).order('created_at', { ascending: false }).limit(1).maybeSingle()
       : Promise.resolve({ data: null })
   ])
 
@@ -632,6 +746,14 @@ export default async function handler(req, res) {
   const reactionRows = lookups[3].data || []
   const avatarEmoji = lookups[4].data ? lookups[4].data.avatar : null
   const avatarPhotoUrl = lookups[4].data ? lookups[4].data.photo_url : null
+  const subScores = lookups[5].data
+    ? {
+        pitchScore: lookups[5].data.pitch_score,
+        rhythmScore: lookups[5].data.rhythm_score,
+        stabilityScore: lookups[5].data.stability_score,
+        energyScore: lookups[5].data.energy_score
+      }
+    : null
 
   // Top 3 emojis mas usados, memes excluidos -- mismo tally que
   // reactionStats.top en DisplayResult.jsx (pantalla de resultado del TV).
@@ -668,7 +790,7 @@ export default async function handler(req, res) {
   let image
   try {
     image = new ImageResponse(
-      buildCardElement({ perf, levelName, modeMeta, placeName, dateTxt, topReactions, totalReactions, artworkDataUri, logoDataUri, avatarEmoji, avatarPhotoDataUri, rank, followCounts }),
+      buildCardElement({ perf, levelName, modeMeta, placeName, dateTxt, topReactions, totalReactions, artworkDataUri, logoDataUri, avatarEmoji, avatarPhotoDataUri, rank, followCounts, subScores }),
       {
         width: 1080,
         height: 1920,
