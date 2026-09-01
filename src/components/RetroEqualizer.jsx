@@ -10,7 +10,14 @@ function EqualizerColumn({ side }) {
     const interval = setInterval(() => {
       barsRef.current.forEach((bar) => {
         if (bar) {
-          bar.style.height = `${15 + Math.random() * 70}%`
+          // Antes animaba `height` (propiedad de layout: cada cambio
+          // fuerza reflow, no solo repaint/composite). 12 barras
+          // reflowing cada 450ms era un costo real, sobre todo en TV
+          // boxes/navegadores debiles. transform:scaleY con
+          // transform-origin:bottom logra el mismo efecto visual pero
+          // el navegador lo resuelve solo en el compositor (GPU), sin
+          // tocar layout.
+          bar.style.transform = `scaleY(${(15 + Math.random() * 70) / 100})`
         }
       })
     }, 450)
@@ -29,10 +36,12 @@ function EqualizerColumn({ side }) {
         <div
           key={i}
           ref={(el) => (barsRef.current[i] = el)}
-          className="w-2 rounded-sm transition-[height] duration-500 ease-in-out"
+          className="w-2 rounded-sm transition-transform duration-500 ease-in-out"
           style={{
             background: COLORS[i % COLORS.length],
-            height: `${20 + Math.random() * 40}%`
+            height: '100%',
+            transformOrigin: 'bottom',
+            transform: `scaleY(${(20 + Math.random() * 40) / 100})`
           }}
         />
       ))}

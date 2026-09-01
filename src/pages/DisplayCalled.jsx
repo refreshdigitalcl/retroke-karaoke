@@ -77,11 +77,12 @@ export default function DisplayCalled() {
           los primeros 13s de contenido real y se le agregó un crossfade de
           0.6s entre el final y el inicio (ver public/called/called-bg.mp4)
           para que el loop sea perfectamente continuo, sin el salto brusco
-          de negro a la escena. El tinte de color (mix-blend-mode:color)
-          inyecta la paleta neon de la marca sobre el blanco y negro, y el
-          scrim oscurece arriba/abajo para que el texto siga legible --
-          misma logica que el fade del hero de World.jsx, adaptada a
-          video. */}
+          de negro a la escena. El tinte de color inyecta la paleta neon
+          de la marca sobre el blanco y negro (capa normal, sin blend
+          mode -- ver .called-bg-tint), y el scrim oscurece arriba/abajo
+          para que el texto siga legible -- misma logica que el fade del
+          hero de World.jsx, adaptada a video. Re-encodeado a 720p para
+          que decodifique fluido en TV boxes/navegadores debiles. */}
       <video
         className="called-bg-video"
         src="/called/called-bg.mp4"
@@ -169,18 +170,23 @@ export default function DisplayCalled() {
           object-position: 50% 42%;
           z-index: 0;
         }
-        /* Tinte de color sobre el blanco y negro: mix-blend-mode:color
-           inyecta la paleta neon de la marca directamente en la
-           luminancia del video, sin taparlo -- el resultado lee como
-           un video con grading de color, no como una capa pegada
-           encima. */
+        /* Tinte de color sobre el blanco y negro: antes usaba
+           mix-blend-mode:color para inyectar la paleta neon en la
+           luminancia del video. mix-blend-mode sobre una capa que
+           esta encima de un <video> reproduciendose obliga al
+           navegador a recalcular el blend en CADA frame del video (no
+           solo cuando el tinte cambia) y en TV boxes/navegadores
+           viejos eso suele forzar compositing por software -- el lag
+           reportado en esas pantallas. Se reemplaza por una capa
+           normal (sin blend mode), con un poco mas de opacidad para
+           compensar que ya no "tiñe" la luminancia real, solo se
+           superpone. */
         .called-bg-tint {
           position: absolute;
           inset: 0;
           z-index: 0;
           pointer-events: none;
-          background: linear-gradient(135deg, rgba(139,92,246,0.42) 0%, rgba(233,30,140,0.32) 45%, rgba(5,3,10,0.5) 100%);
-          mix-blend-mode: color;
+          background: linear-gradient(135deg, rgba(139,92,246,0.5) 0%, rgba(233,30,140,0.4) 45%, rgba(5,3,10,0.6) 100%);
         }
         /* Scrim: oscurece arriba (donde va el badge) y abajo (donde va
            la tarjeta "ahora suena"), deja el centro (avatar) mas
@@ -261,7 +267,13 @@ export default function DisplayCalled() {
           100% { transform: scale(1.08); }
         }
 
-        /* El anillo que le encanto -- sin cambios en su tecnica. */
+        /* El anillo que le encanto -- se mantiene igual (mismo degrade
+           "chasing" en movimiento via background-position). Lo unico
+           que cambia es que el brillo (antes un filter:drop-shadow
+           animado pulsando cada 2.4s) ahora es fijo: esa animacion de
+           filter era el costo mas alto de toda la pantalla en
+           navegadores/TV boxes debiles, mucho mas que el movimiento
+           del degrade en si. */
         .called-neon-ring {
           position: absolute;
           inset: 0;
@@ -273,7 +285,8 @@ export default function DisplayCalled() {
           -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
           -webkit-mask-composite: xor;
           mask-composite: exclude;
-          animation: calledRingShift 5s linear infinite, calledRingGlowPulse 2.4s ease-in-out infinite;
+          filter: drop-shadow(0 0 14px rgba(233,30,140,0.6)) drop-shadow(0 0 24px rgba(139,92,246,0.42));
+          animation: calledRingShift 5s linear infinite;
           z-index: 1;
           pointer-events: none;
         }
@@ -281,29 +294,17 @@ export default function DisplayCalled() {
           0% { background-position: 0% 50%; }
           100% { background-position: 300% 50%; }
         }
-        @keyframes calledRingGlowPulse {
-          0%, 100% { filter: drop-shadow(0 0 10px rgba(233,30,140,0.45)) drop-shadow(0 0 18px rgba(139,92,246,0.3)); }
-          50% { filter: drop-shadow(0 0 18px rgba(233,30,140,0.75)) drop-shadow(0 0 30px rgba(139,92,246,0.55)); }
-        }
 
+        /* Antes tenia dos animaciones continuas (text-shadow pulsando +
+           glitch de transform/filter:hue-rotate). Ambas fuerzan repaint
+           en cada frame sobre un texto grande -- se dejan fijas
+           (mismo look de glow, sin el costo de animarlo cada frame). */
         .called-name {
           font-weight: 800;
           color: #ffffff;
           line-height: 1.05;
           font-size: clamp(2.6rem, 6.4vw, 5.2rem);
-          text-shadow: 0 2px 24px rgba(0,0,0,0.65), 0 0 34px rgba(233,30,140,0.4);
-          animation: nameGlow 2.4s ease-in-out infinite, calledNameGlitch 8s steps(1, end) infinite;
-        }
-        @keyframes nameGlow {
-          0%, 100% { text-shadow: 0 2px 24px rgba(0,0,0,0.65), 0 0 24px rgba(233,30,140,0.35); }
-          50% { text-shadow: 0 2px 24px rgba(0,0,0,0.65), 0 0 44px rgba(139,92,246,0.6); }
-        }
-        @keyframes calledNameGlitch {
-          0%, 4%, 100% { transform: translate(0, 0) skewX(0deg); filter: hue-rotate(0deg); }
-          0.6% { transform: translate(-6px, 2px) skewX(-1.4deg); filter: hue-rotate(18deg); }
-          1.1% { transform: translate(5px, -2px); filter: hue-rotate(-14deg); }
-          1.6% { transform: translate(-3px, 1px) skewX(0.8deg); filter: hue-rotate(10deg); }
-          2%, 3.4% { transform: translate(0, 0) skewX(0deg); filter: hue-rotate(0deg); }
+          text-shadow: 0 2px 24px rgba(0,0,0,0.65), 0 0 34px rgba(233,30,140,0.45);
         }
 
         /* "Ahora suena": misma idea que la fila de la lista de espera
@@ -396,6 +397,9 @@ export default function DisplayCalled() {
           50% { background-position: 100% center; }
         }
 
+        /* Mismo motivo que .called-bg-tint: sin mix-blend-mode, para no
+           forzar un re-blend por software en cada frame del video de
+           fondo. */
         .called-scanlines {
           position: absolute;
           inset: 0;
@@ -403,19 +407,17 @@ export default function DisplayCalled() {
           pointer-events: none;
           background: repeating-linear-gradient(
             to bottom,
-            rgba(255,255,255,0.02) 0px,
-            rgba(255,255,255,0.02) 1px,
+            rgba(255,255,255,0.035) 0px,
+            rgba(255,255,255,0.035) 1px,
             transparent 1px,
             transparent 3px
           );
-          mix-blend-mode: overlay;
         }
 
         @media (prefers-reduced-motion: reduce) {
           .called-badge,
           .called-avatar-img,
           .called-neon-ring,
-          .called-name,
           .called-song-artist {
             animation: none;
           }
