@@ -97,41 +97,62 @@ function formatCardDate(createdAt) {
 // asi Google responde con TTF en vez de WOFF2. Se cachea en memoria del
 // modulo para no volver a pedirlo en cada invocacion "tibia" de la funcion.
 //
-// FIX: antes solo se pedian los pesos 700/800 -- todo el texto que usa
-// fontWeight 400 (los labels chicos "NOTA"/"REACCIONES"/"RETROKE SCORE",
-// sin peso explicito) o 600 (nivel, artista, pie de pagina, seguidores/
-// seguidos) no tenia ninguna variante cargada para Satori, asi que caia a
-// la tipografia generica de respaldo -- eso era el "cambia la fuente y se
-// ve mas simple" que se notaba en la tarjeta exportada vs. el preview del
-// navegador (donde el navegador SI puede sintetizar/aproximar el peso de
-// un webfont ya cargado). Se piden los 4 pesos que realmente usa la
-// tarjeta para que cada texto tenga su variante real.
+// FIX (primera vuelta): antes solo se pedian los pesos 700/800 -- todo el
+// texto que usa fontWeight 400 (los labels chicos "NOTA"/"REACCIONES"/
+// "RETROKE SCORE", sin peso explicito) o 600 (nivel, artista, pie de
+// pagina, seguidores/seguidos) no tenia ninguna variante cargada para
+// Satori, asi que caia a la tipografia generica de respaldo -- eso era el
+// "cambia la fuente y se ve mas simple" que se notaba en la tarjeta
+// exportada vs. el preview del navegador (donde el navegador SI puede
+// sintetizar/aproximar el peso de un webfont ya cargado).
+//
+// FIX (segunda vuelta, "quiero que se mantenga la fuente moderna, la que
+// se comparte a IG se ve distinta"): la version anterior pedia los 4
+// pesos en UN solo request con la sintaxis "family=Space+Grotesk:wght@
+// 400;600;700;800" (valida segun la doc de Google Fonts), pero usar ";"
+// como separador dentro de un query string es fragil -- cualquier capa
+// intermedia (proxy, CDN, gateway) que trate ";" como delimitador de
+// "path parameters" (uso historico de RFC 3986) puede truncar la URL a
+// un solo peso sin que el fetch() falle ni lance error, asi que el bug
+// era completamente silencioso. Ahora cada peso se pide por separado (un
+// "&family=" propio, sin ";" en ningun lado) y con Promise.allSettled: si
+// UN peso falla, no tira abajo a los otros 3. Y si un peso especifico
+// falla, se reusa el TTF real de OTRO peso que si se descargo bien (se ve
+// "casi" perfecto, sigue siendo la tipografia real) en vez de caer
+// directo a la fuente generica de Satori -- que es justamente la que se
+// veia "mas simple" al compartir.
+const FONT_WEIGHTS = [400, 600, 700, 800]
+const FONT_USER_AGENT = 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36'
+
+async function fetchSpaceGroteskWeight(weight) {
+  const cssUrl = 'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@' + weight + '&display=swap'
+  const css = await fetch(cssUrl, { headers: { 'User-Agent': FONT_USER_AGENT } }).then((r) => r.text())
+  const match = css.match(/src:\s*url\(([^)]+)\)/)
+  if (!match) throw new Error('Google Fonts no devolvio una URL de TTF para el peso ' + weight)
+  return fetch(match[1]).then((r) => r.arrayBuffer())
+}
+
 let fontsPromise = null
 function loadFonts() {
   if (fontsPromise) return fontsPromise
   fontsPromise = (async () => {
-    try {
-      const cssUrl = 'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700;800&display=swap'
-      const css = await fetch(cssUrl, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36'
-        }
-      }).then((r) => r.text())
-      const blocks = [...css.matchAll(/font-weight:\s*(\d+);[\s\S]*?src:\s*url\(([^)]+)\)/g)]
-      const fonts = []
-      for (const block of blocks) {
-        const weight = Number(block[1])
-        const url = block[2]
-        const data = await fetch(url).then((r) => r.arrayBuffer())
-        fonts.push({ name: 'Space Grotesk', data, weight, style: 'normal' })
+    const settled = await Promise.allSettled(FONT_WEIGHTS.map(fetchSpaceGroteskWeight))
+    const fonts = []
+    let lastGoodData = null
+    settled.forEach((result, i) => {
+      const weight = FONT_WEIGHTS[i]
+      if (result.status === 'fulfilled') {
+        lastGoodData = result.value
+        fonts.push({ name: 'Space Grotesk', data: result.value, weight, style: 'normal' })
+      } else if (lastGoodData) {
+        fonts.push({ name: 'Space Grotesk', data: lastGoodData, weight, style: 'normal' })
       }
-      return fonts
-    } catch (err) {
-      // Si Google Fonts falla, mejor generar la tarjeta con la fuente por
-      // defecto de Satori que devolver un error -- una tarjeta con otra
-      // tipografia sigue siendo mil veces mejor que ninguna tarjeta.
-      return []
-    }
+    })
+    // Si TODOS los pesos fallaron (sin internet, Google Fonts caido),
+    // mejor generar la tarjeta con la fuente por defecto de Satori que
+    // devolver un error -- una tarjeta con otra tipografia sigue siendo
+    // mil veces mejor que ninguna tarjeta.
+    return fonts
   })()
   return fontsPromise
 }
@@ -190,12 +211,18 @@ function buildCardElement({ perf, levelName, modeMeta, placeName, dateTxt, topRe
   const heroChildren = []
   if (artworkDataUri) {
     heroChildren.push(
+      // objectPosition '50% 0%' (no el 50% 50% por defecto): con
+      // objectFit:cover, centrar el recorte corta parejo arriba Y abajo.
+      // Las caratulas de single/album casi siempre traen texto pegado al
+      // borde superior -- anclar arriba hace que, si el alto no calza, lo
+      // que se recorte sea la parte de ABAJO (que igual tapa el difuminado
+      // de mas abajo), no el texto de arriba.
       e('img', {
         key: 'artwork',
         src: artworkDataUri,
         width: WIDTH,
         height: 900,
-        style: { position: 'absolute', top: 0, left: 0, objectFit: 'cover' }
+        style: { position: 'absolute', top: 0, left: 0, objectFit: 'cover', objectPosition: '50% 0%' }
       })
     )
   } else {
@@ -322,6 +349,10 @@ function buildCardElement({ perf, levelName, modeMeta, placeName, dateTxt, topRe
     )
   )
 
+  // fontSize/padding igualados a pill() (24 / '10px 26px') para que las 4
+  // pildoras de esta fila (nivel, puesto, seguidores, seguidos) tengan la
+  // misma altura -- antes este pill se armaba aparte con otros valores y
+  // quedaba ligeramente mas bajo/grande que el resto.
   const levelPill = levelName
     ? e(
         'div',
@@ -329,12 +360,12 @@ function buildCardElement({ perf, levelName, modeMeta, placeName, dateTxt, topRe
           key: 'level',
           style: {
             display: 'flex',
-            fontSize: 26,
+            fontSize: 24,
             fontWeight: 600,
             color: '#F4D03F',
             border: '2px solid rgba(244,208,79,0.7)',
             borderRadius: 999,
-            padding: '8px 24px',
+            padding: '10px 26px',
             backgroundColor: 'rgba(10,6,15,0.55)'
           }
         },
@@ -358,26 +389,23 @@ function buildCardElement({ perf, levelName, modeMeta, placeName, dateTxt, topRe
       ]
     : null
 
+  // SEXTA VUELTA: "alinea los cuadros de ranking, seguidores y seguidos...
+  // no estan centrados ni equilibrados". Antes nivel+seguidores vivian en
+  // una fila con justify-content:space-between (empujados a los extremos,
+  // hueco enorme en el medio con nombres cortos) y el puesto quedaba en
+  // una fila aparte abajo, sin relacion visual con las otras pildoras.
+  // Ahora las 3 (nivel, puesto, seguidores, seguidos) van en UNA sola
+  // fila con flexWrap, agrupadas y alineadas a la izquierda con el mismo
+  // gap entre todas -- se leen como un solo set de datos.
   const NAME_COL_INDENT = AVATAR_SIZE + 24
   const metaRows = []
-  if (levelPill || followPills) {
+  const metaPills = [levelPill, rankPill, ...(followPills || [])].filter(Boolean)
+  if (metaPills.length) {
     metaRows.push(
       e(
         'div',
-        { key: 'meta-row', style: { display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 16, marginLeft: NAME_COL_INDENT } },
-        [
-          levelPill || e('div', { key: 'spacer' }),
-          followPills ? e('div', { key: 'follows', style: { display: 'flex', flexDirection: 'row', gap: 12 } }, followPills) : null
-        ].filter(Boolean)
-      )
-    )
-  }
-  if (rankPill) {
-    metaRows.push(
-      e(
-        'div',
-        { key: 'rank-row', style: { display: 'flex', marginTop: 12, marginLeft: NAME_COL_INDENT } },
-        rankPill
+        { key: 'meta-row', style: { display: 'flex', flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 14, marginTop: 16, marginLeft: NAME_COL_INDENT } },
+        metaPills
       )
     )
   }
@@ -403,11 +431,18 @@ function buildCardElement({ perf, levelName, modeMeta, placeName, dateTxt, topRe
     heroChildren
   )
 
+  // "el nombre del artista se mezclo con el nombre de cancion": sin
+  // lineHeight explicito, si la fuente de peso 800 (titulo) llegaba a
+  // fallar y Satori caia a su fuente generica de respaldo, esa fuente
+  // trae otra metrica de linea y el marginTop de 10 dejaba de ser
+  // suficiente -- las dos lineas se veian pegadas/superpuestas. Se fija
+  // lineHeight en ambas y se sube el margen para dar mas aire aunque el
+  // font-loading vuelva a fallar en algun caso raro.
   const sheetChildren = []
   sheetChildren.push(
     e(
       'div',
-      { key: 'song-title', style: { display: 'flex', justifyContent: 'center', fontSize: 46, fontWeight: 800, color: '#fff', textAlign: 'center' } },
+      { key: 'song-title', style: { display: 'flex', justifyContent: 'center', fontSize: 46, fontWeight: 800, lineHeight: 1.3, color: '#fff', textAlign: 'center' } },
       perf.song || 'Canción'
     )
   )
@@ -415,7 +450,7 @@ function buildCardElement({ perf, levelName, modeMeta, placeName, dateTxt, topRe
     sheetChildren.push(
       e(
         'div',
-        { key: 'song-artist', style: { display: 'flex', justifyContent: 'center', marginTop: 10, fontSize: 34, fontWeight: 600, color: 'rgba(255,255,255,0.68)' } },
+        { key: 'song-artist', style: { display: 'flex', justifyContent: 'center', marginTop: 16, fontSize: 34, fontWeight: 600, lineHeight: 1.3, color: 'rgba(255,255,255,0.68)' } },
         perf.artist_name
       )
     )
@@ -453,8 +488,8 @@ function buildCardElement({ perf, levelName, modeMeta, placeName, dateTxt, topRe
                 'div',
                 { key: 'v', style: { display: 'flex', flexDirection: 'row', alignItems: 'baseline', marginTop: 8 } },
                 [
-                  e('div', { key: 'num', style: { display: 'flex', fontSize: 92, fontWeight: 700, color: '#E91E8C' } }, String(perf.vocal_score)),
-                  e('div', { key: 'suf', style: { display: 'flex', fontSize: 38, fontWeight: 700, color: '#E91E8C', opacity: 0.85, marginLeft: 4 } }, '/100')
+                  e('div', { key: 'num', style: { display: 'flex', fontSize: 92, fontWeight: 700, color: '#F4D03F' } }, String(perf.vocal_score)),
+                  e('div', { key: 'suf', style: { display: 'flex', fontSize: 38, fontWeight: 700, color: '#F4D03F', opacity: 0.85, marginLeft: 4 } }, '/100')
                 ]
               )
             ]
@@ -536,24 +571,47 @@ function buildCardElement({ perf, levelName, modeMeta, placeName, dateTxt, topRe
     }
     resultsStyle = { flexDirection: 'row', alignItems: 'stretch', justifyContent: 'center' }
   }
+  // "el marco del cuadro de la nota tiene que tener el mismo marco que el
+  // borde de la tarjeta, el flujo de colores" -- antes un borde solido
+  // dorado, ahora el mismo anillo de flujo de colores que el borde
+  // exterior de la tarjeta (ver cardInner/el wrapper del handler mas
+  // abajo). Satori no soporta mask-composite (por eso el truco CSS que sí
+  // funciona en el navegador no sirve aca), asi que se usa el mismo
+  // truco de dos capas que ya usa el resto de este archivo: un wrapper
+  // exterior pinta el degrade completo con padding = grosor del anillo,
+  // y el contenido real va adentro con su fondo solido de siempre.
   sheetChildren.push(
     e(
       'div',
       {
-        key: 'results',
-        style: Object.assign(
-          {
-            display: 'flex',
-            marginTop: 55,
-            borderRadius: 46,
-            border: '4px solid rgba(244,208,79,0.5)',
-            background: 'linear-gradient(135deg, rgba(58,20,60,0.95), rgba(40,16,58,0.95))',
-            padding: '50px 30px'
-          },
-          resultsStyle
-        )
+        key: 'results-ring',
+        style: {
+          display: 'flex',
+          marginTop: 55,
+          borderRadius: 50,
+          padding: 4,
+          boxSizing: 'border-box',
+          background: 'linear-gradient(120deg, #E91E8C, #F4D03F, #8B5CF6, #7ED957, #E91E8C)'
+        }
       },
-      resultsChildren
+      e(
+        'div',
+        {
+          key: 'results',
+          style: Object.assign(
+            {
+              display: 'flex',
+              width: '100%',
+              borderRadius: 46,
+              boxSizing: 'border-box',
+              background: 'linear-gradient(135deg, rgba(58,20,60,0.95), rgba(40,16,58,0.95))',
+              padding: '50px 30px'
+            },
+            resultsStyle
+          )
+        },
+        resultsChildren
+      )
     )
   )
 

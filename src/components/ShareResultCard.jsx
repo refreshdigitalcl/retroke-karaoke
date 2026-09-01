@@ -144,6 +144,36 @@ import { useRetrokeFont } from '../lib/fonts'
 // que antes competian por espacio en esa misma fila, ahora salen como su
 // propia pildora aparte cuando hay vocalScore (no se pierden, solo se
 // reubican).
+//
+// SEXTA VUELTA (feedback sobre la QUINTA, ya viendo la tarjeta real): 1)
+// "el puntaje obtenido deberia estar en amarillo" -- el numero de Retroke
+// Score (antes rosa, ver .momento-score-value) pasa a amarillo, igual que
+// Nota Final. 2) "el nombre del artista se mezclo con el nombre de
+// cancion" -- se agrega line-height explicito a ambas lineas (antes solo
+// el titulo lo tenia) y se sube un poco el margen entre ellas; la causa
+// real mas probable no esta en este archivo (el navegador siempre carga
+// la fuente real via <link>) sino en el generador server-side (ver
+// api/momento-card.js, que es lo que se comparte a IG) cuando la carga de
+// una fuente pesada fallaba y Satori caia a una fuente generica con otra
+// metrica de linea. 3) "ajustar la portada para que no corte texto,
+// partiendo desde arriba hacia abajo, manteniendo el difuminado" -- el
+// recorte del hero (cover) ahora ancla arriba (background-position: 50%
+// 0%, no 50% 50%) para que si la caratula trae texto pegado al borde
+// superior, el recorte se lo coma por abajo en vez de arriba; el
+// difuminado (.momento-hero-fade) no se toco. 4) "alinear los cuadros de
+// ranking, seguidores y seguidos" -- ver el comentario largo en
+// .momento-meta-row mas abajo. 5) "el marco del cuadro de la nota tiene
+// que tener el mismo marco que el borde de la tarjeta" -- .momento-results
+// pasa de un borde solido dorado al mismo anillo de flujo de colores del
+// borde exterior (.momento-outer::before), mismo truco de padding+mask.
+// 6) "mantener la misma fuente que en la tarjeta online" -- ver
+// api/momento-card.js: loadFonts() pedia los 4 pesos en un solo request
+// con pesos separados por ";" (sintaxis valida de Google Fonts, pero
+// fragil si algun proxy/red intermedia interpreta el ";" como separador
+// de parametros); se separa en un request independiente POR PESO, y si
+// uno falla se reusa el TTF real de otro peso ya descargado en vez de
+// caer a la fuente generica de Satori (que es la que se veia "mas simple"
+// al compartir).
 const LOGO_SRC = '/landing/retroke-logo-oficial-neon.png'
 
 // La busqueda de iTunes (songLookup.js) devuelve un thumbnail chico
@@ -318,13 +348,20 @@ const ShareResultCard = forwardRef(function ShareResultCard(
           overflow: hidden;
           background: radial-gradient(circle at 50% 38%, #3a1a4a 0%, #150a20 72%);
         }
+        /* background-position: 50% 0% (no 50% 50%) a proposito: con
+           "cover", centrar el recorte corta parejo arriba Y abajo -- si la
+           caratula trae texto pegado al borde superior (portadas de
+           singles/albumes casi siempre lo traen), ese texto quedaba
+           cortado. Ajustando el punto de referencia arriba, el recorte
+           (si el alto no calza) se come solo la parte de ABAJO, que la
+           tarjeta igual tapa con .momento-hero-fade. */
         .momento-hero-photo {
           position: absolute;
           inset: 0;
           width: 100%;
           height: 100%;
           background-size: cover;
-          background-position: 50% 50%;
+          background-position: 50% 0%;
           background-repeat: no-repeat;
           filter: saturate(1.05) contrast(1.03);
         }
@@ -427,29 +464,26 @@ const ShareResultCard = forwardRef(function ShareResultCard(
           gap: 10px;
           min-width: 0;
         }
-        /* Fila del medio: la categoria (nivel) a la izquierda y seguidores/
-           seguidos a la derecha, a la MISMA altura -- y debajo, el puesto
-           en el ranking. Ambas filas se indentan lo mismo que ocupa el
-           avatar+gap para quedar alineadas bajo el nombre, no bajo el
-           avatar. */
+        /* SEXTA VUELTA: "alinea los cuadros de ranking, seguidores y
+           seguidos... no estan centrados ni equilibrados". La version
+           anterior separaba nivel+seguidores (justify-content:space-
+           between, empujados a los extremos) del puesto (fila aparte
+           abajo) -- con nombres cortos eso dejaba un hueco enorme en el
+           medio y el puesto quedaba flotando solo, sin relacion visual
+           con las otras pildoras. Ahora las 3 (nivel, puesto, seguidores,
+           seguidos) viven en UNA sola fila, agrupadas y alineadas a la
+           izquierda (bajo el nombre, mismo indent que antes), con el
+           mismo gap entre todas -- se leen como un solo set de datos, no
+           como dos bloques descolgados. flex-wrap por si el nombre es
+           largo y no entran las 4 en una linea. */
         .momento-meta-row {
           display: flex;
           flex-direction: row;
+          flex-wrap: wrap;
           align-items: center;
-          justify-content: space-between;
-          gap: 8px;
+          gap: 6px;
           margin-left: 54px;
           min-width: 0;
-        }
-        .momento-rank-row {
-          display: flex;
-          margin-left: 54px;
-        }
-        .momento-follow-group {
-          display: flex;
-          flex-direction: row;
-          gap: 6px;
-          flex-shrink: 0;
         }
         .momento-name-text {
           display: flex;
@@ -469,9 +503,9 @@ const ShareResultCard = forwardRef(function ShareResultCard(
           max-width: 100%;
         }
         .momento-level {
-          font-size: 11px;
+          font-size: 10px;
           font-weight: 600;
-          padding: 3px 12px;
+          padding: 3px 11px;
           border-radius: 999px;
           border: 1px solid rgba(244, 208, 79, 0.7);
           color: #F4D03F;
@@ -523,27 +557,26 @@ const ShareResultCard = forwardRef(function ShareResultCard(
         /* Puesto / seguidores / seguidos -- mismos datos que el perfil real
            de Retroke (Profile.jsx). Nunca se inventa un numero: si
            followCounts es null, este bloque entero no se renderiza (ver
-           hasProfileStats). Pedido: seguidores/seguidos a la altura de la
-           categoria (nivel), el puesto debajo -- ver .momento-meta-row /
-           .momento-rank-row mas arriba. */
+           hasProfileStats). Todas viven ahora en .momento-meta-row, ver
+           el comentario largo alli (SEXTA VUELTA). */
         .momento-stat-rank {
-          font-size: 9.5px;
+          font-size: 10px;
           font-weight: 700;
           color: #F4D03F;
           background: rgba(244,208,63,0.16);
           border: 1px solid rgba(244,208,63,0.45);
           border-radius: 999px;
-          padding: 2px 9px;
+          padding: 3px 11px;
           white-space: nowrap;
         }
         .momento-stat-follow {
-          font-size: 9px;
+          font-size: 10px;
           font-weight: 700;
           color: #fff;
           background: rgba(255,255,255,0.08);
           border: 1px solid rgba(255,255,255,0.18);
           border-radius: 999px;
-          padding: 2px 9px;
+          padding: 3px 11px;
           white-space: nowrap;
         }
 
@@ -573,23 +606,31 @@ const ShareResultCard = forwardRef(function ShareResultCard(
         .momento-song-title {
           font-size: 16px;
           font-weight: 800;
-          line-height: 1.25;
+          line-height: 1.3;
           color: #fff;
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
         }
         .momento-song-artist {
-          margin-top: 3px;
+          margin-top: 4px;
           font-size: 12.5px;
           font-weight: 600;
+          line-height: 1.3;
           color: rgba(255,255,255,0.68);
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
         }
 
+        /* Marco: antes un borde solido dorado, ahora el mismo "anillo de
+           flujo de colores" que el borde exterior de la tarjeta
+           (.momento-outer::before) -- mismo truco de padding+mask, fijo
+           (sin animar). Asi el cuadro central (donde va la nota/puntaje)
+           queda visualmente emparentado con el marco de la tarjeta, no
+           con un color de acento aparte. */
         .momento-results {
+          position: relative;
           margin-top: 4%;
           display: flex;
           align-items: center;
@@ -597,9 +638,22 @@ const ShareResultCard = forwardRef(function ShareResultCard(
           padding: 3.5% 3%;
           border-radius: 18px;
           background: linear-gradient(135deg, rgba(58,20,60,0.9), rgba(40,16,58,0.9));
-          border: 1.5px solid rgba(244,208,79,0.5);
+          border: 2px solid transparent;
           box-sizing: border-box;
           flex-shrink: 0;
+        }
+        .momento-results::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          border-radius: 18px;
+          padding: 2px;
+          box-sizing: border-box;
+          background: linear-gradient(120deg, #E91E8C, #F4D03F, #8B5CF6, #7ED957, #E91E8C);
+          -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+          -webkit-mask-composite: xor;
+          mask-composite: exclude;
+          pointer-events: none;
         }
         .momento-result-col {
           flex: 1;
@@ -839,20 +893,16 @@ const ShareResultCard = forwardRef(function ShareResultCard(
               </div>
               <div className="momento-name">{singerName || 'Cantante Retroke'}</div>
             </div>
-            {(levelName || hasProfileStats) && (
+            {(levelName || rank || hasProfileStats) && (
               <div className="momento-meta-row">
-                {levelName ? <div className="momento-level">🏅 {levelName}</div> : <span />}
+                {levelName && <div className="momento-level">🏅 {levelName}</div>}
+                {rank && <div className="momento-stat-rank">🏆 #{rank.rank} en Retroke</div>}
                 {hasProfileStats && (
-                  <div className="momento-follow-group">
+                  <>
                     <div className="momento-stat-follow">{followCounts.followers} seguidores</div>
                     <div className="momento-stat-follow">{followCounts.following} seguidos</div>
-                  </div>
+                  </>
                 )}
-              </div>
-            )}
-            {rank && (
-              <div className="momento-rank-row">
-                <div className="momento-stat-rank">🏆 #{rank.rank} en Retroke</div>
               </div>
             )}
           </div>
@@ -876,7 +926,7 @@ const ShareResultCard = forwardRef(function ShareResultCard(
                 <div className="momento-result-divider" />
                 <div className="momento-score-cell">
                   <div className="momento-result-label">Retroke Score</div>
-                  <div className="momento-score-value" style={{ color: '#E91E8C', textShadow: '0 0 16px #E91E8C80' }}>
+                  <div className="momento-score-value" style={{ color: '#F4D03F', textShadow: '0 0 16px #F4D03F80' }}>
                     {vocalScore}<span className="momento-score-suffix">/100</span>
                   </div>
                 </div>
