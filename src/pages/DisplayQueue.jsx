@@ -481,6 +481,13 @@ export default function DisplayQueue(props) {
             .queue-neon-ring {
               position: relative;
             }
+            /* Estatico a proposito: esta pantalla queda horas encendida en el
+               bar, y 5 instancias simultaneas de filter:drop-shadow +
+               background-position animados (una por cada caja con este
+               anillo) forzaban repaint constante y generaban el lag
+               reportado. El gradiente sigue ahi, solo que fijo -- misma
+               tecnica que ya se usa (estatica) en ShareResultCard.jsx y en
+               la tarjeta server-side de api/momento-card.js. */
             .queue-neon-ring::before {
               content: '';
               position: absolute;
@@ -490,20 +497,10 @@ export default function DisplayQueue(props) {
               padding: 2.5px;
               box-sizing: border-box;
               background: linear-gradient(120deg, #E91E8C, #F4D03F, #8B5CF6, #7ED957, #E91E8C);
-              background-size: 300% 300%;
               -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
               -webkit-mask-composite: xor;
               mask-composite: exclude;
               pointer-events: none;
-              animation: queueRingShift 5s linear infinite, queueRingGlowPulse 2.4s ease-in-out infinite;
-            }
-            @keyframes queueRingShift {
-              0% { background-position: 0% 50%; }
-              100% { background-position: 300% 50%; }
-            }
-            @keyframes queueRingGlowPulse {
-              0%, 100% { filter: drop-shadow(0 0 8px rgba(233,30,140,0.4)) drop-shadow(0 0 14px rgba(139,92,246,0.28)); }
-              50% { filter: drop-shadow(0 0 14px rgba(233,30,140,0.65)) drop-shadow(0 0 22px rgba(139,92,246,0.48)); }
             }
           `}</style>
         </div>

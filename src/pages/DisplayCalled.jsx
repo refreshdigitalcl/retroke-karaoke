@@ -96,11 +96,6 @@ export default function DisplayCalled() {
       <div className="called-bg-tint" aria-hidden="true" />
       <div className="called-bg-scrim" aria-hidden="true" />
 
-      <div className="called-floor-scene" aria-hidden="true">
-        <span className="called-horizon" />
-        <div className="called-floor" />
-      </div>
-
       <RetroEqualizer />
       <div className="called-scanlines" aria-hidden="true" />
 
@@ -111,8 +106,6 @@ export default function DisplayCalled() {
         </span>
 
         <div className="called-stage-3d">
-          <div className="called-halo-3d" aria-hidden="true" />
-          <div className="called-avatar-reflect" aria-hidden="true">{avatarVisual}</div>
           <div className="relative called-stage">
             <div className="called-neon-ring" aria-hidden="true" />
             <div
@@ -125,7 +118,6 @@ export default function DisplayCalled() {
         </div>
 
         <p className="called-name">{currentSinger.name}</p>
-        <span className="called-rule" aria-hidden="true" />
 
         <div className="called-track">
           <div className="called-track-art">
@@ -162,10 +154,12 @@ export default function DisplayCalled() {
           100% { opacity: 1; transform: translate(0,0) scale(1); }
         }
 
-        /* Video de fondo: cubre toda la pantalla, se oscurece un poco
-           (brightness) para que el texto encima siga legible, y se
-           satura levemente para que no quede plano al mezclarse con el
-           tinte de color. */
+        /* Video de fondo: cubre toda la pantalla. El grading de color
+           (contraste/brillo/saturacion) ahora lo hacen el tinte y el
+           scrim de abajo en vez de un filter CSS sobre el <video> --
+           un filter en un elemento de video fuerza al navegador a
+           desactivar la composicion acelerada por hardware y causaba
+           lag notorio en esta pantalla. */
         .called-bg-video {
           position: absolute;
           inset: 0;
@@ -173,7 +167,6 @@ export default function DisplayCalled() {
           height: 100%;
           object-fit: cover;
           object-position: 50% 42%;
-          filter: contrast(1.12) brightness(0.7) saturate(1.05);
           z-index: 0;
         }
         /* Tinte de color sobre el blanco y negro: mix-blend-mode:color
@@ -198,48 +191,6 @@ export default function DisplayCalled() {
           z-index: 0;
           pointer-events: none;
           background: linear-gradient(to bottom, rgba(5,3,10,0.8) 0%, rgba(5,3,10,0.3) 26%, rgba(5,3,10,0.38) 68%, rgba(5,3,10,0.86) 100%);
-        }
-
-        /* Escenario 3D: piso con perspectiva real + linea de horizonte
-           fina (nunca un blob difuminado -- eso fue lo que causo la
-           "mancha" de rondas anteriores). Todo nitido. Con el video de
-           fondo, se agrega mix-blend-mode:screen para que las lineas
-           brillen sobre la imagen en vez de leerse como una grilla
-           pegada encima -- se funden con la escena real. */
-        .called-floor-scene {
-          position: absolute;
-          inset: 0;
-          overflow: hidden;
-          perspective: 700px;
-          perspective-origin: 50% 42%;
-          pointer-events: none;
-          mix-blend-mode: screen;
-          z-index: 1;
-        }
-        .called-horizon {
-          position: absolute;
-          left: 8%;
-          right: 8%;
-          top: 42%;
-          height: 1.5px;
-          background: linear-gradient(90deg, transparent 0%, rgba(233,30,140,0.55) 20%, rgba(244,208,63,0.5) 50%, rgba(139,92,246,0.55) 80%, transparent 100%);
-          filter: blur(1.5px);
-          box-shadow: 0 0 16px 1px rgba(233,30,140,0.25);
-        }
-        .called-floor {
-          position: absolute;
-          left: -60%;
-          right: -60%;
-          top: 42%;
-          height: 70%;
-          background-image:
-            linear-gradient(rgba(139,92,246,0.35) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(233,30,140,0.28) 1px, transparent 1px);
-          background-size: 64px 64px;
-          transform: rotateX(78deg);
-          transform-origin: 50% 0%;
-          mask-image: linear-gradient(to bottom, rgba(0,0,0,0.85) 0%, transparent 78%);
-          -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,0.85) 0%, transparent 78%);
         }
 
         .called-scene {
@@ -273,8 +224,6 @@ export default function DisplayCalled() {
           50% { opacity: 0.6; }
         }
 
-        /* Contenedor 3D: perspective real para que el halo (rotateX) y
-           el reflejo lean en el mismo espacio dimensional que el piso. */
         .called-stage-3d {
           position: relative;
           perspective: 900px;
@@ -337,59 +286,6 @@ export default function DisplayCalled() {
           50% { filter: drop-shadow(0 0 18px rgba(233,30,140,0.75)) drop-shadow(0 0 30px rgba(139,92,246,0.55)); }
         }
 
-        /* Halo 3D nuevo: un segundo anillo, mas grande, inclinado en
-           perspectiva real (rotateX) como un anillo de Saturno, girando
-           en su propio eje. Vive en un elemento distinto al anillo del
-           avatar (que sigue plano) -- ningun transform compite. */
-        .called-halo-3d {
-          position: absolute;
-          left: 50%;
-          top: 50%;
-          width: 148%;
-          height: 148%;
-          margin-left: -74%;
-          margin-top: -74%;
-          border-radius: 9999px;
-          padding: 2px;
-          box-sizing: border-box;
-          background: linear-gradient(120deg, rgba(233,30,140,0.9), rgba(244,208,63,0.7), rgba(139,92,246,0.9), rgba(126,217,87,0.6), rgba(233,30,140,0.9));
-          background-size: 300% 300%;
-          -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-          -webkit-mask-composite: xor;
-          mask-composite: exclude;
-          transform-style: preserve-3d;
-          transform: rotateX(72deg);
-          animation: haloSpin 9s linear infinite, calledRingShift 5s linear infinite;
-          opacity: 0.75;
-          z-index: 0;
-          pointer-events: none;
-        }
-        @keyframes haloSpin {
-          from { transform: rotateX(72deg) rotateZ(0deg); }
-          to { transform: rotateX(72deg) rotateZ(360deg); }
-        }
-
-        /* Reflejo del avatar sobre el piso: copia volteada, desvanecida
-           con mask-image (nunca blur) -- efecto de piso pulido. */
-        .called-avatar-reflect {
-          position: absolute;
-          left: 11px;
-          right: 11px;
-          top: calc(100% - 11px);
-          height: clamp(11rem, 26vh, 21rem);
-          border-radius: 9999px;
-          overflow: hidden;
-          transform: scaleY(-1);
-          opacity: 0.28;
-          mask-image: linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, transparent 65%);
-          -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, transparent 65%);
-          pointer-events: none;
-        }
-        .called-avatar-reflect .called-avatar-emoji,
-        .called-avatar-reflect .called-avatar-img {
-          filter: saturate(1.1);
-        }
-
         .called-name {
           font-weight: 800;
           color: #ffffff;
@@ -408,17 +304,6 @@ export default function DisplayCalled() {
           1.1% { transform: translate(5px, -2px); filter: hue-rotate(-14deg); }
           1.6% { transform: translate(-3px, 1px) skewX(0.8deg); filter: hue-rotate(10deg); }
           2%, 3.4% { transform: translate(0, 0) skewX(0deg); filter: hue-rotate(0deg); }
-        }
-
-        .called-rule {
-          display: block;
-          width: clamp(56px, 6vw, 90px);
-          height: 3px;
-          border-radius: 999px;
-          margin: clamp(16px, 2.6vh, 24px) 0;
-          background: linear-gradient(90deg, #E91E8C, #F4D03F, #8B5CF6, #7ED957, #E91E8C);
-          background-size: 300% 100%;
-          animation: calledRingShift 5s linear infinite;
         }
 
         /* "Ahora suena": misma idea que la fila de la lista de espera
@@ -530,9 +415,7 @@ export default function DisplayCalled() {
           .called-badge,
           .called-avatar-img,
           .called-neon-ring,
-          .called-halo-3d,
           .called-name,
-          .called-rule,
           .called-song-artist {
             animation: none;
           }
