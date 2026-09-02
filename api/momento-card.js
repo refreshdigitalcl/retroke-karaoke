@@ -1,5 +1,7 @@
 import { createRequire } from 'node:module'
 import path from 'node:path'
+import fs from 'node:fs'
+import { fileURLToPath } from 'node:url'
 
 // FIX CRITICO (causaba el 500 "Dynamic require of fs is not supported" /
 // luego "__dirname is not defined" en produccion, confirmado con los logs
@@ -121,8 +123,44 @@ function formatCardDate(createdAt) {
 // "casi" perfecto, sigue siendo la tipografia real) en vez de caer
 // directo a la fuente generica de Satori -- que es justamente la que se
 // veia "mas simple" al compartir.
+//
+// FIX (septima vuelta, "que la tarjeta mantenga siempre la misma fuente,
+// sin tener que pedirla cada vez"): pedir el TTF a Google Fonts en cada
+// invocacion "fria" de la funcion (Vercel recicla las funciones seguido)
+// significa que la tarjeta depende de que ESE fetch responda bien en ESE
+// momento -- si Google Fonts tarda, cambia de version, o la red de Vercel
+// tiene un hipo, la tarjeta cae a la fuente generica de Satori sin aviso.
+// Ahora los .ttf reales viven empaquetados en el propio deploy (carpeta
+// fonts/, junto a este archivo) y se leen directo del disco -- cero
+// dependencia de red para la fuente. Notese que Space Grotesk en Google
+// Fonts en realidad NO tiene un peso 800 real (pedirlo devuelve "font
+// family not found"): esto ya pasaba antes tambien, solo que en silencio
+// -- el fetch de 800 siempre fallaba y el Promise.allSettled de arriba
+// reusaba el TTF de 700 sin que se notara. Aca se hace explicito: 800
+// apunta directo al archivo de 700.
 const FONT_WEIGHTS = [400, 600, 700, 800]
+const LOCAL_FONT_WEIGHTS = [400, 600, 700]
+const FONT_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), 'fonts')
 const FONT_USER_AGENT = 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36'
+
+function loadFontsFromDisk() {
+  const buffers = {}
+  LOCAL_FONT_WEIGHTS.forEach((weight) => {
+    try {
+      buffers[weight] = fs.readFileSync(path.join(FONT_DIR, 'SpaceGrotesk-' + weight + '.ttf'))
+    } catch (err) {
+      // Archivo no esta (todavia no se corrieron los curl de instalacion,
+      // o alguien esta corriendo esto fuera de este repo) -- se resuelve
+      // mas abajo con el fetch a Google Fonts de siempre.
+    }
+  })
+  const fonts = []
+  FONT_WEIGHTS.forEach((weight) => {
+    const data = buffers[weight] || buffers[700] || buffers[600] || buffers[400]
+    if (data) fonts.push({ name: 'Space Grotesk', data, weight, style: 'normal' })
+  })
+  return fonts
+}
 
 async function fetchSpaceGroteskWeight(weight) {
   const cssUrl = 'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@' + weight + '&display=swap'
@@ -136,6 +174,12 @@ let fontsPromise = null
 function loadFonts() {
   if (fontsPromise) return fontsPromise
   fontsPromise = (async () => {
+    const localFonts = loadFontsFromDisk()
+    if (localFonts.length) return localFonts
+
+    // Sin archivos locales todavia: mismo fetch a Google Fonts de siempre,
+    // para que la tarjeta se siga generando (con la fuente real, solo que
+    // pedida por red) mientras se agregan los .ttf a fonts/.
     const settled = await Promise.allSettled(FONT_WEIGHTS.map(fetchSpaceGroteskWeight))
     const fonts = []
     let lastGoodData = null
