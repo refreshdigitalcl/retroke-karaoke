@@ -538,7 +538,7 @@ function buildCardElement({ perf, levelName, modeMeta, placeName, dateTxt, topRe
   sheetChildren.push(
     e(
       'div',
-      { key: 'title-block', style: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 22 } },
+      { key: 'title-block', style: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18 } },
       titleBlockChildren
     )
   )
@@ -586,7 +586,7 @@ function buildCardElement({ perf, levelName, modeMeta, placeName, dateTxt, topRe
     ]
     if (hasSubScores) {
       resultsChildren.push(
-        e('div', { key: 'hr', style: { display: 'flex', height: 2, marginTop: 34, marginBottom: 26, width: '100%', backgroundColor: 'rgba(255,255,255,0.16)' } })
+        e('div', { key: 'hr', style: { display: 'flex', height: 2, marginTop: 22, marginBottom: 18, width: '100%', backgroundColor: 'rgba(255,255,255,0.16)' } })
       )
       const subDefs = [
         ['Afinación', subScores.pitchScore],
@@ -610,7 +610,7 @@ function buildCardElement({ perf, levelName, modeMeta, placeName, dateTxt, topRe
                   flex: 1,
                   borderRadius: 18,
                   background: 'rgba(255,255,255,0.045)',
-                  padding: '14px 4px'
+                  padding: '12px 4px'
                 }
               },
               [
@@ -674,7 +674,7 @@ function buildCardElement({ perf, levelName, modeMeta, placeName, dateTxt, topRe
         key: 'results-ring',
         style: {
           display: 'flex',
-          marginTop: 55,
+          marginTop: 38,
           borderRadius: 50,
           padding: 4,
           boxSizing: 'border-box',
@@ -692,7 +692,7 @@ function buildCardElement({ perf, levelName, modeMeta, placeName, dateTxt, topRe
               borderRadius: 46,
               boxSizing: 'border-box',
               background: 'linear-gradient(135deg, rgba(58,20,60,0.95), rgba(40,16,58,0.95))',
-              padding: '50px 30px'
+              padding: '38px 30px'
             },
             resultsStyle
           )
@@ -717,9 +717,9 @@ function buildCardElement({ perf, levelName, modeMeta, placeName, dateTxt, topRe
             flexDirection: 'row',
             alignItems: 'center',
             gap: 6,
-            marginTop: 34,
+            marginTop: 24,
             alignSelf: 'center',
-            padding: '14px 40px',
+            padding: '12px 40px',
             borderRadius: 999,
             background: 'rgba(139,92,246,0.12)',
             border: '3px solid rgba(139,92,246,0.35)'
@@ -758,14 +758,14 @@ function buildCardElement({ perf, levelName, modeMeta, placeName, dateTxt, topRe
           key: 'mode-chip',
           style: {
             display: 'flex',
-            marginTop: 55,
+            marginTop: 34,
             alignItems: 'center',
             justifyContent: 'center',
             gap: 20,
             borderRadius: 999,
             backgroundColor: 'rgba(255,255,255,0.05)',
             border: '2px solid rgba(255,255,255,0.14)',
-            padding: '26px 50px'
+            padding: '20px 46px'
           }
         },
         chipChildren
@@ -776,7 +776,7 @@ function buildCardElement({ perf, levelName, modeMeta, placeName, dateTxt, topRe
   sheetChildren.push(
     e(
       'div',
-      { key: 'footer', style: { display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 'auto', paddingTop: 55 } },
+      { key: 'footer', style: { display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 'auto', paddingTop: 32 } },
       [
         e('div', { key: 'f1', style: { display: 'flex', fontSize: 34, fontWeight: 600, color: 'rgba(255,255,255,0.75)' } }, 'El karaoke cambió para siempre.'),
         e('div', { key: 'f2', style: { display: 'flex', marginTop: 6, fontSize: 28, fontWeight: 400, color: 'rgba(255,255,255,0.42)' } }, 'retroke.cl')
