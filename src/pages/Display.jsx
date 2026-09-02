@@ -27,7 +27,7 @@ function getSavedRoom() {
 var WAITING_MODES = ['queue', 'called', 'countdown']
 
 export default function Display() {
-  const { screenMode, hasActiveSession, lastClosedSession, sessionId, workspaceType, workspacePlan } = useKaraokeSession()
+  const { screenMode, hasActiveSession, lastClosedSession, sessionId, workspaceType, workspacePlan, currentSinger } = useKaraokeSession()
   const [showHub] = useState(checkNoParams)
   const [redirectingToSaved] = useState(function () {
     return checkNoParams() && !!getSavedRoom()
@@ -53,6 +53,39 @@ export default function Display() {
   var isWaiting = hasActiveSession && WAITING_MODES.indexOf(screenMode) !== -1
   var isWaitingRef = useRef(isWaiting)
   isWaitingRef.current = isWaiting
+
+  // Musica de "tension" (nota-loop.mp3) de la pantalla de calificacion,
+  // controlada aca arriba (y no adentro de DisplayRating.jsx) a proposito:
+  // este componente NUNCA se desmonta al cambiar de pantalla -- solo
+  // cambian sus hijos -- asi que puede garantizar que el audio se corte
+  // apenas screenMode deja de ser 'rating', sin depender de que el hijo
+  // (DisplayRating) alcance a limpiar su propio efecto a tiempo. Se
+  // reporto que en navegadores lentos (TV box) la cancion seguia sonando
+  // al pasar a la pantalla del siguiente cantante, justo cuando esta por
+  // arrancar su video -- el efecto de abajo corre en CADA cambio de
+  // screenMode (no solo al montar/desmontar un componente) y apaga
+  // explicitamente cualquier audio de rating que haya quedado sonando.
+  var ratingAudioRef = useRef(null)
+
+  function stopRatingAudio() {
+    if (ratingAudioRef.current) {
+      ratingAudioRef.current.pause()
+      ratingAudioRef.current = null
+    }
+  }
+
+  useEffect(function () {
+    if (screenMode === 'rating' && currentSinger) {
+      stopRatingAudio()
+      var audio = new Audio('/sounds/nota-loop.mp3')
+      audio.loop = true
+      audio.play().catch(function () {})
+      ratingAudioRef.current = audio
+    } else {
+      stopRatingAudio()
+    }
+    return stopRatingAudio
+  }, [screenMode, currentSinger ? currentSinger.id : null])
 
   // Selector de idioma ES/EN para todas las pantallas de TV (todo lo que
   // rota dentro de este componente). Se guarda en localStorage para que la

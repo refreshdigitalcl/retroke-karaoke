@@ -184,15 +184,16 @@ export default function DisplayRating() {
   var artist = useArtist(currentSinger ? currentSinger.song : '')
   var zone = usePerformanceZone(currentSinger ? currentSinger.id : null, zoneLabels)
 
-  useEffect(function () {
-    if (!currentSinger) return
-    var audio = new Audio('/sounds/nota-loop.mp3')
-    audio.loop = true
-    audio.play().catch(function () {})
-    return function () {
-      audio.pause()
-    }
-  }, [currentSinger ? currentSinger.id : null])
+  // La musica de "tension" (nota-loop.mp3) se movio a Display.jsx: ese
+  // componente padre nunca se desmonta entre pantallas (solo cambian sus
+  // hijos), asi que puede garantizar que el audio se corte apenas
+  // screenMode deja de ser 'rating' sin depender de que ESTE componente
+  // alcance a desmontarse a tiempo. Antes vivia aca con un efecto atado al
+  // mount/unmount de DisplayRating -- en navegadores lentos (TV box) se
+  // reporto que el sonido seguia sonando al pasar a la pantalla del
+  // siguiente video, algo que un pause() en el cleanup de un componente
+  // hijo no puede prevenir si el hilo principal esta ocupado justo en ese
+  // momento (cargando el video/DOM de la pantalla siguiente).
 
   useEffect(function () {
     if (average === null) return

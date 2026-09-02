@@ -274,11 +274,38 @@ function buildCardElement({ perf, levelName, modeMeta, placeName, dateTxt, topRe
       }
     })
   )
+  // "aumenta un 10% el tamaño del logo y dale una sombrita detrás para
+  // que pegue bien y no se mimetice con las imagenes": 222x82 -> 244x90
+  // (mismo aspect ratio, +10%). Satori no soporta filter:drop-shadow de
+  // forma confiable sobre un <img>, asi que el "sombrita" se logra con el
+  // mismo truco de dos capas que ya usa el resto de este archivo (scrim/
+  // fade/anillos): un halo oscuro con radial-gradient pintado DETRAS del
+  // logo (mismo centro, mas grande, se desvanece hacia los bordes) -- se
+  // ve bien sobre cualquier caratula, clara u oscura, sin depender de
+  // ningun filtro CSS que Satori pueda no soportar.
   heroChildren.push(
     e(
       'div',
-      { key: 'logo-wrap', style: { position: 'absolute', top: 55, left: 0, width: '100%', display: 'flex', justifyContent: 'center' } },
-      logoDataUri ? e('img', { src: logoDataUri, width: 222, height: 82, style: { objectFit: 'contain' } }) : null
+      { key: 'logo-wrap', style: { position: 'absolute', top: 45, left: 0, width: '100%', display: 'flex', justifyContent: 'center' } },
+      logoDataUri
+        ? e(
+            'div',
+            { style: { position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: 320, height: 150 } },
+            [
+              e('div', {
+                key: 'logo-halo',
+                style: {
+                  position: 'absolute',
+                  display: 'flex',
+                  width: 320,
+                  height: 150,
+                  background: 'radial-gradient(ellipse at center, rgba(5,2,10,0.6) 0%, rgba(5,2,10,0.32) 45%, rgba(5,2,10,0) 72%)'
+                }
+              }),
+              e('img', { key: 'logo-img', src: logoDataUri, width: 244, height: 90, style: { position: 'relative', objectFit: 'contain' } })
+            ]
+          )
+        : null
     )
   )
 
@@ -434,27 +461,43 @@ function buildCardElement({ perf, levelName, modeMeta, placeName, dateTxt, topRe
   // "el nombre del artista se mezclo con el nombre de cancion": sin
   // lineHeight explicito, si la fuente de peso 800 (titulo) llegaba a
   // fallar y Satori caia a su fuente generica de respaldo, esa fuente
-  // trae otra metrica de linea y el marginTop de 10 dejaba de ser
-  // suficiente -- las dos lineas se veian pegadas/superpuestas. Se fija
-  // lineHeight en ambas y se sube el margen para dar mas aire aunque el
-  // font-loading vuelva a fallar en algun caso raro.
-  const sheetChildren = []
-  sheetChildren.push(
+  // trae otra metrica de linea y el marginTop dejaba de ser suficiente --
+  // las dos lineas se veian pegadas/superpuestas.
+  //
+  // SEPTIMA VUELTA: subir el marginTop (de 10 a 16) no alcanzo -- se
+  // siguio viendo superpuesto en la practica. El problema real es que un
+  // marginTop entre dos textos depende de la metrica de linea (line-height/
+  // ascender/descender) de la fuente que TERMINE renderizando cada uno, y
+  // esa metrica varia segun la fuente (real vs. de respaldo si Google
+  // Fonts fallo esa vez) -- exactamente el escenario fragil que el
+  // comentario de arriba ya advertia. La solucion robusta es no depender
+  // de margin en absoluto: envolver titulo+artista en un solo contenedor
+  // flex en columna con "gap", que Satori/Yoga calcula como espacio fijo
+  // entre los bloques sin importar la metrica interna de cada fuente.
+  const titleBlockChildren = [
     e(
       'div',
       { key: 'song-title', style: { display: 'flex', justifyContent: 'center', fontSize: 46, fontWeight: 800, lineHeight: 1.3, color: '#fff', textAlign: 'center' } },
       perf.song || 'Canción'
     )
-  )
+  ]
   if (perf.artist_name) {
-    sheetChildren.push(
+    titleBlockChildren.push(
       e(
         'div',
-        { key: 'song-artist', style: { display: 'flex', justifyContent: 'center', marginTop: 16, fontSize: 34, fontWeight: 600, lineHeight: 1.3, color: 'rgba(255,255,255,0.68)' } },
+        { key: 'song-artist', style: { display: 'flex', justifyContent: 'center', fontSize: 34, fontWeight: 600, lineHeight: 1.3, color: 'rgba(255,255,255,0.68)' } },
         perf.artist_name
       )
     )
   }
+  const sheetChildren = []
+  sheetChildren.push(
+    e(
+      'div',
+      { key: 'title-block', style: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 22 } },
+      titleBlockChildren
+    )
+  )
 
   // QUINTA VUELTA: mismo cambio que ShareResultCard.jsx (ver comentario
   // largo alli) -- con vocalScore (Retroke Home) la caja pasa a ser de dos
