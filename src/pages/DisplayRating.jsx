@@ -9,6 +9,7 @@ import FallingParty from '../components/FallingParty'
 import FloatingDecor from '../components/FloatingDecor'
 import RetrokeAtmosphere from '../components/retroke/RetrokeAtmosphere'
 import { RETROKE_STYLES } from '../components/retroke/retrokeStyles'
+import { useLanguage } from '../lib/i18n'
 
 var VOTE_SECONDS = 20
 var RING_RADIUS = 132
@@ -78,7 +79,7 @@ function useArtist(song) {
   return artist
 }
 
-function usePerformanceZone(queueEntryId) {
+function usePerformanceZone(queueEntryId, zoneLabels) {
   var zoneState = useState(null)
   var zone = zoneState[0]
   var setZone = zoneState[1]
@@ -105,12 +106,12 @@ function usePerformanceZone(queueEntryId) {
         })
         var avg = sum / rows.length
         var color = avg > 0.7 ? '#7ED957' : avg > 0.4 ? '#F4A93F' : '#E9544A'
-        var label = avg > 0.7 ? 'Publico muy entusiasta' : avg > 0.4 ? 'Reacciones mixtas' : 'Reacciones tranquilas'
+        var label = avg > 0.7 ? zoneLabels.enthusiastic : avg > 0.4 ? zoneLabels.mixed : zoneLabels.calm
         setZone({ pct: avg * 100, color: color, label: label })
       })
 
     return function () { cancelled = true }
-  }, [queueEntryId])
+  }, [queueEntryId, zoneLabels])
 
   return zone
 }
@@ -120,6 +121,10 @@ export default function DisplayRating() {
   var currentSinger = session.currentSinger
   var ratings = session.ratings
   var spaceParam = session.spaceParam
+  var T = useLanguage().T
+  var zoneLabels = useMemo(function () {
+    return { enthusiastic: T.rating.zoneEnthusiastic, mixed: T.rating.zoneMixed, calm: T.rating.zoneCalm }
+  }, [T])
 
   var burstingState = useState(false)
   var bursting = burstingState[0]
@@ -177,7 +182,7 @@ export default function DisplayRating() {
 
   var secondsLeft = useCountdown(currentSinger ? currentSinger.id : 'none')
   var artist = useArtist(currentSinger ? currentSinger.song : '')
-  var zone = usePerformanceZone(currentSinger ? currentSinger.id : null)
+  var zone = usePerformanceZone(currentSinger ? currentSinger.id : null, zoneLabels)
 
   useEffect(function () {
     if (!currentSinger) return
@@ -240,12 +245,12 @@ export default function DisplayRating() {
           </div>
           <p className="text-lg font-extrabold text-white">{currentSinger.name}</p>
           <p className="text-sm text-yellow-400 mt-1">{currentSinger.song}</p>
-          <p className="text-xs text-purple-300 mb-5">{artist || 'Buscando artista...'}</p>
+          <p className="text-xs text-purple-300 mb-5">{artist || T.common.searching}</p>
 
           {zone && (
             <div className="w-full">
               <p className="text-[10px] uppercase tracking-widest text-neutral-400 mb-1.5">
-                Reaccion del publico
+                {T.rating.audienceReaction}
               </p>
               <div className="w-full h-2.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.1)' }}>
                 <div
@@ -283,7 +288,7 @@ export default function DisplayRating() {
             </div>
           </div>
           <p className="text-sm font-bold text-yellow-400 mt-5 uppercase tracking-widest">
-            Escanea para votar
+            {T.rating.scanToVote}
           </p>
         </div>
 
@@ -307,7 +312,7 @@ export default function DisplayRating() {
         <div className="hologram-card tilt-right flex-1 max-w-xs rounded-3xl border-2 border-yellow-400 bg-neutral-950/80 px-6 py-8 flex flex-col items-center text-center relative">
           {bursting && <ConfettiBurst />}
           <p className="text-sm tracking-widest uppercase text-purple-400 mb-4 font-bold">
-            Calificacion final
+            {T.rating.finalScore}
           </p>
           {average ? (
             <>
@@ -315,12 +320,12 @@ export default function DisplayRating() {
                 {average}
               </p>
               <p className="text-sm text-neutral-400 mt-4">
-                {songRatings.length} {songRatings.length === 1 ? 'voto emitido' : 'votos emitidos'}
+                {songRatings.length} {songRatings.length === 1 ? T.rating.voteSingular : T.rating.votePlural}
               </p>
             </>
           ) : (
             <p className="text-base text-neutral-400 mt-4">
-              Esperando la calificacion del jurado...
+              {T.rating.waitingJudges}
             </p>
           )}
         </div>

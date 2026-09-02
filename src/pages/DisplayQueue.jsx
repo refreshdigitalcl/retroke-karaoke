@@ -1,17 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useKaraokeSession } from '../contexts/KaraokeSessionContext'
 import RetroEqualizer from '../components/RetroEqualizer'
+import { useLanguage } from '../lib/i18n'
 
-var HERO_PHRASES = [
-  'UNA NUEVA FORMA DE VIVIR EL KARAOKE.',
-  'EL ESCENARIO TE ESPERA. LA EXPERIENCIA ES TUYA.',
-  'EL KARAOKE COMO NUNCA LO HAS VIVIDO.',
-  'EL SHOW LO HACEMOS ENTRE TODOS.',
-  'CANTAR ES SOLO EL COMIENZO, VIVIRLO ES DE TODOS.',
-  'LA CANCIÓN ES TUYA. LA EXPERIENCIA ES DE TODOS.'
-]
-
-function nextHeroPhrase() {
+// El indice rota (y persiste en localStorage) independiente del idioma --
+// solo se guarda la POSICION, nunca el texto. Asi, si alguien cambia de
+// ES a EN a mitad de la noche, se seguia mostrando la frase de la MISMA
+// posicion pero en el otro idioma, en vez de saltar a una frase distinta.
+function nextHeroPhraseIndex() {
   var idx = 0
   try {
     var stored = parseInt(localStorage.getItem('retroke_phrase_idx') || '0', 10)
@@ -20,7 +16,7 @@ function nextHeroPhrase() {
   try {
     localStorage.setItem('retroke_phrase_idx', String(idx + 1))
   } catch (e) {}
-  return HERO_PHRASES[idx % HERO_PHRASES.length]
+  return idx
 }
 import QRCode from '../components/QRCode'
 import FloatingDecor from '../components/FloatingDecor'
@@ -32,6 +28,7 @@ function QueueRow(props) {
   var entry = props.entry
   var position = props.position
   var isNext = position === 1
+  var T = useLanguage().T
 
   var artworkState = useState(null)
   var artwork = artworkState[0]
@@ -97,7 +94,7 @@ function QueueRow(props) {
       <div className="flex-1 min-w-0">
         <p className="text-2xl font-bold text-white truncate">{entry.name}</p>
         <p className="text-base truncate" style={{ color: accentColor }}>
-          {status === 'loading' && 'Buscando artista...'}
+          {status === 'loading' && T.common.searching}
           {status === 'found' && artist}
           {status === 'none' && entry.song}
         </p>
@@ -105,7 +102,7 @@ function QueueRow(props) {
       </div>
       {isNext && (
         <span className="ready-pulse text-sm font-extrabold px-3 py-1.5 rounded-full shrink-0 tracking-wide" style={{ background: '#7ED957', color: '#0a0a0a' }}>
-          🎤 LISTO
+          🎤 {T.queue.ready}
         </span>
       )}
     </div>
@@ -114,6 +111,7 @@ function QueueRow(props) {
 
 function Backstage(props) {
   var queue = props.queue
+  var T = useLanguage().T
   var rows = []
   var i = 0
   while (i < queue.length) {
@@ -129,12 +127,12 @@ function Backstage(props) {
       <div className="flex items-center gap-2.5 mb-4">
         <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: '#7ED957', boxShadow: '0 0 8px 2px rgba(126,217,87,0.8)' }} />
         <p className="text-xs md:text-sm tracking-[4px] uppercase font-bold" style={{ color: '#F4D03F' }}>
-          Lista de espera
+          {T.queue.waitingListTitle}
         </p>
       </div>
       {rows.length === 0 && (
         <p className="text-base text-neutral-400">
-          Aún no hay nadie anotado. Escanea el QR y sé el primero en subir al escenario.
+          {T.queue.waitingListEmpty}
         </p>
       )}
       <div className="flex flex-col gap-3 overflow-y-auto pr-1" style={{ maxHeight: '45vh' }}>{rows}</div>
@@ -210,6 +208,8 @@ export default function DisplayQueue(props) {
   var toggleMute = props.toggleMute
   var musicEnabled = props.musicEnabled
   var session = useKaraokeSession()
+  var language = useLanguage()
+  var T = language.T
   var barName = session.barName
   var speedTestOpenState = useState(false)
   var speedTestOpen = speedTestOpenState[0]
@@ -226,8 +226,13 @@ export default function DisplayQueue(props) {
   // razonables para que nunca quede minusculo ni gigante.
   var qrSize = Math.round(Math.max(196, Math.min(322, viewport.h * 0.294)))
 
-  var heroPhraseState = useState(nextHeroPhrase)
-  var heroPhrase = heroPhraseState[0]
+  // Ver el comentario junto a nextHeroPhraseIndex(): se guarda solo la
+  // posicion, el texto se resuelve siempre con el diccionario del idioma
+  // actual -- asi cambiar de idioma a mitad de la noche no salta a otra
+  // frase random.
+  var heroPhraseIndexState = useState(nextHeroPhraseIndex)
+  var heroPhraseIndex = heroPhraseIndexState[0]
+  var heroPhrase = T.queue.heroPhrases[heroPhraseIndex % T.queue.heroPhrases.length]
 
   var sungTonight = groupRatings(ratings)
 
@@ -269,8 +274,8 @@ export default function DisplayQueue(props) {
             onClick={toggleMute}
             className="w-11 h-11 rounded-full flex items-center justify-center border-2 transition-colors sound-neon-btn active:scale-95"
             style={{ borderColor: '#F4D03F', background: 'rgba(15,10,20,0.85)' }}
-            title={muted ? 'Activar musica de fondo' : 'Silenciar musica de fondo'}
-            aria-label={muted ? 'Activar musica de fondo' : 'Silenciar musica de fondo'}
+            title={muted ? T.queue.muteOn : T.queue.muteOff}
+            aria-label={muted ? T.queue.muteOn : T.queue.muteOff}
           >
             {muted ? (
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F4D03F" strokeWidth="2">
@@ -290,8 +295,8 @@ export default function DisplayQueue(props) {
           onClick={function () { setSpeedTestOpen(true) }}
           className="w-11 h-11 rounded-full flex items-center justify-center border-2 transition-colors sound-neon-btn active:scale-95"
           style={{ borderColor: '#F4D03F', background: 'rgba(15,10,20,0.85)' }}
-          title="Test de velocidad de internet"
-          aria-label="Test de velocidad de internet"
+          title={T.queue.speedTestTitle}
+          aria-label={T.queue.speedTestTitle}
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F4D03F" strokeWidth="2">
             <path d="M2 8.5C7 3.5 17 3.5 22 8.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -300,6 +305,22 @@ export default function DisplayQueue(props) {
             <circle cx="12" cy="19" r="1.1" fill="#F4D03F" stroke="none" />
           </svg>
         </button>
+        {/* Selector de idioma: mismo porte/estilo que los demas iconos de
+            este stack (mute/speed test/cambiar sala), pedido explicito.
+            Es un boton de texto (no SVG) porque lo mas claro para un
+            selector de idioma es mostrar la sigla del idioma AL QUE SE
+            CAMBIA con un toque -- convencion estandar en apps/TVs. */}
+        <button
+          onClick={language.toggleLang}
+          className="w-11 h-11 rounded-full flex items-center justify-center border-2 transition-colors sound-neon-btn active:scale-95"
+          style={{ borderColor: '#F4D03F', background: 'rgba(15,10,20,0.85)' }}
+          title={T.queue.langToggleTitle}
+          aria-label={T.queue.langToggleTitle}
+        >
+          <span className="text-xs font-extrabold tracking-wide" style={{ color: '#F4D03F' }}>
+            {language.lang === 'es' ? 'EN' : 'ES'}
+          </span>
+        </button>
         <button
           onClick={function () {
             try { localStorage.removeItem('retroke_last_room') } catch (e) {}
@@ -307,8 +328,8 @@ export default function DisplayQueue(props) {
           }}
           className="w-11 h-11 rounded-full flex items-center justify-center border-2 transition-colors sound-neon-btn active:scale-95"
           style={{ borderColor: '#F4D03F', background: 'rgba(15,10,20,0.85)' }}
-          title="Cambiar sala"
-          aria-label="Cambiar sala"
+          title={T.queue.changeRoom}
+          aria-label={T.queue.changeRoom}
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F4D03F" strokeWidth="2">
             <path d="M4 11L12 4l8 7" strokeLinecap="round" strokeLinejoin="round" />
@@ -380,7 +401,7 @@ export default function DisplayQueue(props) {
               className="tracking-[4px] uppercase font-bold mb-2 relative"
               style={{ color: '#F4D03F', fontSize: 'clamp(10px, 1.5vh, 14px)' }}
             >
-              ✨ La Evolución del Karaoke
+              {T.queue.eyebrow}
             </p>
             <h1
               className="hero-title font-extrabold leading-tight"
@@ -394,7 +415,7 @@ export default function DisplayQueue(props) {
             className="font-bold hero-subtitle max-w-lg"
             style={{ color: '#E91E8C', fontSize: 'clamp(1.05rem, 2.6vh, 1.5rem)' }}
           >
-            Escanea el QR, anota tu nombre y canción, y sube al escenario.
+            {T.queue.subtitle}
           </p>
 
           <div className="queue-neon-ring relative rounded-[1.75rem] px-6 py-4 flex flex-col items-center gap-2.5" style={{ background: 'rgba(12,8,20,0.9)', boxShadow: '0 0 24px -6px rgba(244,208,63,0.4)' }}>
@@ -410,7 +431,7 @@ export default function DisplayQueue(props) {
                 className="tracking-widest uppercase font-bold mb-1 text-center"
                 style={{ color: '#8B5CF6', fontSize: 'clamp(9px, 1.2vh, 12px)' }}
               >
-                Ya cantaron esta noche
+                {T.queue.sungTonight}
               </p>
               <div style={{ height: 'clamp(26px, 3.4vh, 36px)' }} className="flex items-center justify-center overflow-hidden">
                 <div
@@ -515,6 +536,7 @@ export default function DisplayQueue(props) {
 
 function SpeedTestModal(props) {
   var onClose = props.onClose
+  var T = useLanguage().T
   var statusState = useState('testing')
   var status = statusState[0]
   var setStatus = statusState[1]
@@ -557,9 +579,9 @@ function SpeedTestModal(props) {
 
   function calidad(v) {
     if (v === null) return null
-    if (v >= 15) return { label: 'Excelente para video en vivo', color: '#7ED957' }
-    if (v >= 5) return { label: 'Suficiente, sin margen de sobra', color: '#F4D03F' }
-    return { label: 'Puede cortarse el video', color: '#E9544A' }
+    if (v >= 15) return { label: T.queue.speedModal.excellent, color: '#7ED957' }
+    if (v >= 5) return { label: T.queue.speedModal.enough, color: '#F4D03F' }
+    return { label: T.queue.speedModal.maybeCuts, color: '#E9544A' }
   }
 
   var q = calidad(mbps)
@@ -575,13 +597,13 @@ function SpeedTestModal(props) {
         style={{ borderColor: '#F4D03F', background: 'rgba(15,10,20,0.96)', boxShadow: '0 0 40px -8px rgba(244,208,63,0.5)' }}
         onClick={function (e) { e.stopPropagation() }}
       >
-        <p className="text-2xl font-extrabold text-white mb-1">📶 Test de velocidad</p>
-        <p className="text-sm text-neutral-400 mb-6">Conexión de esta pantalla</p>
+        <p className="text-2xl font-extrabold text-white mb-1">{T.queue.speedModal.title}</p>
+        <p className="text-sm text-neutral-400 mb-6">{T.queue.speedModal.subtitle}</p>
 
         {status === 'testing' && (
           <>
             <div className="w-10 h-10 mx-auto rounded-full border-4 border-t-transparent animate-spin mb-5" style={{ borderColor: '#8B5CF6', borderTopColor: 'transparent' }} />
-            <p className="text-neutral-300 text-sm">Midiendo...</p>
+            <p className="text-neutral-300 text-sm">{T.queue.speedModal.measuring}</p>
           </>
         )}
 
@@ -590,7 +612,7 @@ function SpeedTestModal(props) {
             <p className="text-6xl font-extrabold leading-none mb-2" style={{ color: '#F4D03F' }}>
               {mbps}
             </p>
-            <p className="text-sm uppercase tracking-widest text-neutral-400 mb-4">Mbps de bajada</p>
+            <p className="text-sm uppercase tracking-widest text-neutral-400 mb-4">{T.queue.speedModal.mbpsLabel}</p>
             {q && (
               <p className="text-base font-bold mb-6" style={{ color: q.color }}>
                 {q.label}
@@ -600,7 +622,7 @@ function SpeedTestModal(props) {
         )}
 
         {status === 'error' && (
-          <p className="text-base text-red-400 mb-6">No se pudo medir la velocidad. Revisa la conexión.</p>
+          <p className="text-base text-red-400 mb-6">{T.queue.speedModal.error}</p>
         )}
 
         <button
@@ -608,7 +630,7 @@ function SpeedTestModal(props) {
           className="w-full h-11 rounded-xl font-bold text-white"
           style={{ background: 'linear-gradient(90deg, #E91E8C, #8B5CF6)' }}
         >
-          Cerrar
+          {T.queue.speedModal.close}
         </button>
       </div>
     </div>

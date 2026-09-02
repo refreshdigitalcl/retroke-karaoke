@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import RetroEqualizer from '../components/RetroEqualizer'
 import FloatingDecor from '../components/FloatingDecor'
 import FallingParty from '../components/FallingParty'
+import { useLanguage } from '../lib/i18n'
 
 var BURST_COLORS = ['#E91E8C', '#F4D03F', '#7ED957', '#8B5CF6']
 
@@ -226,6 +227,7 @@ export default function SessionLeaderboard() {
   var lastClosedSession = session.lastClosedSession
   var loadSessionLeaderboard = session.loadSessionLeaderboard
   var hasFeature = session.hasFeature
+  var T = useLanguage().T
 
   var listState = useState(null)
   var list = listState[0]
@@ -288,7 +290,7 @@ export default function SessionLeaderboard() {
   if (list === null) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-black">
-        <p className="text-neutral-500">Cargando resultados...</p>
+        <p className="text-neutral-500">{T.leaderboard.loading}</p>
       </div>
     )
   }
@@ -311,7 +313,7 @@ export default function SessionLeaderboard() {
         }}
         className="fixed top-5 right-5 z-30 w-11 h-11 rounded-full flex items-center justify-center border-2"
         style={{ borderColor: '#F4D03F', background: 'rgba(15,10,20,0.85)' }}
-        title="Ir a selección de salas"
+        title={T.leaderboard.goToRooms}
       >
         <span className="text-lg">🏠</span>
       </button>
@@ -321,13 +323,13 @@ export default function SessionLeaderboard() {
           {lastClosedSession.name}
         </p>
         <h1 className="font-extrabold text-white text-center leading-tight" style={{ fontSize: 'clamp(1.4rem, 4.2vh, 3rem)' }}>
-          🏆 Mejores del karaoke
+          {T.leaderboard.title}
         </h1>
       </div>
 
       {list.length === 0 ? (
         <p className="relative z-10 text-xl text-neutral-400 flex-1 flex items-center">
-          No hubo calificaciones esta noche.
+          {T.leaderboard.noRatings}
         </p>
       ) : (
         <>
@@ -350,21 +352,21 @@ export default function SessionLeaderboard() {
             >
               <StatCard
                 icon="🎶"
-                label="Genero de la noche"
-                value={nightStats.topGenre || 'Variado'}
-                sub={nightStats.participantCount + ' presentaciones'}
+                label={T.leaderboard.genreOfNight}
+                value={nightStats.topGenre || T.leaderboard.genreVaried}
+                sub={nightStats.participantCount + ' ' + T.leaderboard.performancesCount}
               />
               <StatCard
                 icon="🔥"
-                label="Mas reaccionado"
-                value={nightStats.mostReacted || 'Sin datos aun'}
-                sub={nightStats.mostReactedCount > 0 ? nightStats.mostReactedCount + ' reacciones' : ''}
+                label={T.leaderboard.mostReacted}
+                value={nightStats.mostReacted || T.leaderboard.noDataYet}
+                sub={nightStats.mostReactedCount > 0 ? nightStats.mostReactedCount + ' ' + T.leaderboard.reactionsCount : ''}
               />
               <StatCard
                 icon="⭐"
-                label="Promedio general"
+                label={T.leaderboard.averageScore}
                 value={nightStats.avgScore.toFixed(1)}
-                sub={nightStats.totalReactions + ' reacciones en total'}
+                sub={nightStats.totalReactions + ' ' + T.leaderboard.reactionsTotal}
               />
             </div>
           )}
@@ -375,7 +377,7 @@ export default function SessionLeaderboard() {
               style={{ padding: 'clamp(10px, 2vh, 20px) clamp(16px, 3vw, 24px)', marginBottom: 'clamp(10px, 2.5vh, 40px)' }}
             >
               <p className="text-neutral-400" style={{ fontSize: 'clamp(0.7rem, 1.5vh, 0.875rem)' }}>
-                🔒 Las estadisticas de la noche estan disponibles en el plan <span className="text-yellow-400 font-bold">PRO</span>
+                {T.leaderboard.proLocked} <span className="text-yellow-400 font-bold">{T.leaderboard.proLabel}</span>
               </p>
             </div>
           )}

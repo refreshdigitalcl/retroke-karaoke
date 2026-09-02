@@ -8,33 +8,16 @@ import QRCode from '../components/QRCode'
 import { fetchArtistFacts } from '../lib/artistFacts'
 import { getSentiment } from '../lib/reactionEmojis'
 import { isMemeReaction, getMemeUrl, getMemeSentiment } from '../lib/memeReactions'
+import { useLanguage } from '../lib/i18n'
 
-
-var PHRASES = [
-  'está cantando con todo.', 'está rompiendo el escenario.', 'está rockeando como nunca.',
-  'está en su prime.', 'está dando cátedra.', 'está dejando todo en el escenario.',
-  'está encendiendo la noche.', 'está haciendo vibrar el lugar.', 'está simplemente increíble.',
-  'está en modo estrella.', 'está demostrando por qué es uno de los grandes.',
-  'está entregando un show de otro nivel.', 'está haciendo historia esta noche.',
-  'está conquistando al público.', 'está haciendo cantar a todos.', 'está prendiendo el ambiente.',
-  'está dejando la energía arriba.', 'está demostrando todo su talento.',
-  'está brillando sobre el escenario.', 'está en su mejor momento.', 'está entregando pura energía.',
-  'está haciendo vibrar cada rincón.', 'está desatando la fiesta.', 'está dominando el escenario.',
-  'está cantando como los grandes.', 'está regalando un show inolvidable.',
-  'está haciendo explotar el ambiente.', 'está entregando una presentación espectacular.',
-  'está cantando con el alma.', 'está en modo leyenda.', 'está brillando con luz propia.',
-  'está haciendo vibrar la noche.', 'está haciendo disfrutar a todos.', 'está en llamas.',
-  'está simplemente en otro nivel.'
-]
-
-function pickPhrase(seed) {
+function pickPhrase(phrases, seed) {
   var index = 0
   var i = 0
   while (i < seed.length) {
     index = index + seed.charCodeAt(i)
     i = i + 1
   }
-  return PHRASES[index % PHRASES.length]
+  return phrases[index % phrases.length]
 }
 
 function useSongInfo(song, active, factsEnabled, confirmedArtist) {
@@ -198,6 +181,7 @@ function useNeedlePosition(reactions) {
 
 export default function DisplayReactions() {
   var session = useKaraokeSession()
+  var T = useLanguage().T
   var currentSinger = session.currentSinger
   var sessionId = session.sessionId
   var workspaceType = session.workspaceType
@@ -210,8 +194,8 @@ export default function DisplayReactions() {
 
   var phrase = useMemo(function () {
     if (!currentSinger) return ''
-    return pickPhrase(String(currentSinger.id))
-  }, [currentSinger])
+    return pickPhrase(T.reactions.phrases, String(currentSinger.id))
+  }, [currentSinger, T])
 
   var hasVideo = !!(currentSinger && currentSinger.videoId)
   var songInfo = useSongInfo(currentSinger ? currentSinger.song : '', hasVideo, hasFeature('artist_facts'), currentSinger ? currentSinger.artistName : '')
@@ -345,7 +329,7 @@ export default function DisplayReactions() {
           >
             <span className="text-6xl">▶️</span>
             <span className="text-xl md:text-2xl font-extrabold text-white text-center">
-              Toca para reproducir el video
+              {T.reactions.tapToPlay}
             </span>
           </button>
         </div>
@@ -376,7 +360,7 @@ export default function DisplayReactions() {
               <rect x="47" y="8" width="5" rx="2.5" height="8" fill="#F4D03F" />
             </svg>
             <span className="text-xs uppercase tracking-[3px] font-extrabold shrink-0" style={{ color: '#fff' }}>
-              Escuchando
+              {T.reactions.listening}
             </span>
           </div>
 
@@ -450,7 +434,7 @@ export default function DisplayReactions() {
                     className="text-sm font-bold text-yellow-400 mb-2 text-center leading-tight w-[165px]"
                     style={{ textShadow: '0 1px 4px rgba(0,0,0,0.9)' }}
                   >
-                    ¡Reacciona a esta presentacion!
+                    {T.reactions.reactQr}
                   </p>
                   <div className="relative rounded-2xl bg-neutral-950/90 p-3" style={{ boxShadow: '0 0 22px 3px rgba(244, 208, 63, 0.3)' }}>
                     <span className="qr-flow-ring" aria-hidden="true" />
@@ -463,7 +447,7 @@ export default function DisplayReactions() {
                     className="text-sm font-bold text-purple-300 mb-2 text-center leading-tight w-[165px]"
                     style={{ textShadow: '0 1px 4px rgba(0,0,0,0.9)' }}
                   >
-                    ¿Aun no te anotas? ¡Escanea aqui!
+                    {T.reactions.registerQr}
                   </p>
                   <div className="relative rounded-2xl bg-neutral-950/90 p-3" style={{ boxShadow: '0 0 24px 4px rgba(139, 92, 246, 0.35)' }}>
                     <span className="qr-flow-ring" aria-hidden="true" />
@@ -477,7 +461,7 @@ export default function DisplayReactions() {
       ) : (
         <div className="relative z-10 min-h-screen flex flex-col items-center justify-center px-8">
           <span className="text-xs px-3 py-1 rounded-full text-white bg-pink-600 mb-8">
-            En vivo
+            {T.reactions.liveNow}
           </span>
 
           <div
@@ -500,7 +484,7 @@ export default function DisplayReactions() {
 
           <div className="flex flex-col items-center gap-1.5">
             <QRCode url={reactUrl} size={160} />
-            <p className="text-sm text-purple-300">Escanea para reaccionar</p>
+            <p className="text-sm text-purple-300">{T.reactions.scanToReact}</p>
           </div>
         </div>
       )}

@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import RetroEqualizer from '../components/RetroEqualizer'
 import FallingParty from '../components/FallingParty'
 import { isMemeReaction } from '../lib/memeReactions'
+import { useLanguage } from '../lib/i18n'
 
 var STAGE_LIGHT_COLORS = ['#E91E8C', '#8B5CF6', '#F4D03F', '#7ED957', '#E91E8C']
 var STAGE_LIGHT_POSITIONS = ['8%', '27%', '50%', '73%', '92%']
@@ -57,52 +58,6 @@ function ConfettiBurst(props) {
   return <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">{particles}</div>
 }
 
-var RESULT_TITLES = [
-  '¡Gran Presentación! 🎤👏',
-  '¡Excelente Presentación! ⭐🎶',
-  '¡Tremenda Presentación! 🔥🎤',
-  '¡Fantástica Presentación! 🌟👏',
-  '¡Increíble Presentación! 🤩🎤',
-  '¡Brillante Presentación! ✨🎶',
-  '¡Espectacular Presentación! 💥👏',
-  '¡Magnífica Presentación! 🌟🎤',
-  '¡Qué Gran Presentación! 👏🔥',
-  '¡Una Presentación Inolvidable! 🎶⭐',
-  '¡Presentación de Lujo! 👑🎤',
-  '¡Puro Talento! 🎤✨',
-  '¡Te Luciste! 🔥👏',
-  '¡La Rompiste! 💥🎤',
-  '¡El Escenario Fue Tuyo! 👑🎶',
-  '¡Una Presentación para Recordar! 🌟👏',
-  '¡El Público lo Disfrutó! 🙌🎤',
-  '¡Voz y Actitud! 🔥🎶',
-  '¡Te Pasaste! 👏⭐',
-  '¡Nivel Estrella! 🌟🎤'
-]
-
-var RESULT_PHRASES = [
-  '¡Gran presentación! 🎤👏',
-  '¡Te luciste en el escenario! 🔥🎤',
-  '¡El público lo disfrutó muchísimo! 👏❤️',
-  '¡Qué tremenda interpretación! ⭐🎶',
-  '¡Voz, actitud y espectáculo! 🔥🎤',
-  '¡Nos regalaste una gran presentación! 🎵👏',
-  '¡El escenario fue tuyo! 👑🎤',
-  '¡Una actuación para recordar! 🌟🎶',
-  '¡Te pasaste! Tremenda presentación 🔥👏',
-  '¡El público habló y te aplaudió! 👏🙌',
-  '¡Puro talento sobre el escenario! 🎤✨',
-  '¡Cantaste con todo el corazón! ❤️🎶',
-  '¡Qué manera de cantar! 🔥🎤',
-  '¡Una presentación llena de energía! ⚡👏',
-  '¡El micrófono fue tuyo y lo disfrutaste! 🎤😎',
-  '¡Nos sorprendiste! Gran presentación 😮⭐',
-  '¡La rompiste esta noche! 💥🎤',
-  '¡Una presentación digna de aplausos! 👏🌟',
-  '¡El público disfrutó cada segundo! 🎶❤️',
-  '¡Gracias por dejarlo todo en el escenario! 🙌🔥'
-]
-
 function pickFromList(list, seed) {
   var index = 0
   var i = 0
@@ -113,7 +68,7 @@ function pickFromList(list, seed) {
   return list[index % list.length]
 }
 
-function useRotatingTitle(seed) {
+function useRotatingTitle(seed, titles) {
   var startIndex = useMemo(function () {
     var index = 0
     var i = 0
@@ -121,8 +76,8 @@ function useRotatingTitle(seed) {
       index = index + seed.charCodeAt(i)
       i = i + 1
     }
-    return index % RESULT_TITLES.length
-  }, [seed])
+    return index % titles.length
+  }, [seed, titles])
 
   var indexState = useState(startIndex)
   var index = indexState[0]
@@ -131,12 +86,12 @@ function useRotatingTitle(seed) {
   useEffect(function () {
     setIndex(startIndex)
     var id = setInterval(function () {
-      setIndex(function (prev) { return (prev + 1) % RESULT_TITLES.length })
+      setIndex(function (prev) { return (prev + 1) % titles.length })
     }, 5000)
     return function () { clearInterval(id) }
-  }, [startIndex])
+  }, [startIndex, titles])
 
-  return { title: RESULT_TITLES[index], index: index }
+  return { title: titles[index], index: index }
 }
 
 export default function DisplayResult() {
@@ -146,6 +101,7 @@ export default function DisplayResult() {
   var workspaceType = session.workspaceType
   var workspacePlan = session.workspacePlan
   var sessionId = session.sessionId
+  var T = useLanguage().T
 
   // Efecto de sonido al revelar la nota. Por ahora solo en el plan Free,
   // que hasta ahora se quedaba sin ningun sonido en esta pantalla.
@@ -267,11 +223,11 @@ export default function DisplayResult() {
     return function () { clearInterval(id) }
   }, [])
 
-  var titleInfo = useRotatingTitle(currentSinger ? String(currentSinger.id) : 'none')
+  var titleInfo = useRotatingTitle(currentSinger ? String(currentSinger.id) : 'none', T.result.titles)
 
   if (!currentSinger) return null
 
-  var phrase = pickFromList(RESULT_PHRASES, String(currentSinger.id) + 'x')
+  var phrase = pickFromList(T.result.phrases, String(currentSinger.id) + 'x')
 
   return (
     <div className="h-screen w-screen relative overflow-hidden bg-black flex flex-col items-center justify-center px-6 py-4 md:px-12">
@@ -288,7 +244,7 @@ export default function DisplayResult() {
 
         <div className="relative z-10 flex flex-col md:flex-row flex-wrap justify-center w-full max-w-6xl items-stretch min-h-0" style={{ gap: 'clamp(10px, 1.6vh, 24px)' }}>
         <div className="w-full md:w-72 shrink-0 rounded-3xl border-2 flex flex-col items-center justify-center text-center result-panel-glow-pink" style={{ borderColor: 'rgba(244,208,63,0.55)', background: 'rgba(15,10,20,0.88)', padding: 'clamp(14px, 2.4vh, 32px)' }}>
-          <p className="uppercase tracking-[3px] text-neutral-400 font-bold" style={{ fontSize: 'clamp(11px, 1.4vh, 15px)', marginBottom: 'clamp(4px, 1vh, 12px)' }}>👥 Público</p>
+          <p className="uppercase tracking-[3px] text-neutral-400 font-bold" style={{ fontSize: 'clamp(11px, 1.4vh, 15px)', marginBottom: 'clamp(4px, 1vh, 12px)' }}>{T.result.audience}</p>
           {average ? (
             <>
               <p className="font-extrabold text-yellow-400 leading-none" style={{ fontSize: 'clamp(2.4rem, 8vh, 5rem)' }}>
@@ -298,11 +254,11 @@ export default function DisplayResult() {
                 {phrase}
               </p>
               <p className="text-neutral-400" style={{ fontSize: 'clamp(10px, 1.3vh, 14px)', marginTop: 'clamp(2px, 0.6vh, 8px)' }}>
-                {songRatings.length} {songRatings.length === 1 ? 'voto' : 'votos'}
+                {songRatings.length} {songRatings.length === 1 ? T.result.voteSingular : T.result.votePlural}
               </p>
             </>
           ) : (
-            <p className="text-neutral-400" style={{ fontSize: 'clamp(0.9rem, 1.8vh, 1.25rem)' }}>Sin votos suficientes</p>
+            <p className="text-neutral-400" style={{ fontSize: 'clamp(0.9rem, 1.8vh, 1.25rem)' }}>{T.result.notEnoughVotes}</p>
           )}
         </div>
 
@@ -310,14 +266,14 @@ export default function DisplayResult() {
           <div className="w-full md:w-72 shrink-0 rounded-3xl border-2 flex flex-col items-center justify-center text-center nota-final-panel" style={{ padding: 'clamp(14px, 2.4vh, 32px)' }}>
             {bursting && <ConfettiBurst burstKey={burstKey} />}
             <p className="uppercase tracking-[3px] font-bold" style={{ color: '#F4D03F', textShadow: '0 0 10px rgba(244,208,63,0.8)', fontSize: 'clamp(11px, 1.4vh, 15px)', marginBottom: 'clamp(4px, 1vh, 12px)' }}>
-              ⭐ Nota Final
+              {T.result.finalScore}
             </p>
             <p className="nota-final-number leading-none">
               {notaFinal}
             </p>
             {average && retrokeAsNota !== null && (
               <p className="uppercase tracking-wide" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 'clamp(9px, 1.1vh, 13px)', marginTop: 'clamp(4px, 1.2vh, 16px)' }}>
-                Promedio Público + Retroke
+                {T.result.averageBoth}
               </p>
             )}
           </div>
@@ -326,7 +282,7 @@ export default function DisplayResult() {
         {vocalResult && (
           <div className="w-full md:w-72 shrink-0 rounded-3xl border-2 flex flex-col items-center justify-center text-center result-panel-glow-gold" style={{ borderColor: 'rgba(139,92,246,0.55)', background: 'rgba(10,8,20,0.92)', padding: 'clamp(14px, 2.4vh, 32px)' }}>
             <div className="flex items-center justify-center gap-2" style={{ marginBottom: 'clamp(4px, 1vh, 12px)' }}>
-              <p className="uppercase tracking-[3px] font-bold" style={{ color: '#F4D03F', fontSize: 'clamp(11px, 1.4vh, 15px)' }}>🎤 Retroke Score</p>
+              <p className="uppercase tracking-[3px] font-bold" style={{ color: '#F4D03F', fontSize: 'clamp(11px, 1.4vh, 15px)' }}>{T.result.retrokeScore}</p>
               {vocalResult.confidence && (
                 <span
                   className="uppercase font-bold rounded-full"
@@ -337,7 +293,7 @@ export default function DisplayResult() {
                     background: 'rgba(255,255,255,0.08)'
                   }}
                 >
-                  {vocalResult.confidence}
+                  {T.result.confidence[vocalResult.confidence] || vocalResult.confidence}
                 </span>
               )}
             </div>
@@ -346,10 +302,10 @@ export default function DisplayResult() {
             </p>
             <div className="grid grid-cols-2 w-full" style={{ gap: 'clamp(6px, 1vh, 12px)', marginTop: 'clamp(8px, 1.8vh, 24px)' }}>
               {[
-                { label: '🎯 Afinación', value: vocalResult.pitch_score, color: '#F4D03F' },
-                { label: '🥁 Ritmo', value: vocalResult.rhythm_score, color: '#8B5CF6' },
-                { label: '🎵 Estabilidad', value: vocalResult.stability_score, color: '#E91E8C' },
-                { label: '🔥 Energía', value: vocalResult.energy_score, color: '#7ED957' }
+                { label: T.result.metrics.pitch, value: vocalResult.pitch_score, color: '#F4D03F' },
+                { label: T.result.metrics.rhythm, value: vocalResult.rhythm_score, color: '#8B5CF6' },
+                { label: T.result.metrics.stability, value: vocalResult.stability_score, color: '#E91E8C' },
+                { label: T.result.metrics.energy, value: vocalResult.energy_score, color: '#7ED957' }
               ].map(function (m) {
                 return (
                   <div key={m.label} className="rounded-xl" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', padding: 'clamp(6px, 1.2vh, 14px)' }}>
@@ -370,7 +326,7 @@ export default function DisplayResult() {
 
         {reactionStats && (
           <div className="w-full md:w-72 shrink-0 rounded-3xl border-2 flex flex-col items-center justify-center text-center result-panel-glow-gold" style={{ borderColor: 'rgba(139,92,246,0.55)', background: 'rgba(10,8,20,0.92)', padding: 'clamp(14px, 2.4vh, 32px)' }}>
-            <p className="uppercase tracking-[3px] font-bold" style={{ color: '#8B5CF6', fontSize: 'clamp(11px, 1.4vh, 15px)', marginBottom: 'clamp(4px, 1vh, 12px)' }}>🔥 Reacciones</p>
+            <p className="uppercase tracking-[3px] font-bold" style={{ color: '#8B5CF6', fontSize: 'clamp(11px, 1.4vh, 15px)', marginBottom: 'clamp(4px, 1vh, 12px)' }}>{T.result.reactions}</p>
             <p className="font-extrabold leading-none" style={{ color: '#8B5CF6', textShadow: '0 0 20px rgba(139,92,246,0.6)', fontSize: 'clamp(2.4rem, 8vh, 5rem)' }}>
               {reactionStats.total}
             </p>
@@ -386,7 +342,7 @@ export default function DisplayResult() {
                 })}
               </div>
             ) : reactionStats.total === 0 ? (
-              <p className="text-neutral-400" style={{ fontSize: 'clamp(0.8rem, 1.6vh, 1rem)', marginTop: 'clamp(6px, 1.4vh, 20px)' }}>Sin reacciones esta vez</p>
+              <p className="text-neutral-400" style={{ fontSize: 'clamp(0.8rem, 1.6vh, 1rem)', marginTop: 'clamp(6px, 1.4vh, 20px)' }}>{T.result.noReactions}</p>
             ) : null}
           </div>
         )}

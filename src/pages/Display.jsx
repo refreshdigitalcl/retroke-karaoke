@@ -11,6 +11,7 @@ import SessionHub from './SessionHub'
 import AudioUnlockGate from '../components/AudioUnlockGate'
 import { pickTrackForPlan, createProRotation } from '../lib/waitingMusic'
 import { supabase } from '../lib/supabase'
+import { LanguageProvider, useLanguage, translations, readStoredLang, storeLang } from '../lib/i18n'
 
 function checkNoParams() {
   if (typeof window === 'undefined') return false
@@ -52,6 +53,24 @@ export default function Display() {
   var isWaiting = hasActiveSession && WAITING_MODES.indexOf(screenMode) !== -1
   var isWaitingRef = useRef(isWaiting)
   isWaitingRef.current = isWaiting
+
+  // Selector de idioma ES/EN para todas las pantallas de TV (todo lo que
+  // rota dentro de este componente). Se guarda en localStorage para que la
+  // eleccion sobreviva recargas/cambios de pantalla -- el boton para
+  // cambiarlo vive en DisplayQueue.jsx (junto a mute/speed test/cambiar
+  // sala), pero el estado real vive aca arriba, en el contexto, porque
+  // TODAS las pantallas hijas necesitan leerlo, no solo la de espera.
+  var langState = useState(readStoredLang)
+  var lang = langState[0]
+  var setLangState = langState[1]
+  function toggleLang() {
+    setLangState(function (prev) {
+      var next = prev === 'es' ? 'en' : 'es'
+      storeLang(next)
+      return next
+    })
+  }
+  var languageValue = { lang: lang, setLang: setLangState, toggleLang: toggleLang, T: translations[lang] }
 
   function playTrack(url, loop, onEnded) {
     if (audioRef.current) {
@@ -150,7 +169,7 @@ export default function Display() {
   if (redirectingToSaved) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: '#0a0a0a' }}>
-        <p style={{ color: '#666' }}>Cargando tu sala...</p>
+        <p style={{ color: '#666' }}>{languageValue.T.display.loadingRoom}</p>
       </div>
     )
   }
@@ -160,6 +179,7 @@ export default function Display() {
   }
 
   return (
+    <LanguageProvider value={languageValue}>
     <AudioUnlockGate onUnlock={handleUnlock}>
       {audioBlocked && (
         <button
@@ -171,7 +191,7 @@ export default function Display() {
           style={{ borderColor: '#F4D03F', background: 'rgba(15,10,20,0.92)' }}
         >
           <span className="text-lg">🔊</span>
-          <span className="text-sm font-bold text-white">Toca para activar el sonido</span>
+          <span className="text-sm font-bold text-white">{languageValue.T.display.tapToUnmute}</span>
         </button>
       )}
       {workspaceType === 'HOME' && <VocalScoreToast sessionId={sessionId} />}
@@ -191,11 +211,13 @@ export default function Display() {
         <DisplayQueue muted={muted} toggleMute={toggleMute} musicEnabled={true} />
       )}
     </AudioUnlockGate>
+    </LanguageProvider>
   )
 }
 
 function VocalScoreToast(props) {
   var sessionId = props.sessionId
+  var T = useLanguage().T
   var lastSeenIdRef = useRef(null)
   var initializedRef = useRef(false)
 
@@ -272,7 +294,7 @@ function VocalScoreToast(props) {
         </div>
         <div>
           <p className="text-xs uppercase tracking-wide" style={{ color: '#F4D03F' }}>
-            🎉 Presentación completada
+            {T.display.performanceDone}
           </p>
           <p className="text-base font-bold" style={{ color: '#fff' }}>
             {entry ? entry.name : 'Cantante'}

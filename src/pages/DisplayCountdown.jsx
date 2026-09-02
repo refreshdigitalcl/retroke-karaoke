@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { useKaraokeSession } from '../contexts/KaraokeSessionContext'
+import { useLanguage } from '../lib/i18n'
 
 export default function DisplayCountdown() {
   var session = useKaraokeSession()
   var currentSinger = session.currentSinger
   var startPlaying = session.startPlaying
+  var T = useLanguage().T
 
   var numberState = useState(8)
   var number = numberState[0]
@@ -51,7 +53,7 @@ export default function DisplayCountdown() {
       <p className="text-lg md:text-2xl tracking-widest uppercase text-purple-400 mb-4">
         {currentSinger.name}
       </p>
-      <p className="text-sm md:text-base text-neutral-400 mb-10">Preparate...</p>
+      <p className="text-sm md:text-base text-neutral-400 mb-10">{T.countdown.getReady}</p>
 
       <div key={number} className="countdown-number text-[10rem] md:text-[16rem] font-extrabold leading-none text-pink-500">
         {number > 0 ? number : '🎤'}

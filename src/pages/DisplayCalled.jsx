@@ -1,6 +1,7 @@
 import { useKaraokeSession } from '../contexts/KaraokeSessionContext'
 import { useRetrokeFont } from '../lib/fonts'
 import RetroEqualizer from '../components/RetroEqualizer'
+import { useLanguage } from '../lib/i18n'
 
 // v5 -- reconstruida desde cero (feedback: "no me gusto para nada,
 // reconstruye desde 0, elimina esas luces arriba y esas rayas, necesito
@@ -45,6 +46,7 @@ import RetroEqualizer from '../components/RetroEqualizer'
 export default function DisplayCalled() {
   var session = useKaraokeSession()
   var currentSinger = session.currentSinger
+  var T = useLanguage().T
   useRetrokeFont()
 
   if (!currentSinger) return null
@@ -103,7 +105,7 @@ export default function DisplayCalled() {
       <div className="relative z-10 called-scene called-in">
         <span className="called-badge">
           <span aria-hidden="true">🎤</span>
-          Prepárate para cantar
+          {T.called.badge}
         </span>
 
         <div className="called-stage-3d">
