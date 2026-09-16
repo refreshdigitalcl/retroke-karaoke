@@ -23,7 +23,7 @@ import HeroBackdropPhoto from '../components/HeroBackdropPhoto'
 // tener su propio lenguaje aislado.
 
 // Mismos 3 links de siempre (RetrokeNavbar.DEFAULT_LINKS) + un acceso
-// directo a "Soy DJ" (/dj, la misma pantalla de login que ya usan
+// directo a "Ingresar a Retroke" (/dj, la misma pantalla de login que ya usan
 // LandingPage/WelcomePage) -- pedido explicito: alguien que llega a la
 // pantalla de seleccion de salas y quiere ABRIR una sala como DJ no tenia
 // forma de hacerlo sin salir a /inicio primero. Se arma esta lista aca (no
@@ -34,7 +34,7 @@ var SESSION_HUB_NAV_LINKS = [
   { key: 'inicio', label: 'Inicio', href: '/inicio' },
   { key: 'world', label: 'Retroke World', href: '/world', pulse: true },
   { key: 'precios', label: 'Planes y precios', href: '/precios' },
-  { key: 'dj', label: 'Soy DJ', href: '/dj' }
+  { key: 'dj', label: 'Ingresar a Retroke', href: '/dj' }
 ]
 
 function saveRoom(href) {
