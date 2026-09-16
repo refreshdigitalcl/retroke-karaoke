@@ -22,6 +22,21 @@ import HeroBackdropPhoto from '../components/HeroBackdropPhoto'
 // Visual System 2.0 / tokens --rk-*) que ya usa Retroke World, en vez de
 // tener su propio lenguaje aislado.
 
+// Mismos 3 links de siempre (RetrokeNavbar.DEFAULT_LINKS) + un acceso
+// directo a "Soy DJ" (/dj, la misma pantalla de login que ya usan
+// LandingPage/WelcomePage) -- pedido explicito: alguien que llega a la
+// pantalla de seleccion de salas y quiere ABRIR una sala como DJ no tenia
+// forma de hacerlo sin salir a /inicio primero. Se arma esta lista aca (no
+// se toca el default de RetrokeNavbar) porque ese componente es
+// compartido y el resto de las pantallas que lo usen a futuro no
+// necesariamente quieren este link.
+var SESSION_HUB_NAV_LINKS = [
+  { key: 'inicio', label: 'Inicio', href: '/inicio' },
+  { key: 'world', label: 'Retroke World', href: '/world', pulse: true },
+  { key: 'precios', label: 'Planes y precios', href: '/precios' },
+  { key: 'dj', label: 'Soy DJ', href: '/dj' }
+]
+
 function saveRoom(href) {
   try {
     localStorage.setItem('retroke_last_room', href)
@@ -243,7 +258,7 @@ export default function SessionHub() {
       <HeroBackdropPhoto />
       <RetroEqualizer />
 
-      <RetrokeNavbar active={null} />
+      <RetrokeNavbar active={null} links={SESSION_HUB_NAV_LINKS} />
 
       <div className="rk-hub-page">
         <div className="rk-hub-hero-wrap">
